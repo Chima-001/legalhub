@@ -1,0 +1,159 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+    <title>Second Semester 100L Cases</title>
+    <link rel="stylesheet" href="./src/output.css">
+    <link rel="stylesheet" href="./src/css/style.css">
+    <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
+    <script src="https://cdn.tailwindcss.com">
+    </script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css">
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-app-compat.js">
+    </script>
+    <script src="https://www.gstatic.com/firebasejs/9.22.2/firebase-firestore-compat.js">
+    </script>
+</head>
+<body>
+    <!-- PRELOADER -->
+    <div id="preloader">
+        <div class="preloader-content">
+            <div class="vt-logo">
+                <span style="font-size: 25px;">cases</span>
+            </div>
+           
+        </div>
+    </div>
+    <!-- nav -->
+    <nav class="navbar-glass w-full py-3 md:py-4 px-5 md:px-8 fixed top-0 z-50 shadow-md">
+        <div class="max-w-7xl mx-auto flex items-center justify-between flex-wrap">
+            <div class="flex items-center gap-3">
+                <div class="w-9 h-9 rounded-xl bg-gradient-to-br from-emerald-500 to-indigo-600 flex items-center justify-center shadow-lg">
+                    <img src="./images/image.png" alt="logo" class="w-7 h-7 rounded-sm">
+                </div>
+                <div class="flex flex-col"><span class="text-white font-bold text-lg tracking-tight">030</span></div>
+            </div>
+            <div class="hidden md:flex items-center space-x-7">
+                <a href="#"><button id="navLibraryBtn" class="nav-link text-white/80 hover:text-white text-sm font-medium">Home</button></a>
+                <button id="navLibraryBtn" class="nav-link text-white/80 hover:text-white text-sm font-medium">Past Questions</button>
+                <button id="navDashboardBtn" class="nav-link text-white/80 hover:text-white text-sm font-medium">slides</button>
+                <button id="adminPanelBtn" class="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-full px-4 py-1.5 text-xs font-semibold text-white border border-white/20 flex items-center gap-2">Directors</button>
+            </div>
+            <button id="mobileMenuBtn" class="md:hidden text-white/80 text-2xl"><i class="fa fa-bars"></i></button>
+        </div>
+        <div id="mobileMenu" class="md:hidden hidden flex-col mt-4 pt-3 border-t border-white/10 space-y-3 pb-2">
+            <button id="mobileAdminBtn" class="bg-white/10 w-full backdrop-blur-sm rounded-full px-4 py-2 text-xs font-semibold text-white border border-white/20"><i class="fa fa-gavel"></i>Directors</button>
+        </div>
+    </nav>
+    <section class="relative bg-blue-950 text-white pt-32 pb-20">
+        <div class="absolute inset-0 opacity-20 bg-[url('https://images.unsplash.com/photo-1589829545856-d10d557cf95f')] bg-cover bg-center"></div>
+        <div class="relative max-w-6xl mx-auto text-center px-4">
+            <h1 class="text-4xl md:text-6xl font-bold mt-6">Find the <span class="gradient-text">Ratio</span> of Cases</h1>
+            <p class="mt-4 text-gray-300 max-w-xl mx-auto"><strong> Search and discover case Ratios</strong></p>
+        </div>
+    </section>
+    <!-- search -->
+    <div class="sticky-search-container">
+        <div class="max-w-2xl mx-auto px-4">
+            <div class="glass rounded-xl p-6 shadow-2xl">
+                <div class="flex flex-col md:flex-row gap-4">
+                    <div class="flex-1 relative">
+                        <i class="fas fa-search absolute left-4 top-1/2 transform -translate-y-1/2 text-gray-400"></i>
+                        <input type="text" id="searchInput" placeholder="Search by citation, case name, area, court, ratio, issues..." class="p-3 pl-11 rounded-xl bg-white text-black w-full border focus:ring-2 focus:ring-blue-500">
+                    </div>
+                    <button id="searchBtn" class="bg-blue-900 text-white px-8 py-3 rounded-xl hover:bg-blue-800 font-semibold"><i class="fas fa-search mr-1"></i> Search</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- STATS SECTION (original) -->
+    <section class="bg-white py-12 shadow-sm mt-8">
+        <div class="max-w-6xl mx-auto grid grid-cols-2 md:grid-cols-4 gap-6 text-center">
+            <div><h2 class="text-3xl font-bold text-blue-900" id="statCases">0</h2><p class="text-gray-500">Cases Available</p></div>
+            <div><h2 class="text-3xl font-bold text-blue-900">7+</h2><p class="text-gray-500">Courts Covered</p></div>
+            <div><h2 class="text-3xl font-bold text-blue-900">Ratio</h2><p class="text-gray-500">50+</p></div>
+            <div><h2 class="text-3xl font-bold text-blue-900">4.9</h2><p class="text-gray-500">User Rating ★</p></div>
+        </div>
+    </section>
+
+    <!-- MAIN CONTENT (Library + Dashboard) -->
+    <div class="max-w-7xl mx-auto px-4 pb-16">
+        <!-- Library View -->
+        <div id="libraryView">
+            <div class="flex flex-col lg:flex-row gap-10">
+                <div class="lg:w-1/3 desktop-recent-sidebar">
+                    <div class="bg-white rounded-2xl shadow-md p-6 sticky top-24">
+                        <div class="flex items-center gap-2 border-b border-gray-200 pb-3 mb-4"><i class="fas fa-clock text-blue-800 text-xl"></i><h2 class="text-xl font-bold text-gray-800">Recent Updates</h2></div>
+                        <div id="recentUpdatesContainer" class="space-y-4"></div>
+                    </div>
+                </div>
+                <div class="lg:w-2/3">
+                    <div class="bg-white rounded-2xl shadow-md p-6">
+                        <div class="flex justify-between items-center mb-5"><h2 class="text-xl font-bold text-gray-800"><i class="fas fa-gavel text-blue-800 mr-2"></i> Case Listings</h2><span id="resultCount" class="text-sm bg-gray-100 px-3 py-1 rounded-full">0 cases</span></div>
+                        <div id="casesContainer" class="space-y-5"></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Dashboard View (Saved Cases) -->
+        <div id="dashboardView" class="hidden">
+            <div class="bg-white rounded-2xl shadow-md p-6">
+                <div class="flex justify-between items-center border-b pb-3 mb-4"><h2 class="text-xl font-bold text-gray-800"><i class="fas fa-bookmark text-amber-500 mr-2"></i> My Saved Cases</h2><span id="savedCountBadge" class="text-sm bg-amber-100 text-amber-700 px-3 py-1 rounded-full">0 saved</span></div>
+                <div id="savedGrid" class="grid grid-cols-1 md:grid-cols-2 gap-5"></div>
+                <div id="emptyDashboardMsg" class="text-center py-12 hidden"><i cl  ass="fas fa-folder-open text-5xl text-gray-300 mb-3"></i><p class="text-gray-400">No saved cases yet. Browse the library and click "Save to My Dashboard".</p></div>
+            </div>
+        </div>
+    </div>
+    <footer class="bg-blue-950 text-white py-8 text-center">
+        <center>
+            © 2026 Victorious Tech Institute
+        </center>
+    </footer>
+    <!-- CASE READER MODAL (original) -->
+    <div id="readerModal" class="fixed inset-0 bg-black/80 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-[#fef9e8] rounded-2xl max-w-4xl w-full mx-4 max-h-[90vh] overflow-y-auto book-reader">
+            <div class="bg-amber-900 text-amber-50 px-6 py-4 rounded-t-2xl flex justify-between items-center sticky top-0"><h3 class="text-xl font-bold"><i class="fas fa-book-open mr-2"></i>Case Reader</h3><button id="closeReaderBtn" class="text-3xl leading-none">&times;</button></div>
+            <div class="p-8" id="readerContent"></div>
+        </div>
+    </div>
+    <!-- admin modal (original) -->
+    <div id="adminModal" class="fixed inset-0 bg-black/50 backdrop-blur-sm flex items-center justify-center z-50 hidden">
+        <div class="bg-white rounded-2xl max-w-5xl w-full mx-4 max-h-[90vh] overflow-y-auto shadow-2xl">
+            <div class="bg-blue-900 text-white px-6 py-4 rounded-t-2xl flex justify-between items-center sticky top-0"><h3 class="text-xl font-bold"><i class="fas fa-user-shield mr-2"></i>Case Management</h3><button id="closeAdminModalBtn" class="text-3xl leading-none">&times;</button></div>
+            <div class="p-6">
+                <div id="adminLoginArea">
+                    <label class="block text-sm font-bold text-gray-700 mb-1">Admin Password</label>
+                    <input type="password" id="adminPasswordInput" class="w-full p-3 border border-gray-300 rounded-xl mb-4" placeholder="Enter admin password">
+                    <button id="verifyAdminBtn" class="bg-blue-900 text-white px-6 py-2 rounded-xl w-full hover:bg-blue-800">Verify Access</button>
+                    <div id="loginError" class="text-rose-600 text-sm mt-2 hidden text-center"></div>
+                    <div class="mt-4 text-center"><button id="resetPasswordsBtn" class="text-sm  text-amber-800 px-5 py-2 rounded-full hover:bg-amber-200"></div>
+                </div>
+                <div id="adminDashboardArea" class="hidden">
+                    <div class="mb-6 flex flex-wrap gap-3 justify-between items-center border-b pb-4"><h4 class="text-lg font-bold text-gray-800"><i class="fas fa-database"></i> Manage Cases (Live)</h4><button id="addNewCaseAdminBtn" class="bg-green-700 text-white px-4 py-2 rounded-lg hover:bg-green-800 text-sm"><i class="fas fa-plus"></i> Add New Case</button></div>
+                    <div class="bg-gray-50 p-4 rounded-xl mb-6 border">
+                        <h5 class="font-bold text-blue-800 mb-2 flex items-center gap-2"><i class="fas fa-key"></i>
+                            Admin Password</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-3 gap-3"><input type="password" id="oldAdminPass" placeholder="Current password" class="p-2 border rounded text-sm"><input type="password" id="newAdminPass" placeholder="New password (min 4)" class="p-2 border rounded text-sm"><input type="password" id="confirmAdminPass" placeholder="Confirm new" class="p-2 border rounded text-sm"></div>
+                        <button id="changeAdminPasswordBtn" class="mt-3 bg-amber-600 hover:bg-amber-700 text-white text-sm px-4 py-2 rounded-lg transition">Update Password</button>
+                        <div id="adminPassMsg" class="text-xs mt-2 text-gray-600"></div>
+                    </div>
+                    <div id="adminAddForm" class="hidden bg-gray-50 p-4 rounded-xl mb-6 border">
+                        <h5 class="font-bold mb-3 text-blue-800">Create New Case (Complete Details)</h5>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-3"><input type="text" id="adminCaseName" placeholder="Case Name/Citation *" class="p-2 border rounded"><select id="adminAreaOfLaw" class="p-2 border rounded"><option>Constitutional Law</option><option>Contract Law</option><option>Tort Law</option><option>Criminal Law</option><option>Landmark Cases</option><option>Property Law</option><option>Family Law</option><option>Commercial Law</option><option>Customary Law</option><option>Procedural Law</option></select><input type="text" id="adminSpecificArea" placeholder="Specific Area" class="p-2 border rounded"><input type="text" id="adminCaseCourt" placeholder="Court *" class="p-2 border rounded"><input type="date" id="adminCaseDate" class="p-2 border rounded"><textarea id="adminIssues" placeholder="Legal Issues *" rows="2" class="p-2 border rounded md:col-span-2"></textarea><textarea id="adminFacts" placeholder="Facts *" rows="3" class="p-2 border rounded md:col-span-2"></textarea><textarea id="adminRatio" placeholder="Ratio Decidendi *" rows="3" class="p-2 border rounded md:col-span-2"></textarea><input type="text" id="adminKeywords" placeholder="Keywords (comma)" class="p-2 border rounded md:col-span-2"></div>
+                        <div class="flex gap-2 mt-3"><button id="submitAdminNewCase" class="bg-blue-700 text-white px-4 py-2 rounded-lg text-sm">Save</button><button id="cancelAdminAddForm" class="bg-gray-400 text-white px-4 py-2 rounded-lg text-sm">Cancel</button></div>
+                    </div>
+                    <div class="overflow-x-auto"><table class="w-full text-sm"><thead class="bg-gray-100"><tr><th class="p-3">ID</th><th>Case Name</th><th>Area</th><th>Court</th><th>Date</th><th>Actions</th></tr></thead><tbody id="adminCasesTableBody"></tbody></table></div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <button id="mobileRecentFloatBtn" class="mobile-recent-float-btn md:hidden"><i class="fas fa-history text-lg"></i> <span>📋 Recent Cases</span> <i class="fas fa-chevron-up text-xs ml-1"></i></button>
+    <div id="mobileRecentOverlay" class="mobile-recent-overlay"><div class="mobile-recent-drawer"><div class="recent-drawer-header"><span class="font-bold flex items-center gap-2"><i class="fas fa-clock"></i> Latest Updates</span><button id="closeDrawerBtn" class="text-white text-2xl leading-none">&times;</button></div><div id="mobileDrawerRecentList" class="p-4 space-y-3 bg-gray-50 max-h-[55vh] overflow-y-auto"></div></div>
+</div>
+    
+
+    <script src="./src/JS/app.js"> </script>
+</body>
+</html>
