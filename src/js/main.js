@@ -116,7 +116,7 @@
                 document.getElementById('greeting-text').textContent = g + ' 👋';
 
                 const start = new Date('2026-05-01');
-                const end = new Date('2026-09-15');
+                const end = new Date('2026-010-15');
                 const now = new Date();
                 const total = end - start;
                 const done = Math.min(Math.max(now - start, 0), total);
@@ -179,12 +179,14 @@
 
             function courseInitials(name) {
                 const map = {
-                    'Legal Method': 'LM',
-                    'Customary Law': 'CL',
-                    'Philosophy': 'PH',
-                    'Psychology': 'PS',
-                    'Intro to Nigerian Literature': 'LIT',
-                    'Communication in English': 'CIE'
+                    'Legal Method': 'PUL 102',
+                    'Customary Law': 'UNN LAW',
+                    'Philosophy': 'PHL 105',
+                    'Psychology': 'PSY 101',
+                    'Intro to Nigerian Literature': 'ELS 110',
+                    'Communication in English': 'GST 114',
+                    'Logic': 'LAW 102',
+                    'NATs': 'NATs'
                 };
                 return map[name] || name.slice(0, 2).toUpperCase();
             }
@@ -278,7 +280,7 @@
                     const body = encodeURIComponent('Hi,\n\nCould we get materials uploaded for ' + course +
                         ' (030 Legal Hub)?\n\nThanks!');
                     window.location.href =
-                        'mailto:academicdirectors@030legalhub.example?subject=' + subject + '&body=' + body;
+                        'mailto:hillarymmaka@gmail.com?subject=' + subject + '&body=' + body;
                 });
             });
 

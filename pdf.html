@@ -1,0 +1,76 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
+ <title>📚 Course Materials</title>
+    <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./src/images/favicon.svg" />
+    <link rel="shortcut icon" href="./images/favicon.ico" />
+    <link rel="apple-touch-icon" sizes="180x180" href=".images/apple-touch-icon.png" />
+    <link rel="stylesheet" href="./src/output.css">
+    <link rel="stylesheet" href="./src/css/pdf.css">
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
+  </script>
+  <style>
+  
+  </style>
+</head>
+<body>
+
+
+  <header class="top-nav">
+    <div class="logo">
+      📚 <span> 030 Course Library</span>
+    </div>
+    <div class="nav-actions">
+      <span class="stats-badge" id="statsDisplay">
+        <strong id="visibleCount">0</strong> / <strong id="totalBooks">0</strong>
+      </span>
+      <button class="hamburger" id="hamburgerBtn" aria-label="Open course menu">
+        ☰
+      </button>
+    </div>
+  </header>
+
+  <!-- ─── SEARCH ───────────────────────────────────────────────────── -->
+  <div class="search-container">
+    <div class="search-box">
+      <span class="search-icon">🔍</span>
+      <input type="text" id="searchInput" placeholder="Search for books..." autofocus />
+      <span class="shortcut-hint">⌘K</span>
+    </div>
+  </div>
+
+  <!-- ─── FILTER CHIPS (Desktop) ──────────────────────────────────── -->
+  <div class="filter-chips-wrapper">
+    <div class="filter-chips" id="filterChips"></div>
+  </div>
+
+  <!-- ─── BOOK GRID ────────────────────────────────────────────────── -->
+  <main class="book-grid" id="bookGrid"></main>
+
+  <!-- ─── FOOTER ───────────────────────────────────────────────────── -->
+  <div class="site-footer">
+    © 2026 <span>Victorious Tech Institute</span> — Legal Intelligence Hub
+  </div>
+
+  <!-- ─── BOTTOM SHEET (Mobile Navigation) ────────────────────────── -->
+  <div class="bottom-sheet-overlay" id="bottomSheetOverlay">
+    <div class="bottom-sheet">
+      <div class="sheet-handle"></div>
+      <div class="sheet-header">
+        <span class="sheet-title">📚 Courses</span>
+        <button class="sheet-close" id="sheetCloseBtn">✕</button>
+      </div>
+      <div class="sheet-course-list" id="mobileCourseList">
+        <!-- Injected by JavaScript -->
+      </div>
+    </div>
+  </div>
+
+  <script src="./src/JS/pdfs.js"></script>
+   
+  </script>
+</body>
+</html>
