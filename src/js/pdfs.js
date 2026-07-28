@@ -23,13 +23,15 @@
 
       // Map your PDF filenames to course names
       const FILE_COURSE_MAP = {
-        "./NEW CENTURY ENGLISH (2).pdf": "communication in English",
+        "./NEW CENTURY ENGLISH (1).pdf": "communication in English",
+        "./TAMARA.pdf": "communication in English",
         "": "legal method",
-        "": "Customary law",
+        "./Customary Land Tenure System II.pdf": "Customary law",
+        "./Customary_Land_Tenure_System_Merged.pdf": "Customary law",
         "": "philosophy",
         "": "psychology",
         "": "natural Science",
-        '': 'logics',
+        './Logic and critical thinking.pdf': 'logics',
         '': 'ELS',
       };
 
@@ -43,7 +45,7 @@
         'psychology': { bg: '#EDE9FE', spine: '#7C3AED', icon: '🧩' },
         'natural Science': { bg: '#CCFBF1', spine: '#0D9488', icon: '🔬' },
         'logics': { bg: '#FEF3C7', spine: '#D97706', icon: '🧮' },
-        'ELS': { bg: '#E0E7FF', spine: '#4F46E5', icon: '📘' },
+        'ELS': { bg: '#E0E7FF', spine: '#4F46E5', icon: 'NO FILE📘' },
       };
       const DEFAULT_STYLE = { bg: '#F1F5F9', spine: '#94A3B8', icon: '📄' };
 
