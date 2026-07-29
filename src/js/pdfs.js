@@ -25,7 +25,7 @@
       const FILE_COURSE_MAP = {
         "./NEW CENTURY ENGLISH (1).pdf": "communication in English",
         "./TAMARA.pdf": "communication in English",
-        "": "legal method",
+        "./Legal Methods 7-11.pdf": "legal method",
         "./Customary Land Tenure System II.pdf": "Customary law",
         "./Customary_Land_Tenure_System_Merged.pdf": "Customary law",
         "": "philosophy",
