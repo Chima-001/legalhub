@@ -33,10 +33,10 @@
             font-family: Arial, Helvetica, sans-serif;
             -webkit-font-smoothing: antialiased;
             background:
-                radial-gradient(ellipse 800px 600px at 5% 0%, rgba(74, 108, 247, 0.12), transparent 60%),
-                radial-gradient(ellipse 700px 500px at 95% 10%, rgba(124, 92, 252, 0.10), transparent 55%),
+                radial-gradient(ellipse 800px 600px at 5% 0%, rgba(48, 73, 171, 0.12), transparent 60%),
+                radial-gradient(ellipse 700px 500px at 95% 10%, rgba(97, 92, 116, 0.1), transparent 55%),
                 radial-gradient(ellipse 600px 500px at 50% 100%, rgba(74, 108, 247, 0.06), transparent 50%),
-                linear-gradient(170deg, #f8faff 0%, #edf2fa 40%, #e4eaf5 100%);
+                linear-gradient(170deg, #0548f2 0%, #4482e6 40%, #152034 100%);
             background-attachment: fixed;
         }
 
