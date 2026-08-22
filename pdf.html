@@ -1,21 +1,36 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=yes" />
- <title>📚 Course Materials</title>
-    <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
-    <link rel="icon" type="image/svg+xml" href="./src/images/favicon.svg" />
-    <link rel="shortcut icon" href="./images/favicon.ico" />
-    <link rel="apple-touch-icon" sizes="180x180" href=".images/apple-touch-icon.png" />
-    <link rel="stylesheet" href="./src/output.css">
-    <link rel="stylesheet" href="./src/css/pdf.css">
+  <meta property="og:title" content="LegalHub - Course Materials" />
+  <meta property="og:description"
+    content="A law student's platform for course materials, case researches, and lots more." />
+  <meta property="og:image" content="https://your-live-domain.com/social-preview.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://your-live-domain.com/" />
+  <title>📚 Course Materials</title>
+  <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
+  <link rel="icon" type="image/svg+xml" href="./src/images/favicon.svg" />
+  <link rel="shortcut icon" href="./images/favicon.ico" />
+  <link rel="apple-touch-icon" sizes="180x180" href=".images/apple-touch-icon.png" />
+  <link rel="stylesheet" href="./src/output.css">
+  <link rel="stylesheet" href="./src/css/pdf.css">
   <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js">
   </script>
+  <!-- <style>
+
+  </style> -->
   <style>
-  
+    body {
+      visibility: hidden;
+    }
   </style>
+  <script src="supabase-client.js"></script>
+  <script src="auth-guard.js"></script>
 </head>
+
 <body>
 
 
@@ -70,7 +85,8 @@
   </div>
 
   <script src="./src/JS/pdfs.js"></script>
-   
+
   </script>
 </body>
+
 </html>

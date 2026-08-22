@@ -1,0 +1,181 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <meta property="og:title" content="LegalHub - signup" />
+  <meta property="og:description"
+    content="A law student's platform for course materials, case researches, and lots more." />
+  <meta property="og:image" content="https://your-live-domain.com/social-preview.png" />
+  <meta property="og:type" content="website" />
+  <meta property="og:url" content="https://your-live-domain.com/" />
+  <title>Sign Up - LegalHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center px-4 py-10"
+  style="background: linear-gradient(135deg, #fdf6e3 0%, #f9e2a7 100%);">
+  <div class="w-full max-w-sm bg-[#faf7ee] rounded-3xl shadow-lg p-8">
+
+    <div class="flex flex-col items-center mb-6">
+      <div class="w-14 h-14 flex items-center justify-center rounded-2xl bg-[#f2c14e]/20 mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-[#c98a1f]" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" />
+        </svg>
+      </div>
+      <span class="font-semibold text-[#c98a1f] text-lg">LegalHub</span>
+    </div>
+
+    <h1 class="text-xl font-bold text-center text-gray-800">Create Account</h1>
+    <p class="text-sm text-gray-500 text-center mt-1 mb-6">Sign up with your student details</p>
+
+    <form id="signup-form" class="space-y-4">
+
+      <div>
+        <label class="text-sm text-gray-600 mb-1 block">Reg Number</label>
+        <div class="flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
+          <input id="reg_number" type="text" required placeholder="e.g. 2025/23114"
+            class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-sm text-gray-600 mb-1 block">Username <span class="text-gray-400">(optional)</span></label>
+        <div class="flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
+          <input id="username" type="text" placeholder="How you'll appear on the site"
+            class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-sm text-gray-600 mb-1 block">Email</label>
+        <div class="flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
+          </svg>
+          <input id="email" type="email" required placeholder="you@example.com"
+            class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
+        </div>
+      </div>
+
+      <div>
+        <label class="text-sm text-gray-600 mb-1 block">Password</label>
+        <div class="flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
+          <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24"
+            stroke="currentColor" stroke-width="1.8">
+            <path stroke-linecap="round" stroke-linejoin="round"
+              d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
+          </svg>
+          <input id="password" type="password" required minlength="6" placeholder="At least 6 characters"
+            class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
+        </div>
+      </div>
+
+      <p id="error-msg" class="text-sm text-red-500 hidden"></p>
+      <p id="success-msg" class="text-sm text-green-600 hidden"></p>
+
+      <button type="submit" id="submit-btn"
+        class="w-full py-3 rounded-full font-semibold text-gray-900 shadow-md transition"
+        style="background: linear-gradient(90deg, #ffd166, #f4a123); box-shadow: 0 8px 20px rgba(244, 161, 35, 0.4);">
+        Sign Up
+      </button>
+    </form>
+
+    <p class="text-sm text-gray-500 text-center mt-6">
+      Already have an account? <a href="login.html" class="text-[#c98a1f] font-medium hover:underline">Log in</a>
+    </p>
+  </div>
+
+  <script src="supabase-client.js"></script>
+  <script>
+    const form = document.getElementById("signup-form");
+    const errorMsg = document.getElementById("error-msg");
+    const successMsg = document.getElementById("success-msg");
+    const submitBtn = document.getElementById("submit-btn");
+
+    function showError(msg) {
+      successMsg.classList.add("hidden");
+      errorMsg.textContent = msg;
+      errorMsg.classList.remove("hidden");
+    }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      errorMsg.classList.add("hidden");
+      successMsg.classList.add("hidden");
+      submitBtn.disabled = true;
+      submitBtn.textContent = "Checking eligibility...";
+
+      const regNumber = document.getElementById("reg_number").value.trim();
+      const username = document.getElementById("username").value.trim();
+      const email = document.getElementById("email").value.trim();
+      const password = document.getElementById("password").value;
+
+      // Step 1: confirm this reg number is on the official class list
+      const { data: isEligible, error: eligibilityError } = await supabaseClient
+        .rpc("check_student_eligibility", { p_reg_number: regNumber });
+
+      if (eligibilityError) {
+        showError("Something went wrong checking eligibility. Please try again.");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign Up";
+        return;
+      }
+
+      if (!isEligible) {
+        showError(
+          "This reg number isn't recognized, or has already been used to sign up. Contact the site admin if you believe this is a mistake."
+        );
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign Up";
+        return;
+      }
+
+      // Step 2: create the account. Your full name is pulled automatically
+      // from the class list (matched by reg number) once you confirm your
+      // email - not typed here, so there's no risk of a name mismatch.
+      submitBtn.textContent = "Creating account...";
+      const { error: signUpError } = await supabaseClient.auth.signUp({
+        email,
+        password,
+        options: {
+          data: { reg_number: regNumber, username: username || null },
+        },
+      });
+
+      if (signUpError) {
+        showError(signUpError.message);
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign Up";
+        return;
+      }
+
+      successMsg.textContent = "Account created! Check your email to confirm before logging in.";
+      successMsg.classList.remove("hidden");
+      form.reset();
+      submitBtn.textContent = "Sign Up";
+      submitBtn.disabled = false;
+    });
+  </script>
+
+
+  <footer class="mt-8 mb-2 flex flex-col items-center gap-2 text-xs text-gray-400">
+    <span>&copy; <span id="footer-year"></span> LegalHub</span>
+    <span class="flex items-center gap-1.5">
+      Powered by
+      <a href="https://clopertechnologies.netlify.app" target="_blank" rel="noopener noreferrer" class="inline-flex">
+        <img src="cloper-logo.svg" alt="Cloper Technologies" class="h-5" />
+      </a>
+    </span>
+  </footer>
+  <script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
+
+</body>
+
+</html>
