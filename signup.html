@@ -76,6 +76,13 @@
             class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
         </div>
       </div>
+      <div>
+        <label class="text-sm text-gray-600 mb-1 block">Confirm Password</label>
+        <div class="flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
+          <input id="confirm_password" type="password" required minlength="6" placeholder="Re-enter password"
+            class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
+        </div>
+      </div>
 
       <p id="error-msg" class="text-sm text-red-500 hidden"></p>
       <p id="success-msg" class="text-sm text-green-600 hidden"></p>
@@ -116,6 +123,14 @@
       const username = document.getElementById("username").value.trim();
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
+      const confirmPassword = document.getElementById("confirm_password").value;
+
+      if (password !== confirmPassword) {
+        showError("Passwords don't match. Please re-enter.");
+        submitBtn.disabled = false;
+        submitBtn.textContent = "Sign Up";
+        return;
+      }
 
       // Step 1: confirm this reg number is on the official class list
       const { data: isEligible, error: eligibilityError } = await supabaseClient
