@@ -1,0 +1,226 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - LegalHub</title>
+  <meta name="description" content="Manage your LegalHub account.">
+  <meta name="author" content="Cloper Technologies">
+  <link rel="icon" type="image/svg+xml" href="favicon.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <style>
+    body {
+      visibility: hidden;
+    }
+  </style>
+</head>
+
+<body class="min-h-screen flex flex-col items-center px-4 py-8"
+  style="background: linear-gradient(135deg, #fdf6e3 0%, #f9e2a7 100%);">
+
+  <div class="w-full max-w-md">
+    <div class="flex flex-col items-center mb-6">
+      <div class="w-14 h-14 flex items-center justify-center rounded-2xl bg-[#f2c14e]/20 mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-[#c98a1f]" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M15.75 6a3.75 3.75 0 11-7.5 0 3.75 3.75 0 017.5 0zM4.501 20.118a7.5 7.5 0 0114.998 0A17.933 17.933 0 0112 21.75c-2.676 0-5.216-.584-7.499-1.632z" />
+        </svg>
+      </div>
+      <span class="font-semibold text-[#c98a1f] text-lg">My Profile</span>
+    </div>
+
+    <!-- Identity - read-only -->
+    <div class="bg-[#faf7ee] rounded-2xl p-6 border border-gray-200 mb-4">
+      <div class="mb-3">
+        <label class="text-xs text-gray-500 uppercase tracking-wide">Full Name</label>
+        <p id="profile-fullname" class="text-gray-800 font-medium">Loading...</p>
+      </div>
+      <div class="mb-3">
+        <label class="text-xs text-gray-500 uppercase tracking-wide">Reg Number</label>
+        <p id="profile-regnumber" class="text-gray-800 font-medium">Loading...</p>
+      </div>
+      <div>
+        <label class="text-xs text-gray-500 uppercase tracking-wide">Level</label>
+        <p id="profile-level" class="text-gray-800 font-medium">Loading...</p>
+      </div>
+    </div>
+
+    <!-- Editable: username -->
+    <div class="bg-[#faf7ee] rounded-2xl p-6 border border-gray-200 mb-4">
+      <label class="text-sm text-gray-600 mb-1 block">Username</label>
+      <div class="flex gap-2">
+        <input id="username-input" type="text" placeholder="How you'll appear on the site"
+          class="flex-1 bg-white rounded-xl px-4 py-2 border border-gray-200 outline-none" />
+        <button id="save-username-btn" class="px-4 py-2 rounded-xl font-semibold text-gray-900 text-sm"
+          style="background: linear-gradient(90deg, #ffd166, #f4a123);">Save</button>
+      </div>
+      <p id="username-status" class="text-sm mt-2"></p>
+    </div>
+
+    <!-- Editable: email -->
+    <div class="bg-[#faf7ee] rounded-2xl p-6 border border-gray-200 mb-4">
+      <label class="text-sm text-gray-600 mb-1 block">Email</label>
+      <div class="flex gap-2">
+        <input id="email-input" type="email" placeholder="you@example.com"
+          class="flex-1 bg-white rounded-xl px-4 py-2 border border-gray-200 outline-none" />
+        <button id="save-email-btn" class="px-4 py-2 rounded-xl font-semibold text-gray-900 text-sm"
+          style="background: linear-gradient(90deg, #ffd166, #f4a123);">Update</button>
+      </div>
+      <p class="text-xs text-gray-500 mt-1">Changing this requires re-confirming via email.</p>
+      <p id="email-status" class="text-sm mt-2"></p>
+    </div>
+
+    <!-- Password change -->
+    <div class="bg-[#faf7ee] rounded-2xl p-6 border border-gray-200 mb-4">
+      <label class="text-sm text-gray-600 mb-1 block">New Password</label>
+      <input id="new-password-input" type="password" minlength="6" placeholder="At least 6 characters"
+        class="w-full bg-white rounded-xl px-4 py-2 border border-gray-200 outline-none mb-2" />
+      <label class="text-sm text-gray-600 mb-1 block">Confirm New Password</label>
+      <input id="confirm-password-input" type="password" minlength="6" placeholder="Re-enter password"
+        class="w-full bg-white rounded-xl px-4 py-2 border border-gray-200 outline-none" />
+      <button id="save-password-btn" class="w-full mt-3 py-2 rounded-xl font-semibold text-gray-900 text-sm"
+        style="background: linear-gradient(90deg, #ffd166, #f4a123);">Change Password</button>
+      <p id="password-status" class="text-sm mt-2"></p>
+    </div>
+
+    <!-- Logout -->
+    <button id="logout-btn"
+      class="w-full py-3 rounded-full font-semibold text-gray-700 border border-gray-300 bg-white">
+      Log Out
+    </button>
+  </div>
+
+  <script src="supabase-client.js"></script>
+  <script src="auth-guard.js"></script>
+  <script>
+    // ============================================
+    // Dynamic level calculation - no manual DB updates ever needed.
+    // The whole class moves up together at a fixed date each year.
+    // Add more entries to LEVEL_SCHEDULE as years progress.
+    // ============================================
+    const LEVEL_SCHEDULE = [
+      { from: new Date("2025-01-01"), level: "100L" },
+      { from: new Date("2026-12-01"), level: "200L" }, // moves to 200L starting December 2026
+      // { from: new Date("2027-12-01"), level: "300L" },  // add next year when known
+    ];
+
+    function getCurrentLevel() {
+      const now = new Date();
+      let current = LEVEL_SCHEDULE[0].level;
+      for (const entry of LEVEL_SCHEDULE) {
+        if (now >= entry.from) current = entry.level;
+      }
+      return current;
+    }
+
+    document.getElementById("profile-level").textContent = getCurrentLevel();
+
+    // ============================================
+    // Load profile data
+    // ============================================
+    async function loadProfile() {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return;
+
+      const { data, error } = await supabaseClient
+        .from("users")
+        .select("full_name, reg_number, username, email")
+        .eq("id", user.id)
+        .single();
+
+      if (error || !data) return;
+
+      document.getElementById("profile-fullname").textContent = data.full_name || "-";
+      document.getElementById("profile-regnumber").textContent = data.reg_number || "-";
+      document.getElementById("username-input").value = data.username || "";
+      document.getElementById("email-input").value = data.email || user.email || "";
+    }
+
+    loadProfile();
+
+    // ============================================
+    // Save username
+    // ============================================
+    document.getElementById("save-username-btn").addEventListener("click", async () => {
+      const statusEl = document.getElementById("username-status");
+      const newUsername = document.getElementById("username-input").value.trim();
+      const { data: { user } } = await supabaseClient.auth.getUser();
+
+      const { error } = await supabaseClient
+        .from("users")
+        .update({ username: newUsername })
+        .eq("id", user.id);
+
+      statusEl.textContent = error ? "Couldn't save. Try again." : "Saved!";
+      statusEl.className = error ? "text-sm mt-2 text-red-500" : "text-sm mt-2 text-green-600";
+    });
+
+    // ============================================
+    // Update email (re-triggers confirmation)
+    // ============================================
+    document.getElementById("save-email-btn").addEventListener("click", async () => {
+      const statusEl = document.getElementById("email-status");
+      const newEmail = document.getElementById("email-input").value.trim();
+
+      const { error } = await supabaseClient.auth.updateUser({ email: newEmail });
+
+      statusEl.textContent = error
+        ? error.message
+        : "Confirmation link sent to your new email. Click it to finish the change.";
+      statusEl.className = error ? "text-sm mt-2 text-red-500" : "text-sm mt-2 text-green-600";
+    });
+
+    // ============================================
+    // Change password
+    // ============================================
+    document.getElementById("save-password-btn").addEventListener("click", async () => {
+      const statusEl = document.getElementById("password-status");
+      const newPass = document.getElementById("new-password-input").value;
+      const confirmPass = document.getElementById("confirm-password-input").value;
+
+      if (newPass !== confirmPass) {
+        statusEl.textContent = "Passwords don't match.";
+        statusEl.className = "text-sm mt-2 text-red-500";
+        return;
+      }
+      if (newPass.length < 6) {
+        statusEl.textContent = "Password must be at least 6 characters.";
+        statusEl.className = "text-sm mt-2 text-red-500";
+        return;
+      }
+
+      const { error } = await supabaseClient.auth.updateUser({ password: newPass });
+
+      statusEl.textContent = error ? error.message : "Password updated!";
+      statusEl.className = error ? "text-sm mt-2 text-red-500" : "text-sm mt-2 text-green-600";
+      if (!error) {
+        document.getElementById("new-password-input").value = "";
+        document.getElementById("confirm-password-input").value = "";
+      }
+    });
+
+    // ============================================
+    // Logout
+    // ============================================
+    document.getElementById("logout-btn").addEventListener("click", async () => {
+      await supabaseClient.auth.signOut();
+      localStorage.removeItem("legalhub_login_time");
+      window.location.href = "login.html";
+    });
+  </script>
+  <footer class="mt-8 mb-2 flex flex-col items-center gap-2 text-xs text-gray-400">
+    <span>&copy; <span id="footer-year"></span> LegalHub</span>
+    <span class="flex items-center gap-1.5">
+      Powered by
+      <a href="https://clopertechnologies.netlify.app" target="_blank" rel="noopener noreferrer" class="inline-flex">
+        <img src="cloper-logo.svg" alt="Cloper Technologies" class="h-5" />
+      </a>
+    </span>
+  </footer>
+  <script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
+</body>
+
+</html>

@@ -1,0 +1,70 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Account Confirmed - LegalHub</title>
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+</head>
+
+<body class="min-h-screen flex flex-col items-center justify-center px-4"
+  style="background: linear-gradient(135deg, #fdf6e3 0%, #f9e2a7 100%);">
+
+  <div class="w-full max-w-sm bg-[#faf7ee] rounded-3xl shadow-lg p-8 text-center">
+
+    <div class="flex flex-col items-center mb-4">
+      <div class="w-14 h-14 flex items-center justify-center rounded-2xl bg-[#f2c14e]/20 mb-2">
+        <svg xmlns="http://www.w3.org/2000/svg" class="w-7 h-7 text-[#c98a1f]" fill="none" viewBox="0 0 24 24"
+          stroke="currentColor" stroke-width="1.8">
+          <path stroke-linecap="round" stroke-linejoin="round"
+            d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
+        </svg>
+      </div>
+      <span class="font-semibold text-[#c98a1f] text-lg">LegalHub</span>
+    </div>
+
+    <p id="status-text" class="text-gray-700 text-sm">Confirming your account...</p>
+  </div>
+
+  <script src="supabase-client.js"></script>
+  <script>
+    const statusText = document.getElementById("status-text");
+
+    // Supabase's JS client auto-detects the confirmation token in the URL
+    // and creates a real session (detectSessionInUrl is on by default).
+    // We just wait for that, then move them on.
+    supabaseClient.auth.onAuthStateChange((event, session) => {
+      if (session) {
+        localStorage.setItem("legalhub_login_time", Date.now().toString());
+        statusText.textContent = "Account confirmed! Taking you in...";
+        setTimeout(() => {
+          window.location.href = "index.html"; // TODO: confirm this is the right post-login landing page once built
+        }, 1200);
+      }
+    });
+
+    // Fallback: if no session shows up within a few seconds, the link was
+    // likely invalid/expired or already used.
+    setTimeout(async () => {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) {
+        statusText.innerHTML =
+          'Couldn\'t confirm automatically. <a href="login.html" class="text-[#c98a1f] underline">Try logging in</a> instead.';
+      }
+    }, 5000);
+  </script>
+  <footer class="mt-8 mb-2 flex flex-col items-center gap-2 text-xs text-gray-400">
+    <span>&copy; <span id="footer-year"></span> LegalHub</span>
+    <span class="flex items-center gap-1.5">
+      Powered by
+      <a href="https://clopertechnologies.netlify.app" target="_blank" rel="noopener noreferrer" class="inline-flex">
+        <img src="cloper-logo.svg" alt="Cloper Technologies" class="h-5" />
+      </a>
+    </span>
+  </footer>
+  <script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
+</body>
+
+</html>

@@ -88,7 +88,6 @@
       </div>
 
       <p id="error-msg" class="text-sm text-red-500 hidden"></p>
-      <p id="success-msg" class="text-sm text-green-600 hidden"></p>
 
       <button type="submit" id="submit-btn"
         class="w-full py-3 rounded-full font-semibold text-gray-900 shadow-md transition"
@@ -97,7 +96,32 @@
       </button>
     </form>
 
-    <p class="text-sm text-gray-500 text-center mt-6">
+    <!-- Shown after successful signup, replaces the form -->
+    <div id="verify-screen" class="hidden text-center space-y-4">
+      <p class="text-gray-700 text-sm">
+        You're almost done! We sent a link to <span id="sent-to-email" class="font-semibold"></span>.
+        Click it to activate your account.
+      </p>
+
+      <div class="flex justify-center gap-4 text-sm">
+        <button id="resend-btn" class="text-[#c98a1f] hover:underline">Resend Email</button>
+        <button id="show-change-email-btn" class="text-[#c98a1f] hover:underline">Change Email</button>
+      </div>
+
+      <div id="change-email-box" class="hidden space-y-2 pt-2">
+        <input id="new-email-input" type="email" placeholder="Enter correct email"
+               class="w-full bg-white rounded-xl px-4 py-3 border border-gray-200 outline-none text-center" />
+        <button id="submit-new-email-btn"
+          class="w-full py-2 rounded-full font-semibold text-gray-900 text-sm"
+          style="background: linear-gradient(90deg, #ffd166, #f4a123);">
+          Update Email
+        </button>
+      </div>
+
+      <p id="verify-status-msg" class="text-sm text-green-600"></p>
+    </div>
+
+    <p id="login-link-row" class="text-sm text-gray-500 text-center mt-6">
       Already have an account? <a href="login.html" class="text-[#c98a1f] font-medium hover:underline">Log in</a>
     </p>
   </div>
@@ -174,11 +198,64 @@
         return;
       }
 
-      successMsg.textContent = "Account created! Check your email to confirm before logging in.";
-      successMsg.classList.remove("hidden");
-      form.reset();
-      submitBtn.textContent = "Sign Up";
-      submitBtn.disabled = false;
+      // Signup succeeded - switch from the form to the verify-email screen
+      let currentEmail = email;
+      const currentPassword = password;
+      const currentRegNumber = regNumber;
+      const currentUsername = username;
+
+      form.classList.add("hidden");
+      document.getElementById("login-link-row").classList.add("hidden");
+      document.getElementById("sent-to-email").textContent = currentEmail;
+      document.getElementById("verify-screen").classList.remove("hidden");
+
+      document.getElementById("resend-btn").addEventListener("click", async () => {
+        const statusMsg = document.getElementById("verify-status-msg");
+        statusMsg.textContent = "Sending...";
+        const { error } = await supabaseClient.auth.resend({
+          type: "signup",
+          email: currentEmail,
+        });
+        statusMsg.textContent = error ? "Couldn't resend. Try again shortly." : "Email resent!";
+      });
+
+      document.getElementById("show-change-email-btn").addEventListener("click", () => {
+        document.getElementById("change-email-box").classList.toggle("hidden");
+      });
+
+      document.getElementById("submit-new-email-btn").addEventListener("click", async () => {
+        const newEmail = document.getElementById("new-email-input").value.trim();
+        const statusMsg = document.getElementById("verify-status-msg");
+
+        if (!newEmail) {
+          statusMsg.textContent = "Please enter a valid email.";
+          return;
+        }
+
+        statusMsg.textContent = "Updating...";
+
+        // Re-runs signup with the corrected email. Safe to do - the reg
+        // number hasn't been marked "used" yet (that only happens after
+        // confirmation), so eligibility still passes.
+        const { error } = await supabaseClient.auth.signUp({
+          email: newEmail,
+          password: currentPassword,
+          options: {
+            data: { reg_number: currentRegNumber, username: currentUsername || null },
+          },
+        });
+
+        if (error) {
+          statusMsg.textContent = error.message;
+          return;
+        }
+
+        currentEmail = newEmail;
+        document.getElementById("sent-to-email").textContent = currentEmail;
+        document.getElementById("change-email-box").classList.add("hidden");
+        document.getElementById("new-email-input").value = "";
+        statusMsg.textContent = "Email updated! Check your new inbox.";
+      });
     });
   </script>
 
