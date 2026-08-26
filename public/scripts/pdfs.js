@@ -19,20 +19,14 @@
       pdfjsLib.GlobalWorkerOptions.workerSrc =
         `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${PDF_JS_VERSION}/pdf.worker.min.js`;
 
-      const PDF_FOLDER = 'pdfs/';
+      const PDF_FOLDER = '../assets/pdfs/';
 
       // Map your PDF filenames to course names
       const FILE_COURSE_MAP = {
-        "./NEW CENTURY ENGLISH (1).pdf": "communication in English",
-        "./TAMARA.pdf": "communication in English",
-        "./Legal Methods 7-11.pdf": "legal method",
-        "./Customary Land Tenure System II.pdf": "Customary law",
-        "./Customary_Land_Tenure_System_Merged.pdf": "Customary law",
-        "": "philosophy",
-        "": "psychology",
-        "": "natural Science",
-        './Logic and critical thinking.pdf': 'logics',
-        '': 'ELS',
+        "TAMARA.pdf": "communication in English",
+        "Legal Methods 7-11.pdf": "legal method",
+        "Customary Land Tenure System II.pdf": "Customary law",
+        "Customary_Land_Tenure_System_Merged.pdf": "Customary law",
       };
 
       const PDF_FILES = Object.keys(FILE_COURSE_MAP);

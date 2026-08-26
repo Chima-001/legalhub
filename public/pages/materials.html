@@ -1,0 +1,245 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Course Materials - LegalHub</title>
+<meta name="description" content="Browse and upload course materials.">
+<meta name="author" content="Cloper Technologies">
+<link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg">
+<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+<script src="https://cdn.tailwindcss.com"></script>
+<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+<script src="../scripts/auth/supabase-client.js"></script>
+<script src="../scripts/auth/auth-guard.js"></script>
+<style>body { visibility: hidden; }</style>
+</head>
+<body class="min-h-screen px-4 py-6" style="background: linear-gradient(135deg, #fdf6e3 0%, #f9e2a7 100%);">
+
+  <div class="max-w-3xl mx-auto">
+
+    <div class="flex items-center justify-between mb-4">
+      <a href="../index.html" class="text-sm text-[#c98a1f] hover:underline">&larr; Back</a>
+      <div class="flex items-center gap-3">
+        <span id="admin-badge" class="hidden text-xs px-3 py-1 rounded-full bg-[#c98a1f]/10 text-[#c98a1f] font-semibold">Admin</span>
+        <a href="profile.html">
+          <div id="header-avatar" class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"></div>
+        </a>
+      </div>
+    </div>
+
+    <h1 class="text-xl font-bold text-gray-800 mb-1">Course Materials</h1>
+    <p class="text-sm text-gray-500 mb-6">Uploads are reviewed before appearing here.</p>
+
+    <!-- Upload -->
+    <div class="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-6 text-center mb-6">
+      <i class="fas fa-cloud-upload-alt text-2xl text-[#c98a1f]"></i>
+      <p class="text-sm font-semibold text-gray-700 mt-2">Upload a PDF</p>
+      <p class="text-xs text-gray-400 mb-3">It'll be reviewed before going public</p>
+      <input type="text" id="course-input" placeholder="Course name (e.g. Legal Method)"
+             class="w-full bg-[#faf7ee] rounded-xl px-4 py-2 border border-gray-200 outline-none text-sm mb-2" />
+      <input type="file" id="file-input" accept=".pdf" class="hidden" />
+      <button id="upload-btn"
+        class="px-5 py-2 rounded-xl text-sm font-semibold text-gray-900"
+        style="background: linear-gradient(90deg, #ffd166, #f4a123);">Choose PDF</button>
+      <p id="upload-status" class="text-xs mt-2"></p>
+    </div>
+
+    <!-- Admin panel (only shown/loaded for actual admins, gated server-side by RLS, not just hidden in the UI) -->
+    <div id="admin-panel" class="hidden bg-white rounded-2xl border border-gray-200 p-4 mb-6">
+      <h2 class="text-sm font-bold text-gray-700 mb-3">Pending Approvals</h2>
+      <div id="pending-list" class="space-y-2"></div>
+    </div>
+
+    <!-- Public grid -->
+    <h2 class="text-sm font-bold text-gray-700 mb-3">Available Materials</h2>
+    <div id="public-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
+    <p id="empty-msg" class="hidden text-sm text-gray-400 text-center mt-6">No materials yet.</p>
+
+  </div>
+
+  <script src="../scripts/avatar.js"></script>
+  <script>
+    let currentUserId = null;
+    let isAdmin = false;
+
+    function escapeHtml(str) {
+      const div = document.createElement("div");
+      div.textContent = str;
+      return div.innerHTML;
+    }
+
+    async function init() {
+      const { data: { session } } = await supabaseClient.auth.getSession();
+      if (!session) return;
+      currentUserId = session.user.id;
+
+      const { data: userRow } = await supabaseClient
+        .from("users")
+        .select("username, full_name, is_admin")
+        .eq("id", currentUserId)
+        .single();
+
+      if (userRow) {
+        renderAvatar(document.getElementById("header-avatar"), userRow.username || userRow.full_name);
+        isAdmin = !!userRow.is_admin;
+      }
+
+      if (isAdmin) {
+        document.getElementById("admin-badge").classList.remove("hidden");
+        document.getElementById("admin-panel").classList.remove("hidden");
+        loadPending();
+      }
+
+      loadPublic();
+    }
+
+    async function loadPublic() {
+      const { data, error } = await supabaseClient
+        .from("materials")
+        .select("id, file_name, course, storage_path")
+        .eq("status", "approved")
+        .order("uploaded_at", { ascending: false });
+
+      const grid = document.getElementById("public-grid");
+      const emptyMsg = document.getElementById("empty-msg");
+
+      if (error) {
+        emptyMsg.textContent = "Could not load materials: " + error.message;
+        emptyMsg.className = "text-sm text-red-500 text-center mt-6";
+        console.error("Materials query failed:", error);
+        return;
+      }
+
+      if (!data || data.length === 0) {
+        emptyMsg.textContent = "No approved materials yet.";
+        emptyMsg.className = "text-sm text-gray-400 text-center mt-6";
+        emptyMsg.classList.remove("hidden");
+        return;
+      }
+      emptyMsg.classList.add("hidden");
+
+      grid.innerHTML = "";
+      for (const item of data) {
+        if (!item.storage_path) {
+          console.error("Material has no storage_path:", item);
+          continue;
+        }
+
+        const { data: signed, error: signedUrlError } = await supabaseClient.storage
+          .from("materials")
+          .createSignedUrl(item.storage_path, 3600);
+
+        if (signedUrlError || !signed?.signedUrl) {
+          console.error("PDF signed URL failed:", {
+            fileName: item.file_name,
+            storagePath: item.storage_path,
+            error: signedUrlError
+          });
+          continue;
+        }
+
+        const card = document.createElement("div");
+        card.className = "bg-white rounded-xl border border-gray-200 p-3 text-center";
+        card.innerHTML = `
+          <i class="fas fa-file-pdf text-3xl text-gray-400 mb-2"></i>
+          <div class="text-xs font-semibold text-gray-800 truncate">${escapeHtml(item.file_name)}</div>
+          <div class="text-[10px] text-gray-400 mb-2">${escapeHtml(item.course || "")}</div>
+          <a href="${signed.signedUrl}" target="_blank"
+             class="block text-xs py-1 rounded-lg bg-[#faf7ee] text-[#c98a1f] font-semibold">Open</a>
+        `;
+        grid.appendChild(card);
+      }
+    }
+
+    async function loadPending() {
+      const { data, error } = await supabaseClient
+        .from("materials")
+        .select("id, file_name, course, uploaded_at")
+        .eq("status", "pending")
+        .order("uploaded_at", { ascending: true });
+
+      const list = document.getElementById("pending-list");
+      if (error || !data || data.length === 0) {
+        list.innerHTML = '<p class="text-xs text-gray-400">Nothing pending.</p>';
+        return;
+      }
+
+      list.innerHTML = data.map(item => `
+        <div class="flex items-center justify-between border-b border-gray-100 pb-2">
+          <div class="text-xs">
+            <div class="font-semibold text-gray-700">${escapeHtml(item.file_name)}</div>
+            <div class="text-gray-400">${escapeHtml(item.course || "No course")}</div>
+          </div>
+          <div class="flex gap-2">
+            <button data-id="${item.id}" class="approve-btn text-xs px-3 py-1 rounded-lg bg-green-100 text-green-700 font-semibold">Approve</button>
+            <button data-id="${item.id}" class="reject-btn text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold">Reject</button>
+          </div>
+        </div>
+      `).join("");
+
+      document.querySelectorAll(".approve-btn").forEach(btn =>
+        btn.addEventListener("click", () => updateStatus(btn.dataset.id, "approved")));
+      document.querySelectorAll(".reject-btn").forEach(btn =>
+        btn.addEventListener("click", () => updateStatus(btn.dataset.id, "rejected")));
+    }
+
+    async function updateStatus(id, status) {
+      await supabaseClient.from("materials").update({ status }).eq("id", id);
+      loadPending();
+      loadPublic();
+    }
+
+    document.getElementById("upload-btn").addEventListener("click", () => {
+      document.getElementById("file-input").click();
+    });
+
+    document.getElementById("file-input").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      const statusEl = document.getElementById("upload-status");
+      if (!file) return;
+
+      if (file.type !== "application/pdf") {
+        statusEl.textContent = "Only PDF files allowed.";
+        statusEl.className = "text-xs mt-2 text-red-500";
+        return;
+      }
+
+      statusEl.textContent = "Uploading...";
+      statusEl.className = "text-xs mt-2 text-gray-500";
+
+      const course = document.getElementById("course-input").value.trim();
+      const path = `${currentUserId}/${Date.now()}_${file.name}`;
+
+      const { error: uploadError } = await supabaseClient.storage
+        .from("materials")
+        .upload(path, file);
+
+      if (uploadError) {
+        statusEl.textContent = "Upload failed: " + uploadError.message;
+        statusEl.className = "text-xs mt-2 text-red-500";
+        return;
+      }
+
+      const { error: insertError } = await supabaseClient.from("materials").insert({
+        file_name: file.name,
+        course: course || null,
+        status: "pending",
+        storage_path: path,
+        uploaded_by: currentUserId,
+      });
+
+      statusEl.textContent = insertError
+        ? "Saved file but couldn't log it - contact admin."
+        : "Uploaded! Waiting for admin approval.";
+      statusEl.className = "text-xs mt-2 " + (insertError ? "text-red-500" : "text-green-600");
+
+      document.getElementById("file-input").value = "";
+      document.getElementById("course-input").value = "";
+    });
+
+    init();
+  </script>
+
+</body>
+</html>

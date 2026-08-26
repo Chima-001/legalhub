@@ -5,16 +5,16 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>030 Legal Hub — 100L Second Semester</title>
-    <link rel="stylesheet" href="./src/css/main.css">
+    <link rel="stylesheet" href="./styles/main.css">
     <link rel="preconnect" href="https://fonts.googleapis.com" />
     <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
     <link
         href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap"
         rel="stylesheet" />
-    <link rel="stylesheet" href="./src/output.css">
-    <!-- <link rel="stylesheet" href="./src/css/style.css"> -->
+    <link rel="stylesheet" href="./styles/output.css">
+    <!-- <link rel="stylesheet" href="./styles/cases.css"> -->
 
-    <link rel="icon" type="image/png" href="./images/favicon-96x96.png" sizes="96x96" />
+    <link rel="icon" type="image/svg+xml" href="./assets/images/favicon.svg" />
     <meta property="og:title" content="LegalHub - 100L Second Semester" />
     <meta property="og:description" content="A law student's platform for course materials, case researches, and lots more." />
     <meta property="og:image" content="https://your-live-domain.com/social-preview.png" />
@@ -25,8 +25,8 @@
             visibility: hidden;
         }
     </style>
-    <script src="supabase-client.js"></script>
-    <script src="auth-guard.js"></script>
+    <script src="./scripts/auth/supabase-client.js"></script>
+    <script src="./scripts/auth/auth-guard.js"></script>
 </head>
 
 <body>
@@ -78,9 +78,9 @@
                 <button class="chip active" data-filter="">All</button>
                 <button class="chip" data-filter="Cases">Cases</button>
                 <button class="chip" data-filter="Past questions">Past Qs</button>
-                <button class="chip" data-filter="Text book"><a href="./pdf.html">Books & <br>materials</a></button>
+                <button class="chip" data-filter="Text book"><a href="./pages/pdf.html">Books & <br>materials</a></button>
                 <button class="chip" data-filter="Test">Tests</button>
-                <button class="chip" data-filter="Course materials">Materials</button>
+                <button class="chip" data-filter="Course materials"><a href="./pages/materials.html">Materials</a></button>
             </div>
         </div>
 
@@ -114,7 +114,7 @@
 
                 <!-- slide 1 -->
                 <div class="carousel-slide">
-                    <img src="./images/Golf.webp" alt="Gavel and law books" loading="lazy" />
+                    <img src="./assets/images/Golf.webp" alt="Gavel and law books" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>The Nigerian legal system is a rich fusion of English common law, customary law, and
                             Islamic law.</blockquote>
@@ -125,7 +125,7 @@
 
                 <!-- slide 2 -->
                 <div class="carousel-slide">
-                    <img src="./images/Golden statue of the Lady of Justice on a dark background that symbolizes the ju.jpg"
+                    <img src="./assets/images/Golden statue of the Lady of Justice on a dark background that symbolizes the ju.jpg"
                         alt="Courtroom" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>The Supreme Court of Nigeria stands as the final guardian of justice and the
@@ -137,7 +137,7 @@
 
                 <!-- slide 3 -->
                 <div class="carousel-slide">
-                    <img src="./images/Beautiful green surrounding.webp" alt="Lady Justice" loading="lazy" />
+                    <img src="./assets/images/Beautiful green surrounding.webp" alt="Lady Justice" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>The rule of law is the bedrock upon which Nigeria's democratic governance is built.
                         </blockquote>
@@ -148,7 +148,7 @@
 
                 <!-- slide 4 -->
                 <div class="carousel-slide">
-                    <img src="./images/Can You Sue Someone for Sexual Assault_.webp" alt="Law books and scales"
+                    <img src="./assets/images/Can You Sue Someone for Sexual Assault_.webp" alt="Law books and scales"
                         loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>Equality before the law is enshrined in the Nigerian Constitution as a fundamental
@@ -160,7 +160,7 @@
 
                 <!-- slide 5 -->
                 <div class="carousel-slide">
-                    <img src="./images/Digital transformation in law.jpg" alt="Legal profession" loading="lazy" />
+                    <img src="./assets/images/Digital transformation in law.jpg" alt="Legal profession" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>The legal profession in Nigeria is a noble calling, dedicated to justice and the
                             defence of rights.</blockquote>
@@ -171,7 +171,7 @@
 
                 <!-- slide 6 -->
                 <div class="carousel-slide">
-                    <img src="./images/847802698650804863.jpg" alt="Nigerian legal landscape" loading="lazy" />
+                    <img src="./assets/images/847802698650804863.jpg" alt="Nigerian legal landscape" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
                             society.</blockquote>
@@ -181,7 +181,7 @@
                 </div>
                 <!-- slide 6 -->
                 <div class="carousel-slide">
-                    <img src="./images/Understanding Procedural Fairness in Canadian Law.jpg"
+                    <img src="./assets/images/Understanding Procedural Fairness in Canadian Law.jpg"
                         alt="Nigerian legal landscape" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
@@ -192,7 +192,7 @@
                 </div>
                 <!-- slide 6 -->
                 <div class="carousel-slide">
-                    <img src="./images/low poly Themis.jpg" alt="Nigerian legal landscape" loading="lazy" />
+                    <img src="./assets/images/low poly Themis.jpg" alt="Nigerian legal landscape" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
                             society.</blockquote>
@@ -202,7 +202,7 @@
                 </div>
                 <!-- slide 6 -->
                 <div class="carousel-slide">
-                    <img src="./images/low poly Themis.jpg" alt="Nigerian legal landscape" loading="lazy" />
+                    <img src="./assets/images/low poly Themis.jpg" alt="Nigerian legal landscape" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
                             society.</blockquote>
@@ -212,7 +212,7 @@
                 </div>
                 <!-- slide 6 -->
                 <div class="carousel-slide">
-                    <img src="./images/Golf.webp" alt="Nigerian legal landscape" loading="lazy" />
+                    <img src="./assets/images/Golf.webp" alt="Nigerian legal landscape" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
                             society.</blockquote>
@@ -222,7 +222,7 @@
                 </div>
                 <!-- slide 6 -->
                 <div class="carousel-slide">
-                    <img src="./images/law.png" alt="Nigerian legal landscape" loading="lazy" />
+                    <img src="./assets/images/law.png" alt="Nigerian legal landscape" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
                             society.</blockquote>
@@ -232,7 +232,7 @@
                 </div>
                 <!-- slide 6 -->
                 <div class="carousel-slide">
-                    <img src="./images/law.png" alt="Nigerian legal landscape" loading="lazy" />
+                    <img src="./assets/images/law.png" alt="Nigerian legal landscape" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
                             society.</blockquote>
@@ -242,7 +242,7 @@
                 </div>
                 <!-- slide 6 -->
                 <div class="carousel-slide">
-                    <img src="./images/Digital transformation in law.jpg" alt="Nigerian legal landscape"
+                    <img src="./assets/images/Digital transformation in law.jpg" alt="Nigerian legal landscape"
                         loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
@@ -253,7 +253,7 @@
                 </div>
                 <!-- slide 6 -->
                 <div class="carousel-slide">
-                    <img src="./images/Statue of lady justice holding scales and a sword on a marble table.jpg"
+                    <img src="./assets/images/Statue of lady justice holding scales and a sword on a marble table.jpg"
                         alt="Nigerian legal landscape" loading="lazy" />
                     <div class="slide-overlay">
                         <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
@@ -308,11 +308,11 @@
                     onclick="document.getElementById('courses').scrollIntoView({behavior:'smooth'})">Browse</button>
             </div>
             <div class="thumb-row">
-                <a class="thumb" href="method_ratio.html">
+                <a class="thumb" href="./pages/method_ratio.html">
                     <div class="thumb-sq" style="background:#4a6cf7;">C</div>
                     <div class="thumb-label">Cases</div>
                 </a>
-                <a class="thumb" href="./lagal_method_past.html">
+                <a class="thumb" href="./pages/legal-method-past.html">
                     <div class="thumb-sq" style="background:#ffd25c; color:#1a1a2e;">PQ</div>
                     <div class="thumb-label">Past Qs</div>
                 </a>
@@ -383,9 +383,9 @@
                 <ul class="resources">
                     <li data-name="Course materials"><span class="res-name">Course materials</span><span
                             class="res-count">0</span></li>
-                    <li data-name="Cases"><a class="res-name" href="./method_ratio.html">Cases</a>
+                    <li data-name="Cases"><a class="res-name" href="./pages/method_ratio.html">Cases</a>
                         <span class="res-right"><span class="res-count live">9</span><button class="copy-btn"
-                                data-url="./method_ratio.html" title="Copy link"><svg width="14" height="14"
+                                data-url="./pages/method_ratio.html" title="Copy link"><svg width="14" height="14"
                                     viewBox="0 0 16 16" fill="none">
                                     <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor"
                                         stroke-width="1.3" />
@@ -393,10 +393,10 @@
                                 </svg></button></span>
                     </li>
 
-                    <li data-name="Past questions"><a class="res-name" href="./lagal_method_past.html">Past
+                    <li data-name="Past questions"><a class="res-name" href="./pages/legal-method-past.html">Past
                             questions</a>
                         <span class="res-right"><span class="res-count live">6</span><button class="copy-btn"
-                                data-url="./lagal_method_past.html" title="Copy link"><svg width="14" height="14"
+                                data-url="./pages/legal-method-past.html" title="Copy link"><svg width="14" height="14"
                                     viewBox="0 0 16 16" fill="none">
                                     <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor"
                                         stroke-width="1.3" />
@@ -580,8 +580,8 @@
             </div>
             <div class="course-body">
                 <ul class="resources">
-                    <!-- <a href="./pdf.html"> -->
-                    <li data-name="Course materials"><span class="res-name"><a href="./pdf.html">Course
+                    <!-- <a href="./pages/pdf.html"> -->
+                    <li data-name="Course materials"><span class="res-name"><a href="./pages/pdf.html">Course
                                 materials</a></span><span class="res-count">0</span></li>
                     <!-- </a> -->
 
@@ -617,7 +617,7 @@
             </div>
             <div class="course-body">
                 <ul class="resources">
-                    <li data-name="Course materials"><span class="res-name"> <a href="./pdf.html">Course
+                    <li data-name="Course materials"><span class="res-name"> <a href="./pages/pdf.html">Course
                                 materials</a></span><span class="res-count">0</span></li>
 
                     <li data-name="Past questions"><span class="res-name">Past questions</span><span
@@ -652,7 +652,7 @@
             </div>
             <div class="course-body">
                 <ul class="resources">
-                    <li data-name="Course materials"><span class="res-name"> <a href="./pdf.html">Course
+                    <li data-name="Course materials"><span class="res-name"> <a href="./pages/pdf.html">Course
                                 materials</a></span><span class="res-count">0</span></li>
 
                     <li data-name="Past questions"><span class="res-name">Past questions</span><span
@@ -682,7 +682,7 @@
 
     <div id="toast"></div>
 
-    <script src="./src/js/main.js"> </script>
+    <script src="./scripts/dashboard.js"> </script>
 
 </body>
 

@@ -4,6 +4,7 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg">
   <title>Account Confirmed - LegalHub</title>
   <script src="https://cdn.tailwindcss.com"></script>
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
@@ -28,7 +29,7 @@
     <p id="status-text" class="text-gray-700 text-sm">Confirming your account...</p>
   </div>
 
-  <script src="supabase-client.js"></script>
+  <script src="../scripts/auth/supabase-client.js"></script>
   <script>
     const statusText = document.getElementById("status-text");
 
@@ -40,7 +41,7 @@
         localStorage.setItem("legalhub_login_time", Date.now().toString());
         statusText.textContent = "Account confirmed! Taking you in...";
         setTimeout(() => {
-          window.location.href = "index.html"; // TODO: confirm this is the right post-login landing page once built
+          window.location.href = "../index.html";
         }, 1200);
       }
     });
@@ -60,7 +61,7 @@
     <span class="flex items-center gap-1.5">
       Powered by
       <a href="https://clopertechnologies.netlify.app" target="_blank" rel="noopener noreferrer" class="inline-flex">
-        <img src="cloper-logo.svg" alt="Cloper Technologies" class="h-5" />
+        <img src="../assets/images/cloper-logo.svg" alt="Cloper Technologies" class="h-5" />
       </a>
     </span>
   </footer>
