@@ -1,19 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Course Materials - LegalHub</title>
-<meta name="description" content="Browse and upload course materials.">
-<meta name="author" content="Cloper Technologies">
-<link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg">
-<link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../scripts/auth/supabase-client.js"></script>
-<script src="../scripts/auth/auth-guard.js"></script>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Course Materials - LegalHub</title>
+  <meta name="description" content="Browse and upload course materials.">
+  <meta name="author" content="Cloper Technologies">
+  <link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg">
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../scripts/auth/supabase-client.js"></script>
+  <script src="../scripts/auth/auth-guard.js"></script>
 <style>body { visibility: hidden; }</style>
 </head>
+
 <body class="min-h-screen px-4 py-6" style="background: linear-gradient(135deg, #fdf6e3 0%, #f9e2a7 100%);">
 
   <div class="max-w-3xl mx-auto">
@@ -21,40 +23,89 @@
     <div class="flex items-center justify-between mb-4">
       <a href="../index.html" class="text-sm text-[#c98a1f] hover:underline">&larr; Back</a>
       <div class="flex items-center gap-3">
-        <span id="admin-badge" class="hidden text-xs px-3 py-1 rounded-full bg-[#c98a1f]/10 text-[#c98a1f] font-semibold">Admin</span>
+        <span id="admin-badge"
+          class="hidden text-xs px-3 py-1 rounded-full bg-[#c98a1f]/10 text-[#c98a1f] font-semibold">Admin</span>
         <a href="profile.html">
-          <div id="header-avatar" class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"></div>
+          <div id="header-avatar"
+            class="w-9 h-9 rounded-full flex items-center justify-center text-white text-sm font-semibold"></div>
         </a>
       </div>
     </div>
 
     <h1 class="text-xl font-bold text-gray-800 mb-1">Course Materials</h1>
-    <p class="text-sm text-gray-500 mb-6">Uploads are reviewed before appearing here.</p>
+    <p class="text-sm text-gray-500 mb-6">Uploads are reviewed before appearing in the library.</p>
 
     <!-- Upload -->
-    <div class="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-6 text-center mb-6">
+    <div class="bg-white rounded-2xl border-2 border-dashed border-gray-200 p-6 mb-6">
       <i class="fas fa-cloud-upload-alt text-2xl text-[#c98a1f]"></i>
       <p class="text-sm font-semibold text-gray-700 mt-2">Upload a PDF</p>
-      <p class="text-xs text-gray-400 mb-3">It'll be reviewed before going public</p>
-      <input type="text" id="course-input" placeholder="Course name (e.g. Legal Method)"
-             class="w-full bg-[#faf7ee] rounded-xl px-4 py-2 border border-gray-200 outline-none text-sm mb-2" />
+      <p class="text-xs text-gray-400 mb-4">Add the details so it reaches the right course library.</p>
+      <div class="grid grid-cols-1 sm:grid-cols-2 gap-3 text-left">
+        <div class="sm:col-span-2">
+          <label for="material-name-input" class="block text-xs font-semibold text-gray-600 mb-1">Material name</label>
+          <input type="text" id="material-name-input" placeholder="e.g. Introduction to Legal Method"
+            class="w-full bg-[#faf7ee] rounded-xl px-4 py-2 border border-gray-200 outline-none text-sm" />
+        </div>
+        <div>
+          <label for="level-input" class="block text-xs font-semibold text-gray-600 mb-1">Level</label>
+          <select id="level-input"
+            class="w-full bg-[#faf7ee] rounded-xl px-4 py-2 border border-gray-200 outline-none text-sm">
+            <option value="">Choose level</option>
+            <option value="100L">100L</option>
+            <option value="200L">200L</option>
+            <option value="300L">300L</option>
+            <option value="400L">400L</option>
+            <option value="500L">500L</option>
+            <option value="relevant">Relevant materials</option>
+          </select>
+        </div>
+        <div>
+          <label for="semester-input" class="block text-xs font-semibold text-gray-600 mb-1">Semester</label>
+          <select id="semester-input" disabled
+            class="w-full bg-[#faf7ee] rounded-xl px-4 py-2 border border-gray-200 outline-none text-sm disabled:opacity-60">
+            <option value="">Choose semester</option>
+            <option value="first">First semester</option>
+            <option value="second">Second semester</option>
+          </select>
+        </div>
+        <div class="sm:col-span-2">
+          <label for="course-input" class="block text-xs font-semibold text-gray-600 mb-1">Course</label>
+          <select id="course-input" disabled
+            class="w-full bg-[#faf7ee] rounded-xl px-4 py-2 border border-gray-200 outline-none text-sm disabled:opacity-60">
+            <option value="">Choose level and semester first</option>
+          </select>
+          <p id="course-help" class="text-xs text-gray-400 mt-1">Relevant materials are available across all levels.</p>
+        </div>
+      </div>
       <input type="file" id="file-input" accept=".pdf" class="hidden" />
       <button id="upload-btn"
-        class="px-5 py-2 rounded-xl text-sm font-semibold text-gray-900"
-        style="background: linear-gradient(90deg, #ffd166, #f4a123);">Choose PDF</button>
+        class="mt-4 px-5 py-2 rounded-xl text-sm font-semibold text-[#9a6815] border border-[#d9b968] bg-white hover:bg-[#fff8e5]">
+        Choose PDF</button>
+      <p id="selected-file" class="text-xs text-gray-500 mt-2">No PDF selected</p>
+      <button id="submit-upload-btn" disabled
+        class="mt-2 px-5 py-2 rounded-xl text-sm font-semibold text-gray-900 disabled:opacity-60"
+        style="background: linear-gradient(90deg, #ffd166, #f4a123);">
+        Upload material
+      </button>
       <p id="upload-status" class="text-xs mt-2"></p>
     </div>
 
     <!-- Admin panel (only shown/loaded for actual admins, gated server-side by RLS, not just hidden in the UI) -->
     <div id="admin-panel" class="hidden bg-white rounded-2xl border border-gray-200 p-4 mb-6">
-      <h2 class="text-sm font-bold text-gray-700 mb-3">Pending Approvals</h2>
-      <div id="pending-list" class="space-y-2"></div>
+      <h2 class="text-sm font-bold text-gray-700 mb-1">Admin materials</h2>
+      <p class="text-xs text-gray-400 mb-3">Review uploads and correct their details before publishing.</p>
+      <div id="pending-list" class="space-y-3"></div>
     </div>
 
-    <!-- Public grid -->
-    <h2 class="text-sm font-bold text-gray-700 mb-3">Available Materials</h2>
-    <div id="public-grid" class="grid grid-cols-2 sm:grid-cols-3 gap-3"></div>
-    <p id="empty-msg" class="hidden text-sm text-gray-400 text-center mt-6">No materials yet.</p>
+    <div class="bg-white rounded-2xl border border-gray-200 p-5 text-center">
+      <i class="fas fa-books text-2xl text-[#c98a1f]"></i>
+      <h2 class="text-sm font-bold text-gray-700 mt-2">Approved materials</h2>
+      <p class="text-xs text-gray-500 mt-1">Approved uploads appear in the course library.</p>
+      <a href="pdf.html"
+        class="inline-block mt-3 px-4 py-2 rounded-xl text-sm font-semibold text-[#9a6815] bg-[#faf7ee] hover:bg-[#f5edda]">
+        Open course library
+      </a>
+    </div>
 
   </div>
 
@@ -62,6 +113,41 @@
   <script>
     let currentUserId = null;
     let isAdmin = false;
+
+    // Replace these lists with the official course offering when it is ready.
+    const COURSE_CATALOG = {
+      "100L": {
+        first: ["Legal Method", "Customary Law", "Philosophy", "Psychology", "Communication in English", "Natural Science", "Logics", "Introduction to Nigerian Literature"],
+        second: ["Legal Method", "Customary Law", "Philosophy", "Psychology", "Communication in English", "Natural Science", "Logics", "Introduction to Nigerian Literature"]
+      },
+      "200L": { first: [], second: [] },
+      "300L": { first: [], second: [] },
+      "400L": { first: [], second: [] },
+      "500L": { first: [], second: [] }
+    };
+
+    const levelInput = document.getElementById("level-input");
+    const semesterInput = document.getElementById("semester-input");
+    const courseInput = document.getElementById("course-input");
+
+    function populateCourses() {
+      const courses = COURSE_CATALOG[levelInput.value]?.[semesterInput.value] || [];
+      courseInput.innerHTML = courses.length
+        ? '<option value="">Choose course</option>' + courses.map(course => `<option value="${escapeHtml(course)}">${escapeHtml(course)}</option>`).join("")
+        : '<option value="">Courses will be added soon</option>';
+      courseInput.disabled = !courses.length;
+    }
+
+    levelInput.addEventListener("change", () => {
+      const isRelevant = levelInput.value === "relevant";
+      semesterInput.disabled = isRelevant || !levelInput.value;
+      semesterInput.value = isRelevant ? "all" : "";
+      courseInput.disabled = true;
+      courseInput.innerHTML = isRelevant
+        ? '<option value="relevant materials">Relevant materials</option>'
+        : '<option value="">Choose level and semester first</option>';
+    });
+    semesterInput.addEventListener("change", populateCourses);
 
     function escapeHtml(str) {
       const div = document.createElement("div");
@@ -91,90 +177,50 @@
         loadPending();
       }
 
-      loadPublic();
-    }
-
-    async function loadPublic() {
-      const { data, error } = await supabaseClient
-        .from("materials")
-        .select("id, file_name, course, storage_path")
-        .eq("status", "approved")
-        .order("uploaded_at", { ascending: false });
-
-      const grid = document.getElementById("public-grid");
-      const emptyMsg = document.getElementById("empty-msg");
-
-      if (error) {
-        emptyMsg.textContent = "Could not load materials: " + error.message;
-        emptyMsg.className = "text-sm text-red-500 text-center mt-6";
-        console.error("Materials query failed:", error);
-        return;
-      }
-
-      if (!data || data.length === 0) {
-        emptyMsg.textContent = "No approved materials yet.";
-        emptyMsg.className = "text-sm text-gray-400 text-center mt-6";
-        emptyMsg.classList.remove("hidden");
-        return;
-      }
-      emptyMsg.classList.add("hidden");
-
-      grid.innerHTML = "";
-      for (const item of data) {
-        if (!item.storage_path) {
-          console.error("Material has no storage_path:", item);
-          continue;
-        }
-
-        const { data: signed, error: signedUrlError } = await supabaseClient.storage
-          .from("materials")
-          .createSignedUrl(item.storage_path, 3600);
-
-        if (signedUrlError || !signed?.signedUrl) {
-          console.error("PDF signed URL failed:", {
-            fileName: item.file_name,
-            storagePath: item.storage_path,
-            error: signedUrlError
-          });
-          continue;
-        }
-
-        const card = document.createElement("div");
-        card.className = "bg-white rounded-xl border border-gray-200 p-3 text-center";
-        card.innerHTML = `
-          <i class="fas fa-file-pdf text-3xl text-gray-400 mb-2"></i>
-          <div class="text-xs font-semibold text-gray-800 truncate">${escapeHtml(item.file_name)}</div>
-          <div class="text-[10px] text-gray-400 mb-2">${escapeHtml(item.course || "")}</div>
-          <a href="${signed.signedUrl}" target="_blank"
-             class="block text-xs py-1 rounded-lg bg-[#faf7ee] text-[#c98a1f] font-semibold">Open</a>
-        `;
-        grid.appendChild(card);
-      }
     }
 
     async function loadPending() {
       const { data, error } = await supabaseClient
         .from("materials")
-        .select("id, file_name, course, uploaded_at")
-        .eq("status", "pending")
+        .select("id, file_name, material_name, course, level, semester, status, storage_path, uploaded_at")
         .order("uploaded_at", { ascending: true });
 
       const list = document.getElementById("pending-list");
       if (error || !data || data.length === 0) {
-        list.innerHTML = '<p class="text-xs text-gray-400">Nothing pending.</p>';
+        list.innerHTML = '<p class="text-xs text-gray-400">No materials to review.</p>';
         return;
       }
 
       list.innerHTML = data.map(item => `
-        <div class="flex items-center justify-between border-b border-gray-100 pb-2">
-          <div class="text-xs">
-            <div class="font-semibold text-gray-700">${escapeHtml(item.file_name)}</div>
-            <div class="text-gray-400">${escapeHtml(item.course || "No course")}</div>
+        <div class="border-b border-gray-100 pb-3" data-admin-material="${item.id}">
+          <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
+            <div class="min-w-0 text-xs">
+              <div class="font-semibold text-gray-700 break-words">${escapeHtml(item.material_name || item.file_name)}</div>
+              <div class="text-gray-400 break-words">${escapeHtml(item.file_name)}</div>
+              <div class="text-gray-500 mt-1">${escapeHtml(item.status)} · ${escapeHtml(item.level === "relevant" ? "Relevant materials" : [item.level, item.semester, item.course].filter(Boolean).join(" / "))}</div>
+            </div>
+            <div class="flex flex-wrap gap-2 sm:shrink-0">
+              ${item.storage_path ? `<a href="#" data-view-id="${item.id}" class="view-material-btn text-xs px-3 py-1 rounded-lg bg-gray-100 text-gray-700 font-semibold">View</a>` : ""}
+              ${item.status === "pending" ? `<button data-id="${item.id}" class="approve-btn text-xs px-3 py-1 rounded-lg bg-green-100 text-green-700 font-semibold">Approve</button>` : ""}
+              ${item.status !== "rejected" ? `<button data-id="${item.id}" class="reject-btn text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold">Reject</button>` : ""}
+            </div>
           </div>
-          <div class="flex gap-2">
-            <button data-id="${item.id}" class="approve-btn text-xs px-3 py-1 rounded-lg bg-green-100 text-green-700 font-semibold">Approve</button>
-            <button data-id="${item.id}" class="reject-btn text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold">Reject</button>
+          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mt-3">
+            <input data-field="material_name" value="${escapeHtml(item.material_name || item.file_name.replace(/\\.pdf$/i, ""))}" class="sm:col-span-2 min-w-0 text-xs rounded-lg border border-gray-200 px-3 py-1.5" aria-label="Material name" />
+            <select data-field="level" class="text-xs rounded-lg border border-gray-200 px-2 py-1.5">
+              ${["100L", "200L", "300L", "400L", "500L", "relevant"].map(level => `<option value="${level}" ${item.level === level ? "selected" : ""}>${level === "relevant" ? "Relevant materials" : level}</option>`).join("")}
+            </select>
+            <select data-field="semester" class="text-xs rounded-lg border border-gray-200 px-2 py-1.5">
+              <option value="all" ${item.semester === "all" ? "selected" : ""}>All semesters</option>
+              <option value="first" ${item.semester === "first" ? "selected" : ""}>First semester</option>
+              <option value="second" ${item.semester === "second" ? "selected" : ""}>Second semester</option>
+            </select>
+            <select data-field="course" class="sm:col-span-3 text-xs rounded-lg border border-gray-200 px-2 py-1.5">
+              <option value="${escapeHtml(item.course || "")}">${escapeHtml(item.course || "Course not in catalog")}</option>
+            </select>
+            <button data-save-id="${item.id}" class="save-material-btn text-xs px-3 py-1.5 rounded-lg bg-[#faf7ee] text-[#9a6815] font-semibold">Save details</button>
           </div>
+          <p data-admin-status="${item.id}" class="text-xs mt-1"></p>
         </div>
       `).join("");
 
@@ -182,20 +228,68 @@
         btn.addEventListener("click", () => updateStatus(btn.dataset.id, "approved")));
       document.querySelectorAll(".reject-btn").forEach(btn =>
         btn.addEventListener("click", () => updateStatus(btn.dataset.id, "rejected")));
+      document.querySelectorAll(".view-material-btn").forEach(btn => btn.addEventListener("click", async event => {
+        event.preventDefault();
+        const item = data.find(material => material.id === btn.dataset.viewId);
+        const { data: signed } = await supabaseClient.storage.from("materials").createSignedUrl(item.storage_path, 3600);
+        if (signed?.signedUrl) window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
+      }));
+      document.querySelectorAll("[data-field=level]").forEach(select => select.addEventListener("change", () => {
+        const row = select.closest("[data-admin-material]");
+        const semester = row.querySelector('[data-field="semester"]');
+        const course = row.querySelector('[data-field="course"]');
+        semester.disabled = select.value === "relevant";
+        if (select.value === "relevant") {
+          semester.value = "all";
+          course.innerHTML = '<option value="relevant materials">Relevant materials</option>';
+          course.value = "relevant materials";
+        } else updateAdminCourses(row, select.value, semester.value);
+      }));
+      document.querySelectorAll("[data-field=semester]").forEach(select => select.addEventListener("change", () => {
+        const row = select.closest("[data-admin-material]");
+        updateAdminCourses(row, row.querySelector('[data-field="level"]').value, select.value);
+      }));
+      document.querySelectorAll(".save-material-btn").forEach(btn => btn.addEventListener("click", () => saveMaterialDetails(btn.dataset.saveId)));
+    }
+
+    function updateAdminCourses(row, level, semester) {
+      const select = row.querySelector('[data-field="course"]');
+      const courses = COURSE_CATALOG[level]?.[semester] || [];
+      select.innerHTML = courses.length ? courses.map(course => `<option value="${escapeHtml(course)}">${escapeHtml(course)}</option>`).join("") : '<option value="">Course not in catalog</option>';
+    }
+
+    async function saveMaterialDetails(id) {
+      const row = document.querySelector(`[data-admin-material="${id}"]`);
+      const level = row.querySelector('[data-field="level"]').value;
+      const semester = level === "relevant" ? "all" : row.querySelector('[data-field="semester"]').value;
+      const course = level === "relevant" ? "relevant materials" : row.querySelector('[data-field="course"]').value;
+      const { error } = await supabaseClient.from("materials").update({
+        material_name: row.querySelector('[data-field="material_name"]').value.trim(), level, semester, course
+      }).eq("id", id);
+      const status = document.querySelector(`[data-admin-status="${id}"]`);
+      status.textContent = error ? "Could not save details." : "Details saved.";
+      status.className = "text-xs mt-1 " + (error ? "text-red-500" : "text-green-600");
     }
 
     async function updateStatus(id, status) {
       await supabaseClient.from("materials").update({ status }).eq("id", id);
       loadPending();
-      loadPublic();
     }
 
     document.getElementById("upload-btn").addEventListener("click", () => {
       document.getElementById("file-input").click();
     });
 
-    document.getElementById("file-input").addEventListener("change", async (e) => {
+    document.getElementById("file-input").addEventListener("change", (e) => {
       const file = e.target.files[0];
+      const selectedFileEl = document.getElementById("selected-file");
+      const submitUploadBtn = document.getElementById("submit-upload-btn");
+      selectedFileEl.textContent = file ? `Selected: ${file.name}` : "No PDF selected";
+      submitUploadBtn.disabled = !file;
+    });
+
+    document.getElementById("submit-upload-btn").addEventListener("click", async () => {
+      const file = document.getElementById("file-input").files[0];
       const statusEl = document.getElementById("upload-status");
       if (!file) return;
 
@@ -208,7 +302,15 @@
       statusEl.textContent = "Uploading...";
       statusEl.className = "text-xs mt-2 text-gray-500";
 
-      const course = document.getElementById("course-input").value.trim();
+      const materialName = document.getElementById("material-name-input").value.trim();
+      const level = levelInput.value;
+      const semester = level === "relevant" ? "all" : semesterInput.value;
+      const course = level === "relevant" ? "relevant materials" : courseInput.value;
+      if (!materialName || !level || !semester || !course) {
+        statusEl.textContent = "Add a material name, level, semester, and course first.";
+        statusEl.className = "text-xs mt-2 text-red-500";
+        return;
+      }
       const path = `${currentUserId}/${Date.now()}_${file.name}`;
 
       const { error: uploadError } = await supabaseClient.storage
@@ -223,7 +325,10 @@
 
       const { error: insertError } = await supabaseClient.from("materials").insert({
         file_name: file.name,
-        course: course || null,
+        material_name: materialName,
+        level,
+        semester,
+        course,
         status: "pending",
         storage_path: path,
         uploaded_by: currentUserId,
@@ -235,11 +340,30 @@
       statusEl.className = "text-xs mt-2 " + (insertError ? "text-red-500" : "text-green-600");
 
       document.getElementById("file-input").value = "";
-      document.getElementById("course-input").value = "";
+      document.getElementById("selected-file").textContent = "No PDF selected";
+      document.getElementById("submit-upload-btn").disabled = true;
+      document.getElementById("material-name-input").value = "";
+      levelInput.value = "";
+      semesterInput.value = "";
+      semesterInput.disabled = true;
+      courseInput.innerHTML = '<option value="">Choose level and semester first</option>';
+      courseInput.disabled = true;
     });
 
     init();
   </script>
 
+  <footer class="mt-8 mb-2 flex flex-col items-center gap-2 text-xs text-gray-400">
+    <span>&copy; <span id="footer-year"></span> LegalHub</span>
+    <span class="flex items-center gap-1.5">
+      Powered by
+      <a href="https://clopertechnologies.netlify.app" target="_blank" rel="noopener noreferrer" class="inline-flex">
+        <img src="../assets/images/cloper-logo.svg" alt="Cloper Technologies" class="h-5" />
+      </a>
+    </span>
+  </footer>
+  <script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
+
 </body>
+
 </html>

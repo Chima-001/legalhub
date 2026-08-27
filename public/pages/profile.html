@@ -1,93 +1,260 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
-<meta charset="UTF-8">
-<meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>My Profile - LegalHub</title>
-<meta name="description" content="Manage your LegalHub account.">
-<meta name="author" content="Cloper Technologies">
-<link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg">
-<script src="https://cdn.tailwindcss.com"></script>
-<script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
-<script src="../scripts/auth/supabase-client.js"></script>
-<script src="../scripts/auth/auth-guard.js"></script>
-<style>body { visibility: hidden; }</style>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>My Profile - LegalHub</title>
+  <meta name="description" content="Manage your LegalHub account.">
+  <meta name="author" content="Cloper Technologies">
+  <link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg">
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <script src="../scripts/auth/supabase-client.js"></script>
+  <script src="../scripts/auth/auth-guard.js"></script>
+  <style>
+    body {
+      visibility: hidden;
+    }
+  </style>
 </head>
-<body class="min-h-screen flex flex-col items-center px-4 py-8"
-      style="background: linear-gradient(135deg, #fdf6e3 0%, #f9e2a7 100%);">
 
-  <div class="w-full max-w-md">
-    <button id="back-btn" type="button" class="mb-4 text-sm text-[#c98a1f] hover:underline">
-      &larr; Back
-    </button>
+<body class="min-h-screen px-4 py-8 text-gray-800"
+  style="background: linear-gradient(135deg, #fdf6e3 0%, #f9e2a7 100%);">
 
-    <div class="flex flex-col items-center mb-6 bg-[#faf7ee] rounded-2xl p-5 border border-gray-200">
-      <div id="avatar-large" class="w-14 h-14 flex items-center justify-center rounded-2xl bg-[#f2c14e]/20 mb-2 text-white text-xl font-bold"></div>
-      <span class="font-semibold text-[#c98a1f] text-lg">My Profile</span>
+  <main class="w-full max-w-4xl mx-auto">
+    <header class="flex items-center justify-between gap-4 mb-8">
+      <button id="back-btn" type="button"
+        class="inline-flex items-center gap-2 text-sm font-semibold text-[#9a6815] hover:text-[#704b0d]">
+        <span aria-hidden="true" class="text-lg">&larr;</span> Back
+      </button>
+      <div class="flex items-center gap-3">
+        <div id="avatar-large"
+          class="w-10 h-10 flex items-center justify-center rounded-full bg-[#f2c14e]/20 text-white text-sm font-bold">
+        </div>
+        <span class="hidden sm:inline text-sm font-semibold text-gray-700">My Profile</span>
+      </div>
+    </header>
+
+    <div class="mb-8">
+      <p class="text-sm font-semibold uppercase tracking-widest text-[#9a6815]">Account</p>
+      <h1 class="mt-1 text-3xl font-bold tracking-tight text-gray-900">Profile settings</h1>
+      <p class="mt-2 text-sm text-gray-600">Keep your LegalHub identity and account details up to date.</p>
     </div>
 
-    <div class="bg-[#faf7ee] rounded-2xl p-6 border border-gray-200 mb-4">
-      <div class="mb-3">
-        <label class="text-xs text-gray-500 uppercase tracking-wide">Full Name</label>
-        <p id="display-name" class="text-gray-800 font-medium">Loading...</p>
+    <section class="bg-[#fffdf7] rounded-2xl border border-[#e8d9b5] shadow-sm overflow-hidden mb-8">
+      <div class="p-6 sm:p-8 flex flex-col sm:flex-row items-center sm:items-start gap-6">
+        <div class="text-center shrink-0">
+          <div id="avatar-preview"
+            class="w-24 h-24 rounded-full mx-auto flex items-center justify-center text-white text-3xl font-bold overflow-hidden ring-4 ring-[#f2c14e]/25">
+          </div>
+          <input type="file" id="avatar-input" accept="image/*" class="hidden" />
+          <button id="choose-avatar-btn"
+            class="mt-4 px-4 py-2 rounded-lg text-sm font-semibold text-gray-900 shadow-sm hover:brightness-95"
+            style="background: linear-gradient(90deg, #ffd166, #f4a123);">Change photo</button>
+          <p id="avatar-status" class="text-xs mt-2"></p>
+        </div>
+        <div class="w-full pt-1">
+          <h2 class="text-lg font-bold text-gray-900">Personal details</h2>
+          <p class="mt-1 text-sm text-gray-500">Your registered information is shown below.</p>
+          <dl class="mt-6 grid grid-cols-1 sm:grid-cols-2 gap-x-8 gap-y-5">
+            <div>
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Full name</dt>
+              <dd id="display-name" class="mt-1 font-semibold text-gray-900">Loading...</dd>
+            </div>
+            <div>
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Reg number</dt>
+              <dd id="display-reg" class="mt-1 font-semibold text-gray-900">Loading...</dd>
+            </div>
+            <div>
+              <dt class="text-xs font-semibold uppercase tracking-wide text-gray-500">Current level</dt>
+              <dd id="display-level" class="mt-1 font-semibold text-gray-900">Loading...</dd>
+            </div>
+          </dl>
+        </div>
       </div>
-      <div class="mb-3">
-        <label class="text-xs text-gray-500 uppercase tracking-wide">Reg Number</label>
-        <p id="display-reg" class="text-gray-800 font-medium">Loading...</p>
+    </section>
+
+    <section class="mb-8">
+      <div class="mb-4">
+        <h2 class="text-xl font-bold text-gray-900">Profile information</h2>
+        <p class="mt-1 text-sm text-gray-600">Manage the details used across your LegalHub profile.</p>
       </div>
-      <div>
-        <label class="text-xs text-gray-500 uppercase tracking-wide">Level</label>
-        <p id="display-level" class="text-gray-800 font-medium">Loading...</p>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-[#fffdf7] rounded-xl border border-[#e8d9b5] p-6 shadow-sm">
+          <label for="username-input" class="block text-sm font-semibold text-gray-800">Username</label>
+          <p class="mt-1 text-xs text-gray-500">This is how you may appear to other users.</p>
+          <div class="mt-4 flex flex-col sm:flex-row gap-2">
+            <input id="username-input" type="text" placeholder="Not set"
+              class="min-w-0 flex-1 bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]" />
+            <button id="save-username-btn"
+              class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95"
+              style="background: linear-gradient(90deg, #ffd166, #f4a123);">Save</button>
+          </div>
+          <p id="username-status" class="text-xs mt-2"></p>
+        </div>
+
+        <div class="bg-[#fffdf7] rounded-xl border border-[#e8d9b5] p-6 shadow-sm">
+          <label for="level-select" class="block text-sm font-semibold text-gray-800">Current level</label>
+          <p class="mt-1 text-xs text-gray-500">Correct this if your academic level is ever wrong.</p>
+          <div class="mt-4 flex flex-col sm:flex-row gap-2">
+            <select id="level-select"
+              class="min-w-0 flex-1 bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]">
+              <option value="100L">100L</option>
+              <option value="200L">200L</option>
+              <option value="300L">300L</option>
+              <option value="400L">400L</option>
+              <option value="500L">500L</option>
+            </select>
+            <button id="save-level-btn"
+              class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95"
+              style="background: linear-gradient(90deg, #ffd166, #f4a123);">Save</button>
+          </div>
+          <p id="level-status" class="text-xs mt-2"></p>
+        </div>
       </div>
+    </section>
+
+    <section class="mb-8">
+      <div class="mb-4">
+        <h2 class="text-xl font-bold text-gray-900">Security</h2>
+        <p class="mt-1 text-sm text-gray-600">Update your sign-in email or password.</p>
+      </div>
+      <div class="grid grid-cols-1 lg:grid-cols-2 gap-4">
+        <div class="bg-[#fffdf7] rounded-xl border border-[#e8d9b5] p-6 shadow-sm">
+          <label for="new-email-input" class="block text-sm font-semibold text-gray-800">Email address</label>
+          <p class="mt-1 text-xs text-gray-500">Changing this requires re-confirming via email.</p>
+          <div class="mt-4 flex flex-col sm:flex-row gap-2">
+            <input id="new-email-input" type="email" placeholder="you@example.com"
+              class="min-w-0 flex-1 bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]" />
+            <button id="save-email-btn"
+              class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95"
+              style="background: linear-gradient(90deg, #ffd166, #f4a123);">Update</button>
+          </div>
+          <p id="email-status" class="text-xs mt-2"></p>
+        </div>
+
+        <div class="bg-[#fffdf7] rounded-xl border border-[#e8d9b5] p-6 shadow-sm">
+          <h3 class="text-sm font-semibold text-gray-800">Change password</h3>
+          <div class="mt-4 space-y-2">
+            <input id="current-password-input" type="password" placeholder="Current password"
+              class="w-full bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]" />
+            <input id="new-password-input" type="password" minlength="6" placeholder="At least 6 characters"
+              class="w-full bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]" />
+          </div>
+          <button id="save-password-btn"
+            class="w-full mt-3 py-2.5 rounded-lg font-semibold text-gray-900 text-sm hover:brightness-95"
+            style="background: linear-gradient(90deg, #ffd166, #f4a123);">Update password</button>
+          <p id="password-status" class="text-xs mt-2"></p>
+        </div>
+      </div>
+    </section>
+
+    <div class="border-t border-[#d9c697] pt-6">
+      <button id="logout-btn"
+        class="w-full sm:w-auto px-6 py-2.5 rounded-lg font-semibold text-red-700 border border-red-200 bg-[#fffdf7] hover:bg-red-50">
+        Log out
+      </button>
     </div>
-
-      <!-- Username -->
-      <div class="bg-[#faf7ee] rounded-2xl p-6 border border-gray-200 mb-4">
-        <label class="text-sm text-gray-600 mb-1 block">Username</label>
-        <div class="flex gap-2">
-          <input id="username-input" type="text" placeholder="Not set"
-                 class="flex-1 bg-white rounded-xl px-4 py-2 border border-gray-200 outline-none" />
-          <button id="save-username-btn"
-            class="px-4 py-2 rounded-xl text-sm font-semibold text-gray-900"
-            style="background: linear-gradient(90deg, #ffd166, #f4a123);">Save</button>
-        </div>
-        <p id="username-status" class="text-sm mt-2"></p>
-      </div>
-
-      <!-- Email -->
-      <div class="bg-[#faf7ee] rounded-2xl p-6 border border-gray-200 mb-4">
-        <label class="text-sm text-gray-600 mb-1 block">Email</label>
-        <div class="flex gap-2">
-           <input id="new-email-input" type="email" placeholder="you@example.com"
-             class="flex-1 bg-white rounded-xl px-4 py-2 border border-gray-200 outline-none" />
-          <button id="save-email-btn"
-            class="px-4 py-2 rounded-xl text-sm font-semibold text-gray-900"
-            style="background: linear-gradient(90deg, #ffd166, #f4a123);">Update</button>
-        </div>
-        <p class="text-xs text-gray-500 mt-1">Changing this requires re-confirming via email.</p>
-        <p id="email-status" class="text-sm mt-2"></p>
-      </div>
-
-      <!-- Password -->
-      <div class="bg-[#faf7ee] rounded-2xl p-6 border border-gray-200 mb-4">
-        <label class="text-sm text-gray-600 mb-1 block">Change Password</label>
-        <input id="current-password-input" type="password" placeholder="Current password"
-          class="w-full bg-white rounded-xl px-4 py-2 border border-gray-200 outline-none mb-2" />
-        <input id="new-password-input" type="password" minlength="6" placeholder="At least 6 characters"
-          class="w-full bg-white rounded-xl px-4 py-2 border border-gray-200 outline-none" />
-        <button id="save-password-btn"
-          class="w-full mt-3 py-2 rounded-xl font-semibold text-gray-900 text-sm"
-          style="background: linear-gradient(90deg, #ffd166, #f4a123);">Update Password</button>
-        <p id="password-status" class="text-sm mt-2"></p>
-      </div>
-
-    <button id="logout-btn"
-      class="w-full py-3 rounded-full font-semibold text-gray-700 border border-gray-300 bg-white">
-      Log Out
-    </button>
-  </div>
+  </main>
 
   <script src="../scripts/avatar.js"></script>
+  <script>
+    async function compressImage(file, targetKB = 200, maxDim = 500) {
+      const img = await new Promise((resolve, reject) => {
+        const image = new Image();
+        image.onload = () => resolve(image);
+        image.onerror = reject;
+        image.src = URL.createObjectURL(file);
+      });
+
+      let { width, height } = img;
+      if (width > height && width > maxDim) { height = height * (maxDim / width); width = maxDim; }
+      else if (height > maxDim) { width = width * (maxDim / height); height = maxDim; }
+
+      const canvas = document.createElement("canvas");
+      canvas.width = width; canvas.height = height;
+      canvas.getContext("2d").drawImage(img, 0, 0, width, height);
+
+      let quality = 0.85;
+      let blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", quality));
+      while (blob.size > targetKB * 1024 && quality > 0.3) {
+        quality -= 0.1;
+        blob = await new Promise(r => canvas.toBlob(r, "image/jpeg", quality));
+      }
+      return blob;
+    }
+
+    async function loadAvatar() {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return;
+      const { data } = await supabaseClient.from("users").select("avatar_path, username, full_name").eq("id", user.id).single();
+      const preview = document.getElementById("avatar-preview");
+
+      if (data?.avatar_path) {
+        const { data: urlData } = supabaseClient.storage.from("avatars").getPublicUrl(data.avatar_path);
+        preview.innerHTML = `<img src="${urlData.publicUrl}" class="w-full h-full object-cover" />`;
+      } else {
+        renderAvatar(preview, data?.username || data?.full_name);
+      }
+    }
+    loadAvatar();
+
+    document.getElementById("choose-avatar-btn").addEventListener("click", () => document.getElementById("avatar-input").click());
+
+    document.getElementById("avatar-input").addEventListener("change", async (e) => {
+      const file = e.target.files[0];
+      if (!file) return;
+      const statusEl = document.getElementById("avatar-status");
+      statusEl.textContent = "Optimizing...";
+
+      const compressed = await compressImage(file);
+      statusEl.textContent = `Uploading (${Math.round(compressed.size / 1024)}KB)...`;
+
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      const path = `${user.id}/avatar.jpg`;
+
+      const { error: uploadError } = await supabaseClient.storage
+        .from("avatars")
+        .upload(path, compressed, { upsert: true, contentType: "image/jpeg" });
+
+      if (uploadError) {
+        statusEl.textContent = "Upload failed.";
+        return;
+      }
+
+      await supabaseClient.from("users").update({ avatar_path: path }).eq("id", user.id);
+      loadAvatar();
+      statusEl.textContent = "Photo updated!";
+    });
+  </script>
+  <script>
+    async function loadLevel() {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      if (!user) return;
+      const { data } = await supabaseClient.rpc("get_effective_level", { p_uid: user.id });
+      const levelEl = document.getElementById("display-level");
+      if (levelEl && data) levelEl.textContent = data;
+      const select = document.getElementById("level-select");
+      if (select && data) select.value = data;
+    }
+    loadLevel();
+
+    document.getElementById("save-level-btn").addEventListener("click", async () => {
+      const statusEl = document.getElementById("level-status");
+      const newLevel = document.getElementById("level-select").value;
+      const { data: { user } } = await supabaseClient.auth.getUser();
+
+      const { error } = await supabaseClient
+        .from("users")
+        .update({ current_level: newLevel, level_updated_at: new Date().toISOString() })
+        .eq("id", user.id);
+
+      statusEl.textContent = error ? "Couldn't save." : "Saved!";
+      statusEl.className = error ? "text-sm mt-2 text-red-500" : "text-sm mt-2 text-green-600";
+      if (!error) loadLevel();
+    });
+  </script>
   <script>
     let currentUser = null;
 
@@ -113,7 +280,6 @@
 
       document.getElementById("display-name").textContent = data.full_name || "Unnamed";
       document.getElementById("display-reg").textContent = data.reg_number;
-      document.getElementById("display-level").textContent = getCurrentLevel();
       document.getElementById("username-input").value = data.username || "";
       renderAvatar(document.getElementById("avatar-large"), data.username || data.full_name, "text-2xl w-20 h-20");
     }
@@ -173,20 +339,6 @@
       }
     });
 
-    const LEVEL_SCHEDULE = [
-      { from: new Date("2025-01-01"), level: "100L" },
-      { from: new Date("2026-12-01"), level: "200L" }
-    ];
-
-    function getCurrentLevel() {
-      const now = new Date();
-      let current = LEVEL_SCHEDULE[0].level;
-      for (const entry of LEVEL_SCHEDULE) {
-        if (now >= entry.from) current = entry.level;
-      }
-      return current;
-    }
-
     document.getElementById("logout-btn").addEventListener("click", async () => {
       await supabaseClient.auth.signOut();
       localStorage.removeItem("legalhub_login_time");
@@ -216,4 +368,5 @@
   <script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
 
 </body>
+
 </html>

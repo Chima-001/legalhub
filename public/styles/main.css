@@ -1127,6 +1127,8 @@
             display: flex;
             justify-content: space-between;
             align-items: center;
+            gap: 12px;
+            min-width: 0;
             padding: 10px 12px;
             margin-top: 6px;
             border-radius: 12px;
@@ -1144,11 +1146,14 @@
             display: none;
         }
         .res-name {
+            min-width: 0;
+            flex: 1;
             color: #1a1a2e;
             font-weight: 500;
             display: flex;
             align-items: center;
             gap: 8px;
+            overflow-wrap: anywhere;
         }
         .res-name .res-icon {
             font-size: 16px;
@@ -1165,6 +1170,7 @@
             display: flex;
             align-items: center;
             gap: 8px;
+            flex: none;
         }
         .res-count {
             font-family: 'IBM Plex Mono', monospace;
