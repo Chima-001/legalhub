@@ -47,3 +47,29 @@ function renderAvatar(el, name, extraClasses = "") {
   el.style.backgroundColor = colorFromName(name);
   if (extraClasses) el.className += " " + extraClasses;
 }
+
+async function loadHeaderAvatar(el) {
+  if (!el || typeof supabaseClient === "undefined") return;
+  const { data: { session } } = await supabaseClient.auth.getSession();
+  if (!session) return;
+
+  const { data } = await supabaseClient
+    .from("users")
+    .select("avatar_path, username, full_name")
+    .eq("id", session.user.id)
+    .single();
+
+  if (!data) return;
+  renderAvatar(el, data.username || data.full_name);
+  if (!data.avatar_path) return;
+
+  const { data: publicUrl } = supabaseClient.storage.from("avatars").getPublicUrl(data.avatar_path);
+  if (!publicUrl?.publicUrl) return;
+  el.textContent = "";
+  const image = document.createElement("img");
+  image.src = publicUrl.publicUrl;
+  image.alt = "Your profile";
+  image.loading = "lazy";
+  image.addEventListener("error", () => renderAvatar(el, data.username || data.full_name), { once: true });
+  el.appendChild(image);
+}

@@ -77,7 +77,8 @@
 
   let books = [];
   let filteredBooks = [];
-  let selectedLevel = 'all';
+  const requestedLevel = new URLSearchParams(window.location.search).get('level');
+  let selectedLevel = Object.prototype.hasOwnProperty.call(COURSE_CATALOG, requestedLevel) ? requestedLevel : 'all';
   let selectedSemester = 'all';
 
   async function loadUserFilters() {
@@ -86,7 +87,7 @@
 
     const { data } = await supabaseClient.from('users').select('current_level, level').eq('id', user.id).single();
     const profileLevel = data?.current_level || data?.level;
-    if (profileLevel) {
+    if (profileLevel && selectedLevel === 'all') {
       selectedLevel = profileLevel;
       document.getElementById('levelFilter').value = profileLevel;
     }
