@@ -1,0 +1,677 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Legal Hub — 100L Second Semester</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="../styles/output.css">
+    <link rel="stylesheet" href="../styles/level-dashboard.css">
+    <!-- <link rel="stylesheet" href="../styles/cases.css"> -->
+
+    <link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg" />
+    <meta property="og:title" content="LegalHub - 100L Second Semester" />
+    <meta property="og:description" content="A law student's platform for course materials, case researches, and lots more." />
+    <meta property="og:image" content="https://your-live-domain.com/social-preview.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:url" content="https://your-live-domain.com/" />
+    <style>
+        body {
+            visibility: hidden;
+        }
+    </style>
+    <script src="../scripts/auth/supabase-client.js"></script>
+    <script src="../scripts/avatar.js"></script>
+    <script src="../scripts/auth/auth-guard.js"></script>
+</head>
+
+<body>
+
+    <div class="frame">
+
+        <!-- ─── STICKY HEADER (Nav + Search + Chips) ─── -->
+        <div class="sticky-header">
+            <nav class="nav rise rise-1">
+                <div class="nav-brand">
+                    <span class="nav-brand-mark">LH</span>
+                    <span>Legal Hub</span>
+                </div>
+                <div class="nav-links">
+                    <a href="../index.html">Home</a>
+                    <a href="./pdf.html" class="active">Library</a>
+                    <a href="#contact">Contact</a>
+                </div>
+                <a class="profile-link" href="./profile.html" aria-label="Open your profile"><span id="header-avatar">?</span></a>
+            </nav>
+
+            <div class="search-wrap rise rise-2">
+                <svg class="icon-search" width="17" height="17" viewBox="0 0 16 16" fill="none">
+                    <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.6" />
+                    <path d="M11.5 11.5L15 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                </svg>
+                <input id="search" type="text" placeholder="Search courses, cases, textbooks…" autocomplete="off" />
+                <span class="kbd-hint">/</span>
+            </div>
+
+            <!-- chips now inside sticky -->
+            <div class="chip-row rise rise-2">
+                <button class="chip active" data-filter="">All</button>
+                <button class="chip" data-filter="Cases">Cases</button>
+                <button class="chip" data-filter="Past questions">Past Qs</button>
+                <a class="chip chip-link" href="./pdf.html">Books &amp; materials</a>
+                <button class="chip" data-filter="Test">Tests</button>
+                <a class="chip chip-link" href="./materials.html">Upload material</a>
+            </div>
+        </div>
+
+        <section class="level-intro rise rise-1">
+            <div>
+                <p class="level-kicker">100L / SECOND SEMESTER</p>
+                <h1 id="greeting-text">Welcome back</h1>
+                <p class="level-description">Your foundation year, gathered in one focused study space. Pick a course and keep moving.</p>
+            </div>
+            <a class="level-switch" href="../index.html#levels">Switch level <span>↗</span></a>
+        </section>
+
+        <div class="stat-row rise rise-2" aria-label="100L study overview">
+            <div class="stat-card"><div class="big">8</div><div class="stat-label">Courses this semester</div></div>
+            <div class="stat-card"><div class="big">3</div><div class="stat-label">Live study resources</div></div>
+            <div class="stat-card"><div class="big">01</div><div class="stat-label">Your current year</div></div>
+        </div>
+
+        <div class="search-meta" id="search-meta"></div>
+
+        <!-- ─── STARRED PANEL ─── -->
+        <div class="panel" id="starred-panel" hidden>
+            <div class="panel-top">
+                <div class="panel-icon" style="background:rgba(255,210,92,0.15); color:#d4a020;">⭐</div>
+                <div class="panel-title-wrap">
+                    <div class="panel-title">Starred</div>
+                    <div class="panel-sub" id="starred-sub">Courses you're keeping an eye on</div>
+                </div>
+            </div>
+            <div class="thumb-row" id="starred-row"></div>
+        </div>
+
+        <!-- ─── CAROUSEL with IMAGES (dots removed) ─── -->
+        <div class="carousel-wrap rise rise-3" role="region" aria-label="Legal inspiration carousel">
+            <div class="carousel-track" id="carouselTrack">
+
+                <!-- slide 1 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/Golf.webp" alt="Gavel and law books" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>The Nigerian legal system is a rich fusion of English common law, customary law, and
+                            Islamic law.</blockquote>
+                        <cite>— Legal Heritage of Nigeria</cite>
+                        <span class="slide-tag">Constitutional Law</span>
+                    </div>
+                </div>
+
+                <!-- slide 2 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/Golden statue of the Lady of Justice on a dark background that symbolizes the ju.jpg"
+                        alt="Courtroom" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>The Supreme Court of Nigeria stands as the final guardian of justice and the
+                            Constitution.</blockquote>
+                        <cite>— Judicial Authority</cite>
+                        <span class="slide-tag">Supreme Court</span>
+                    </div>
+                </div>
+
+                <!-- slide 3 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/Beautiful green surrounding.webp" alt="Lady Justice" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>The rule of law is the bedrock upon which Nigeria's democratic governance is built.
+                        </blockquote>
+                        <cite>— Democratic Principle</cite>
+                        <span class="slide-tag">Rule of Law</span>
+                    </div>
+                </div>
+
+                <!-- slide 4 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/Can You Sue Someone for Sexual Assault_.webp" alt="Law books and scales"
+                        loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Equality before the law is enshrined in the Nigerian Constitution as a fundamental
+                            right.</blockquote>
+                        <cite>— Constitutional Rights</cite>
+                        <span class="slide-tag">Equality &amp; Justice</span>
+                    </div>
+                </div>
+
+                <!-- slide 5 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/Digital transformation in law.jpg" alt="Legal profession" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>The legal profession in Nigeria is a noble calling, dedicated to justice and the
+                            defence of rights.</blockquote>
+                        <cite>— Legal Profession</cite>
+                        <span class="slide-tag">Professional Ethics</span>
+                    </div>
+                </div>
+
+                <!-- slide 6 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/847802698650804863.jpg" alt="Nigerian legal landscape" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
+                            society.</blockquote>
+                        <cite>— Legal Evolution</cite>
+                        <span class="slide-tag">Modern Law</span>
+                    </div>
+                </div>
+                <!-- slide 6 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/Understanding Procedural Fairness in Canadian Law.jpg"
+                        alt="Nigerian legal landscape" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
+                            society.</blockquote>
+                        <cite>— Legal Evolution</cite>
+                        <span class="slide-tag">Modern Law</span>
+                    </div>
+                </div>
+                <!-- slide 6 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/low poly Themis.jpg" alt="Nigerian legal landscape" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
+                            society.</blockquote>
+                        <cite>— Legal Evolution</cite>
+                        <span class="slide-tag">Modern Law</span>
+                    </div>
+                </div>
+                <!-- slide 6 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/low poly Themis.jpg" alt="Nigerian legal landscape" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
+                            society.</blockquote>
+                        <cite>— Legal Evolution</cite>
+                        <span class="slide-tag">Modern Law</span>
+                    </div>
+                </div>
+                <!-- slide 6 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/Golf.webp" alt="Nigerian legal landscape" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
+                            society.</blockquote>
+                        <cite>— Legal Evolution</cite>
+                        <span class="slide-tag">Modern Law</span>
+                    </div>
+                </div>
+                <!-- slide 6 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/law.png" alt="Nigerian legal landscape" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
+                            society.</blockquote>
+                        <cite>— Legal Evolution</cite>
+                        <span class="slide-tag">Modern Law</span>
+                    </div>
+                </div>
+                <!-- slide 6 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/law.png" alt="Nigerian legal landscape" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
+                            society.</blockquote>
+                        <cite>— Legal Evolution</cite>
+                        <span class="slide-tag">Modern Law</span>
+                    </div>
+                </div>
+                <!-- slide 6 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/Digital transformation in law.jpg" alt="Nigerian legal landscape"
+                        loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
+                            society.</blockquote>
+                        <cite>— Legal Evolution</cite>
+                        <span class="slide-tag">Modern Law</span>
+                    </div>
+                </div>
+                <!-- slide 6 -->
+                <div class="carousel-slide">
+                    <img src="../assets/images/Statue of lady justice holding scales and a sword on a marble table.jpg"
+                        alt="Nigerian legal landscape" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
+                            society.</blockquote>
+                        <cite>— Legal Evolution</cite>
+                        <span class="slide-tag">Modern Law</span>
+                    </div>
+                </div>
+
+
+            </div>
+
+            <!-- controls -->
+            <button class="carousel-ctrl prev" id="carouselPrev" aria-label="Previous slide">‹</button>
+            <button class="carousel-ctrl next" id="carouselNext" aria-label="Next slide">›</button>
+        </div>
+
+
+
+
+        <!-- ─── RECENT PANEL ─── -->
+        <div class="panel" id="recent-panel" hidden>
+            <div class="panel-top">
+                <div class="panel-icon" style="background:rgba(124,92,252,0.12); color:#7c5cfc;">🕓</div>
+                <div class="panel-title-wrap">
+                    <div class="panel-title">Recently opened</div>
+                    <div class="panel-sub">This session</div>
+                </div>
+            </div>
+            <div class="thumb-row" id="recent-row"></div>
+        </div>
+
+        <!-- ─── SECTION HEADER ─── -->
+        <div class="section-head rise rise-3" id="courses">
+            <h2>My Courses</h2>
+            <div class="count-badge">8<div class="dot"></div>
+            </div>
+        </div>
+
+
+
+
+        <!-- ─── STUDY ROUTES ─── -->
+        <div class="panel study-routes rise rise-5">
+            <div class="panel-top">
+                <div class="panel-icon" style="background:rgba(255,157,92,0.15); color:#e8822a;">✦</div>
+                <div class="panel-title-wrap">
+                    <div class="panel-title">Choose your next move</div>
+                    <div class="panel-sub">Small steps make strong law students</div>
+                </div>
+                <button class="panel-cta" type="button"
+                    onclick="document.getElementById('courses').scrollIntoView({behavior:'smooth'})">Browse</button>
+            </div>
+            <div class="route-grid">
+                <a class="route-card route-blue" href="./method_ratio.html">
+                    <span class="route-number">01</span><strong>Read a case</strong><small>See legal method in action</small><span class="route-arrow">↗</span>
+                </a>
+                <a class="route-card route-coral" href="./legal-method-past.html">
+                    <span class="route-number">02</span><strong>Test your memory</strong><small>Try a past question</small><span class="route-arrow">↗</span>
+                </a>
+                <a class="route-card route-yellow" href="./pdf.html">
+                    <span class="route-number">03</span><strong>Open the library</strong><small>Find notes and books</small><span class="route-arrow">↗</span>
+                </a>
+                <a class="route-card route-green" href="./materials.html">
+                    <span class="route-number">04</span><strong>Share a resource</strong><small>Leave something useful</small><span class="route-arrow">↗</span>
+                </a>
+            </div>
+        </div>
+
+        <!-- ─── ALL COURSES QUICK JUMP ─── -->
+        <div class="panel rise rise-6">
+            <div class="panel-top">
+                <div class="panel-icon" style="background:rgba(124,92,252,0.12); color:#7c5cfc;">📖</div>
+                <div class="panel-title-wrap">
+                    <div class="panel-title">All Courses</div>
+                    <div class="panel-sub">Tap a course to jump to it</div>
+                </div>
+                <button class="panel-cta" type="button" onclick="document.getElementById('courses').scrollIntoView({behavior:'smooth'})">View all</button>
+            </div>
+            <div class="thumb-row">
+                <div class="thumb" data-jump="Legal Method"><div class="thumb-sq" style="background:#4a6cf7;"> 102</div><div class="thumb-label">Legal Method</div></div>
+                <div class="thumb" data-jump="Customary Law"><div class="thumb-sq" style="background:#ff9d5c;">UNN LAW</div><div class="thumb-label">Customary Law</div></div>
+                <div class="thumb" data-jump="Philosophy"><div class="thumb-sq" style="background:#34c759;">PHL 105</div><div class="thumb-label">Philosophy</div></div>
+                <div class="thumb" data-jump="Psychology"><div class="thumb-sq" style="background:#7c5cfc;">PSY 101</div><div class="thumb-label">Psychology</div></div>
+                <div class="thumb" data-jump="Intro to Nigerian Literature"><div class="thumb-sq" style="background:#ffd25c; color:#1a1a2e;">ELS 110</div><div class="thumb-label">Intro to Nigerian Literature</div></div>
+                <div class="thumb" data-jump="Communication in English"><div class="thumb-sq" style="background:#5ac8fa; color:#1a1a2e;">GST 114</div><div class="thumb-label">Communication in English</div></div>
+                <div class="thumb" data-jump="Logics"><div class="thumb-sq" style="background:#5ac8fa; color:#1a1a2e;">LAW 102</div><div class="thumb-label">Logics</div></div>
+                <div class="thumb" data-jump="Natural Science"><div class="thumb-sq" style="background:#5ac8fa; color:#1a1a2e;">GST</div><div class="thumb-label">Natural Science</div></div>
+            </div>
+        </div>
+
+        <!-- ─── COURSE MATERIALS ─── -->
+        <div class="section-head" id="courses-head">
+            <h2>Course Materials</h2>
+            <!-- <a class="see-all" href="#contact">Contact ›</a> -->
+        </div>
+
+        <div id="no-results"><strong>No matches</strong>Try a different course or resource name.</div>
+
+        <!-- Legal Method — closed by default (no 'open' class) -->
+        <div class="course" data-name="Legal Method">
+            <div class="course-head">
+                <div class="course-head-left">
+                    <span class="swatch" style="background:#4a6cf7;"></span>
+                    <div>
+                        <span class="course-code">PUL 102</span>
+                        <h2 class="course-name">Legal Method</h2>
+                    </div>
+                </div>
+                <span class="pill has-content">3 of 5</span>
+                <button class="star-btn" aria-label="Star this course" title="Star this course">
+                    <svg width="17" height="17" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 1.5l1.85 3.9 4.3.55-3.15 3 0.85 4.3L8 11.2 4.15 13.25 5 8.95 1.85 5.95l4.3-.55L8 1.5z" />
+                    </svg>
+                </button>
+                <svg class="chevron" viewBox="0 0 20 20" fill="none">
+                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </div>
+            <div class="course-body">
+                <ul class="resources">
+                    <li data-name="Course materials"><span class="res-name">Course materials</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Cases"><a class="res-name" href="./method_ratio.html">Cases</a>
+                        <span class="res-right"><span class="res-count live">9</span><button class="copy-btn"
+                                data-url="./method_ratio.html" title="Copy link"><svg width="14" height="14"
+                                    viewBox="0 0 16 16" fill="none">
+                                    <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor"
+                                        stroke-width="1.3" />
+                                    <path d="M3 10V4a1 1 0 011-1h6" stroke="currentColor" stroke-width="1.3" />
+                                </svg></button></span>
+                    </li>
+
+                    <li data-name="Past questions"><a class="res-name" href="./legal-method-past.html">Past
+                            questions</a>
+                        <span class="res-right"><span class="res-count live">6</span><button class="copy-btn"
+                                data-url="./legal-method-past.html" title="Copy link"><svg width="14" height="14"
+                                    viewBox="0 0 16 16" fill="none">
+                                    <rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor"
+                                        stroke-width="1.3" />
+                                    <path d="M3 10V4a1 1 0 011-1h6" stroke="currentColor" stroke-width="1.3" />
+                                </svg></button></span>
+                    </li>
+                    <li data-name="Test"><span class="res-name">Test</span><span class="res-count live">6</span></li>
+                </ul>
+            </div>
+        </div>
+
+        <!-- Customary Law -->
+        <div class="course" data-name="Customary Law">
+            <div class="course-head">
+                <div class="course-head-left">
+                    <span class="swatch" style="background:#ff9d5c;"></span>
+                    <div><span class="course-code">UNN LAW </span>
+                        <h2 class="course-name">Customary Law</h2>
+                    </div>
+                </div>
+                <span class="pill">0 of 5</span>
+                <button class="star-btn" aria-label="Star this course" title="Star this course"><svg width="17"
+                        height="17" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 1.5l1.85 3.9 4.3.55-3.15 3 0.85 4.3L8 11.2 4.15 13.25 5 8.95 1.85 5.95l4.3-.55L8 1.5z" />
+                    </svg></button>
+                <svg class="chevron" viewBox="0 0 20 20" fill="none">
+                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </div>
+            <div class="course-body">
+                <ul class="resources">
+                    <li data-name="Course materials"><span class="res-name">Course materials</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Cases"><span class="res-name">Cases</span><span class="res-count">0</span></li>
+
+                    <li data-name="Past questions"><span class="res-name">Past questions</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Test"><span class="res-name">Test</span><span class="res-count">0</span></li>
+                </ul>
+                <div class="empty-state">
+                    <div class="emoji">🗂️</div>
+                    <p>Nothing uploaded here yet — be the first to add something.</p>
+                    <button class="request-btn" data-course="Customary Law">Request this material</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Philosophy -->
+        <div class="course" data-name="Philosophy">
+            <div class="course-head">
+                <div class="course-head-left">
+                    <span class="swatch" style="background:#34c759;"></span>
+                    <div><span class="course-code">PHIL 105</span>
+                        <h2 class="course-name">Philosophy</h2>
+                    </div>
+                </div>
+                <span class="pill">0 of 4</span>
+                <button class="star-btn" aria-label="Star this course" title="Star this course"><svg width="17"
+                        height="17" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 1.5l1.85 3.9 4.3.55-3.15 3 0.85 4.3L8 11.2 4.15 13.25 5 8.95 1.85 5.95l4.3-.55L8 1.5z" />
+                    </svg></button>
+                <svg class="chevron" viewBox="0 0 20 20" fill="none">
+                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </div>
+            <div class="course-body">
+                <ul class="resources">
+                    <li data-name="Course materials"><span class="res-name">Course materials</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Past questions"><span class="res-name">Past questions</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Test"><span class="res-name">Test</span><span class="res-count">0</span></li>
+                </ul>
+                <div class="empty-state">
+                    <div class="emoji">🗂️</div>
+                    <p>Nothing uploaded here yet — be the first to add something.</p>
+                    <button class="request-btn" data-course="Philosophy">Request this material</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Psychology -->
+        <div class="course" data-name="Psychology">
+            <div class="course-head">
+                <div class="course-head-left">
+                    <span class="swatch" style="background:#7c5cfc;"></span>
+                    <div><span class="course-code">PSY 102</span>
+                        <h2 class="course-name">Psychology</h2>
+                    </div>
+                </div>
+                <span class="pill">0 of 4</span>
+                <button class="star-btn" aria-label="Star this course" title="Star this course"><svg width="17"
+                        height="17" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 1.5l1.85 3.9 4.3.55-3.15 3 0.85 4.3L8 11.2 4.15 13.25 5 8.95 1.85 5.95l4.3-.55L8 1.5z" />
+                    </svg></button>
+                <svg class="chevron" viewBox="0 0 20 20" fill="none">
+                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </div>
+            <div class="course-body">
+                <ul class="resources">
+                    <li data-name="Course materials"><span class="res-name">Course materials</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Past questions"><span class="res-name">Past questions</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Test"><span class="res-name">Test</span><span class="res-count">0</span></li>
+                </ul>
+                <div class="empty-state">
+                    <div class="emoji">🗂️</div>
+                    <p>Nothing uploaded here yet — be the first to add something.</p>
+                    <button class="request-btn" data-course="Psychology">Request this material</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Literature -->
+        <div class="course" data-name="Intro to Nigerian Literature">
+            <div class="course-head">
+                <div class="course-head-left">
+                    <span class="swatch" style="background:#ffd25c;"></span>
+                    <div><span class="course-code">ELS 110</span>
+                        <h2 class="course-name">Introduction to Nigerian Literature</h2>
+                    </div>
+                </div>
+                <span class="pill">0 of 4</span>
+                <button class="star-btn" aria-label="Star this course" title="Star this course"><svg width="17"
+                        height="17" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 1.5l1.85 3.9 4.3.55-3.15 3 0.85 4.3L8 11.2 4.15 13.25 5 8.95 1.85 5.95l4.3-.55L8 1.5z" />
+                    </svg></button>
+                <svg class="chevron" viewBox="0 0 20 20" fill="none">
+                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </div>
+            <div class="course-body">
+                <ul class="resources">
+                    <li data-name="Course materials"><span class="res-name">Course materials</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Past questions"><span class="res-name">Past questions</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Test"><span class="res-name">Test</span><span class="res-count">0</span></li>
+                </ul>
+                <div class="empty-state">
+                    <div class="emoji">🗂️</div>
+                    <p>Nothing uploaded here yet — be the first to add something.</p>
+                    <button class="request-btn" data-course="Intro to Nigerian Literature">Request this
+                        material</button>
+                </div>
+            </div>
+        </div>
+
+        <!-- Communication in English -->
+        <div class="course" data-name="Communication in English">
+            <div class="course-head">
+                <div class="course-head-left">
+                    <span class="swatch" style="background:#5ac8fa;"></span>
+                    <div><span class="course-code">GST 114</span>
+                        <h2 class="course-name">Communication in English</h2>
+                    </div>
+                </div>
+                <span class="pill">2 of 4</span>
+                <button class="star-btn" aria-label="Star this course" title="Star this course"><svg width="17"
+                        height="17" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 1.5l1.85 3.9 4.3.55-3.15 3 0.85 4.3L8 11.2 4.15 13.25 5 8.95 1.85 5.95l4.3-.55L8 1.5z" />
+                    </svg></button>
+                <svg class="chevron" viewBox="0 0 20 20" fill="none">
+                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </div>
+            <div class="course-body">
+                <ul class="resources">
+                    <!-- <a href="./pdf.html"> -->
+                    <li data-name="Course materials"><span class="res-name"><a href="./pdf.html">Course
+                                materials</a></span><span class="res-count">0</span></li>
+                    <!-- </a> -->
+
+                    <li data-name="Past questions"><span class="res-name">Past questions</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Test"><span class="res-name">Test</span><span class="res-count">0</span></li>
+                </ul>
+                <div class="empty-state">
+                    <div class="emoji">🗂️</div>
+                    <p>Nothing uploaded here yet — be the first to add something.</p>
+                    <button class="request-btn" data-course="Communication in English">Request this material</button>
+                </div>
+            </div>
+        </div>
+        <div class="course" data-name="Natural Science">
+            <div class="course-head">
+                <div class="course-head-left">
+                    <span class="swatch" style="background:#5ac8fa;"></span>
+                    <div><span class="course-code">GST </span>
+                        <h2 class="course-name">Natural Science</h2>
+                    </div>
+                </div>
+                <span class="pill">2 of 4</span>
+                <button class="star-btn" aria-label="Star this course" title="Star this course"><svg width="17"
+                        height="17" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 1.5l1.85 3.9 4.3.55-3.15 3 0.85 4.3L8 11.2 4.15 13.25 5 8.95 1.85 5.95l4.3-.55L8 1.5z" />
+                    </svg></button>
+                <svg class="chevron" viewBox="0 0 20 20" fill="none">
+                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </div>
+            <div class="course-body">
+                <ul class="resources">
+                    <li data-name="Course materials"><span class="res-name"> <a href="./pdf.html">Course
+                                materials</a></span><span class="res-count">0</span></li>
+
+                    <li data-name="Past questions"><span class="res-name">Past questions</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Test"><span class="res-name">Test</span><span class="res-count">0</span></li>
+                </ul>
+                <div class="empty-state">
+                    <div class="emoji">🗂️</div>
+                    <p>Nothing uploaded here yet — be the first to add something.</p>
+                    <button class="request-btn" data-course="Natural Science">Request this material</button>
+                </div>
+            </div>
+        </div>
+        <div class="course" data-name="Logics">
+            <div class="course-head">
+                <div class="course-head-left">
+                    <span class="swatch" style="background:#5ac8fa;"></span>
+                    <div><span class="course-code">Law 102</span>
+                        <h2 class="course-name">Logics and Critical thinking</h2>
+                    </div>
+                </div>
+                <span class="pill">0 of 4</span>
+                <button class="star-btn" aria-label="Star this course" title="Star this course"><svg width="17"
+                        height="17" viewBox="0 0 16 16" fill="currentColor">
+                        <path
+                            d="M8 1.5l1.85 3.9 4.3.55-3.15 3 0.85 4.3L8 11.2 4.15 13.25 5 8.95 1.85 5.95l4.3-.55L8 1.5z" />
+                    </svg></button>
+                <svg class="chevron" viewBox="0 0 20 20" fill="none">
+                    <path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"
+                        stroke-linejoin="round" />
+                </svg>
+            </div>
+            <div class="course-body">
+                <ul class="resources">
+                    <li data-name="Course materials"><span class="res-name"> <a href="./pdf.html">Course
+                                materials</a></span><span class="res-count">0</span></li>
+
+                    <li data-name="Past questions"><span class="res-name">Past questions</span><span
+                            class="res-count">0</span></li>
+                    <li data-name="Test"><span class="res-name">Test</span><span class="res-count">0</span></li>
+                </ul>
+                <div class="empty-state">
+                    <div class="emoji">🗂️</div>
+                    <p>Nothing uploaded here yet — be the first to add something.</p>
+                    <button class="request-btn" data-course="Logics">Request this material</button>
+                </div>
+            </div>
+        </div>
+
+        <footer id="contact">
+            <div class="footer-brand footer-brand-lockup">
+                <span class="footer-brand-mark">LH</span>
+                <span class="footer-brand-name">Legal Hub</span>
+            </div>
+            <div class="footer-links">
+                <a href="../index.html">About</a>
+                <a href="../index.html#contact">Privacy</a>
+                <a href="#contact">Contact</a>
+                <a href="mailto:hillarymmaka@gmail.com">Help</a>
+            </div>
+            <div class="footer-institute">© 2026 Victorious Tech Institute</div>
+            <div class="footer-credit">Powered by <a href="https://clopertechnologies.netlify.app" target="_blank" rel="noopener noreferrer" aria-label="Visit Cloper Technologies"><img src="../assets/images/cloper-logo-light.svg" alt="Cloper Technologies" /></a></div>
+        </footer>
+
+    </div>
+
+    <div id="toast"></div>
+
+    <script src="../scripts/dashboard.js"> </script>
+
+</body>
+
+</html>

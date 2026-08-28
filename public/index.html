@@ -1,0 +1,263 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Legal Hub | Your law school journey</title>
+    <meta name="description" content="A shared academic home for every level of the Legal Hub community." />
+    <link rel="icon" type="image/svg+xml" href="./assets/images/favicon.svg" />
+    <link rel="stylesheet" href="./styles/home.css" />
+    <script src="./scripts/auth/supabase-client.js"></script>
+    <script src="./scripts/avatar.js"></script>
+    <script src="./scripts/auth/auth-guard.js"></script>
+    <style>
+        body {
+            visibility: hidden;
+        }
+    </style>
+</head>
+
+<body>
+    <div id="preloader" class="preloader" role="status" aria-label="Loading">
+        <div class="preloader-icon">
+            <div class="preloader-ring"></div>
+            <div class="beam"></div>
+            <div class="pivot"></div>
+            <div class="chain left"></div>
+            <div class="chain right"></div>
+        </div>
+        <div class="preloader-text">
+            <strong>Legal Hub</strong>
+            <span>Opening your study space</span>
+        </div>
+        <div class="preloader-progress">
+            <div class="fill" id="preloaderFill"></div>
+        </div>
+    </div>
+
+    <div class="site-shell">
+        <header class="site-header">
+            <a class="brand" href="./index.html" aria-label="Legal Hub home">
+                <span class="brand-mark">LH</span>
+                <span>Legal Hub</span>
+            </a>
+            <nav class="primary-nav" id="primary-nav" aria-label="Primary navigation">
+                <a class="active" href="./index.html">Home</a>
+                <a href="#levels">Levels</a>
+                <a href="#resources">Resources</a>
+            </nav>
+            <div class="header-actions">
+                <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open navigation menu"
+                    aria-expanded="false" aria-controls="primary-nav">
+                    <span></span><span></span><span></span>
+                </button>
+                <a class="profile-link" href="./pages/profile.html" aria-label="Open your profile"><span
+                        id="header-avatar">?</span></a>
+            </div>
+        </header>
+
+        <main>
+            <section class="welcome-grid">
+                <div class="welcome-copy">
+                    <p class="eyebrow">THE STUDENT COMMON ROOM <span></span></p>
+                    <h1 id="greeting-text">Good evening<span class="wave">,</span></h1>
+                    <p class="intro">Your place to find the next case, the right material, and a little momentum for the
+                        road ahead.</p>
+                    <div class="welcome-actions">
+                        <a class="primary-action" href="#levels">Choose your level <span>↓</span></a>
+                        <a class="text-action" href="./pages/pdf.html">Browse library <span>↗</span></a>
+                    </div>
+                </div>
+                <div class="quote-card">
+                    <div class="quote-top"><span>FIELD NOTE / 01</span><span class="sun-dot"></span></div>
+                    <blockquote>“The law is not a set of answers. It is a way of asking better questions.”</blockquote>
+                    <div class="quote-footer"><span>For the curious mind</span><strong>Keep learning.</strong></div>
+                </div>
+            </section>
+
+            <section class="countdown-strip" aria-label="Semester progress">
+                <div class="countdown-label"><span class="live-dot"></span><span>SECOND SEMESTER</span></div>
+                <p id="term-countdown">Counting down to exams...</p>
+                <div class="progress-track"><span id="term-fill"></span></div>
+                <span class="progress-value" id="term-percent">--</span>
+            </section>
+
+            <section class="section-block" id="levels">
+                <div class="section-heading">
+                    <div>
+                        <p class="eyebrow">YOUR ACADEMIC MAP</p>
+                        <h2>Where are you headed?</h2>
+                    </div>
+                    <p class="section-note">Five levels. One growing library.<br />Start where you are.</p>
+                </div>
+                <div class="level-grid">
+                    <a class="level-card level-current" href="./pages/100l-second-semester.html">
+                        <span class="level-number">01</span><span class="level-arrow">↗</span>
+                        <span class="level-tag">CURRENTLY OPEN</span><strong>100L</strong><span
+                            class="level-name">Foundations</span>
+                        <span class="level-detail">Legal method, language &amp; first principles</span>
+                    </a>
+                    <a class="level-card" href="./pages/pdf.html?level=200L">
+                        <span class="level-number">02</span><span class="level-arrow">↗</span>
+                        <span class="level-tag">SECOND YEAR</span><strong>200L</strong><span class="level-name">The
+                            Framework</span>
+                        <span class="level-detail">Build your core legal knowledge</span>
+                    </a>
+                    <a class="level-card" href="./pages/pdf.html?level=300L">
+                        <span class="level-number">03</span><span class="level-arrow">↗</span>
+                        <span class="level-tag">THIRD YEAR</span><strong>300L</strong><span class="level-name">The
+                            Practice</span>
+                        <span class="level-detail">Turn doctrine into working arguments</span>
+                    </a>
+                    <a class="level-card" href="./pages/pdf.html?level=400L">
+                        <span class="level-number">04</span><span class="level-arrow">↗</span>
+                        <span class="level-tag">FOURTH YEAR</span><strong>400L</strong><span class="level-name">The
+                            Focus</span>
+                        <span class="level-detail">Find your voice and your specialty</span>
+                    </a>
+                    <a class="level-card level-final" href="./pages/pdf.html?level=500L">
+                        <span class="level-number">05</span><span class="level-arrow">↗</span>
+                        <span class="level-tag">FINAL YEAR</span><strong>500L</strong><span class="level-name">The
+                            Call</span>
+                        <span class="level-detail">Step into the profession with purpose</span>
+                    </a>
+                </div>
+            </section>
+
+            <section class="quick-section" id="resources">
+                <div class="section-heading compact">
+                    <div>
+                        <p class="eyebrow">MAKE PROGRESS</p>
+                        <h2>Pick up a thread</h2>
+                    </div>
+                </div>
+                <div class="resource-grid">
+                    <a href="./pages/pdf.html" class="resource-card"><span
+                            class="resource-icon blue">▤</span><span><strong>Course library</strong><small>Materials,
+                                notes &amp; books</small></span><span class="resource-arrow">↗</span></a>
+                    <a href="./pages/legal-method-past.html" class="resource-card"><span
+                            class="resource-icon yellow">◷</span><span><strong>Past questions</strong><small>Practice
+                                with what came before</small></span><span class="resource-arrow">↗</span></a>
+                    <a href="./pages/method_ratio.html" class="resource-card"><span
+                            class="resource-icon coral">§</span><span><strong>Cases &amp; methods</strong><small>Read
+                                the law in motion</small></span><span class="resource-arrow">↗</span></a>
+                    <a href="./pages/materials.html" class="resource-card"><span
+                            class="resource-icon green">＋</span><span><strong>Share a material</strong><small>Help the
+                                next student</small></span><span class="resource-arrow">↗</span></a>
+                </div>
+            </section>
+
+            <section class="carousel-section" aria-label="Legal inspiration">
+                <div class="carousel-heading">
+                    <p class="eyebrow">A MOMENT TO THINK</p><span>Scroll the archive <b>→</b></span>
+                </div>
+                <div class="home-carousel">
+                    <div class="home-carousel-track" id="home-carousel-track">
+                        <article class="home-slide"><img src="./assets/images/Golf.webp" alt="Gavel and law books"
+                                loading="lazy" />
+                            <div><span>01 / PRINCIPLE</span>
+                                <blockquote>Justice begins with the courage to ask what is fair.</blockquote>
+                            </div>
+                        </article>
+                        <article class="home-slide"><img
+                                src="./assets/images/Golden statue of the Lady of Justice on a dark background that symbolizes the ju.jpg"
+                                alt="The Lady of Justice" loading="lazy" />
+                            <div><span>02 / PERSPECTIVE</span>
+                                <blockquote>Every strong argument starts by seeing the whole picture.</blockquote>
+                            </div>
+                        </article>
+                        <article class="home-slide"><img src="./assets/images/Digital transformation in law.jpg"
+                                alt="Digital transformation in law" loading="lazy" />
+                            <div><span>03 / POSSIBILITY</span>
+                                <blockquote>The future of law belongs to those willing to keep learning.</blockquote>
+                            </div>
+                        </article>
+                    </div>
+                    <button class="carousel-button previous" id="home-carousel-prev"
+                        aria-label="Previous thought">←</button>
+                    <button class="carousel-button next" id="home-carousel-next" aria-label="Next thought">→</button>
+                </div>
+            </section>
+        </main>
+
+        <footer class="home-footer">
+            <a class="brand footer-brand" href="./index.html"><span class="brand-mark">LH</span><span>Legal
+                    Hub</span></a>
+            <span class="footer-motto">Learn together. Think deeply. Practice well.</span>
+            <span class="footer-year">© 2026 Victorious Tech Institute</span>
+            <span class="footer-credit">Powered by <a href="https://clopertechnologies.netlify.app" target="_blank"
+                    rel="noopener noreferrer"><img src="./assets/images/cloper-logo.svg"
+                        alt="Cloper Technologies" /></a></span>
+        </footer>
+    </div>
+
+    <script>
+        const preloader = document.getElementById('preloader');
+        const preloaderFill = document.getElementById('preloaderFill');
+        const preloaderStart = Date.now();
+        const preloaderDuration = 1200;
+        function finishPreloader() {
+            preloaderFill.style.width = '100%';
+            setTimeout(() => preloader.classList.add('hidden'), Math.max(preloaderDuration - (Date.now() - preloaderStart), 0));
+        }
+        requestAnimationFrame(function updatePreloader() {
+            const progress = Math.min((Date.now() - preloaderStart) / preloaderDuration * 100, 100);
+            preloaderFill.style.width = progress + '%';
+            if (progress < 100) requestAnimationFrame(updatePreloader);
+        });
+        window.addEventListener('load', finishPreloader, { once: true });
+
+        const greeting = document.getElementById('greeting-text');
+        loadHeaderAvatar(document.getElementById('header-avatar'));
+        if (window.location.hash) {
+            history.replaceState(null, document.title, window.location.pathname + window.location.search);
+            window.scrollTo(0, 0);
+        }
+        const menuToggle = document.getElementById('menu-toggle');
+        const primaryNav = document.querySelector('.primary-nav');
+        menuToggle.addEventListener('click', () => {
+            const isOpen = menuToggle.getAttribute('aria-expanded') === 'true';
+            menuToggle.setAttribute('aria-expanded', String(!isOpen));
+            menuToggle.setAttribute('aria-label', isOpen ? 'Open navigation menu' : 'Close navigation menu');
+            primaryNav.classList.toggle('menu-open', !isOpen);
+        });
+        primaryNav.querySelectorAll('a').forEach(link => link.addEventListener('click', () => {
+            menuToggle.setAttribute('aria-expanded', 'false');
+            menuToggle.setAttribute('aria-label', 'Open navigation menu');
+            primaryNav.classList.remove('menu-open');
+        }));
+        document.addEventListener('keydown', event => {
+            if (event.key === 'Escape') {
+                menuToggle.setAttribute('aria-expanded', 'false');
+                primaryNav.classList.remove('menu-open');
+            }
+        });
+        const hour = new Date().getHours();
+        greeting.firstChild.textContent = (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening');
+
+        const start = new Date('2026-05-01T00:00:00');
+        const exams = new Date('2026-10-15T00:00:00');
+        const now = new Date();
+        const span = exams - start;
+        const elapsed = Math.min(Math.max(now - start, 0), span);
+        const percent = span > 0 ? Math.round((elapsed / span) * 100) : 0;
+        const days = Math.max(Math.ceil((exams - now) / 86400000), 0);
+        document.getElementById('term-countdown').textContent = days ? days + ' days until exams' : 'Exam period is here';
+        document.getElementById('term-fill').style.width = percent + '%';
+        document.getElementById('term-percent').textContent = percent + '% through';
+
+        const track = document.getElementById('home-carousel-track');
+        const slides = track.children;
+        let currentSlide = 0;
+        function showSlide(index) {
+            currentSlide = (index + slides.length) % slides.length;
+            track.style.transform = 'translateX(-' + (currentSlide * 100) + '%)';
+        }
+        document.getElementById('home-carousel-prev').addEventListener('click', () => showSlide(currentSlide - 1));
+        document.getElementById('home-carousel-next').addEventListener('click', () => showSlide(currentSlide + 1));
+        setInterval(() => showSlide(currentSlide + 1), 6500);
+    </script>
+</body>
+
+</html>

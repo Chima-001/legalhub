@@ -48,15 +48,42 @@
       display: flex;
       align-items: center;
       gap: 8px;
-      font-size: 1.25rem;
-      font-weight: 700;
       color: var(--primary);
     }
 
     .logo span {
-      font-size: 0.9rem;
+      display: flex;
+      align-items: baseline;
+      gap: 7px;
+      line-height: 1;
+    }
+
+    .logo strong {
+      font-size: 1.05rem;
+      font-weight: 800;
+      letter-spacing: -0.02em;
+    }
+
+    .logo small {
+      font-size: 0.72rem;
       font-weight: 600;
       color: var(--text-secondary);
+      letter-spacing: 0.02em;
+    }
+
+    .brand-mark {
+      width: 27px;
+      height: 27px;
+      color: var(--accent);
+      flex: none;
+    }
+
+    .sheet-mark {
+      width: 20px;
+      height: 20px;
+      color: var(--accent);
+      vertical-align: middle;
+      margin-right: 5px;
     }
 
     .nav-actions {
@@ -77,6 +104,31 @@
 
     .stats-badge strong {
       color: var(--primary);
+    }
+
+    .upload-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      padding: 6px 10px;
+      border: 1px solid var(--accent);
+      border-radius: var(--radius-sm);
+      color: var(--accent);
+      background: var(--surface);
+      font-size: 0.72rem;
+      font-weight: 700;
+      white-space: nowrap;
+      transition: background 0.15s, color 0.15s;
+    }
+
+    .upload-link:hover {
+      color: white;
+      background: var(--accent);
+    }
+
+    .upload-link span {
+      font-size: 1rem;
+      line-height: 0.8;
     }
 
     .hamburger {
@@ -188,6 +240,48 @@
       background: var(--primary);
       color: white;
       border-color: var(--primary);
+    }
+
+    .library-filters {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      padding: 10px 16px 0;
+      overflow-x: auto;
+    }
+
+    .library-filters label {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      flex: 0 0 auto;
+      color: var(--text-secondary);
+      font-size: 0.72rem;
+      font-weight: 700;
+    }
+
+    .library-filters select,
+    .library-filters button {
+      border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+      background: var(--surface);
+      color: var(--text);
+      font: inherit;
+      font-size: 0.72rem;
+      padding: 7px 9px;
+    }
+
+    .library-filters select:focus,
+    .library-filters button:focus {
+      outline: 2px solid rgba(59, 130, 246, 0.25);
+      outline-offset: 1px;
+    }
+
+    .library-filters button {
+      color: var(--accent);
+      cursor: pointer;
+      font-weight: 700;
+      white-space: nowrap;
     }
 
     /* ─── Book Grid ────────────────────────────────────────────────── */
@@ -528,7 +622,17 @@
         font-size: 1.1rem;
       }
       .logo span {
-        font-size: 0.8rem;
+        gap: 5px;
+      }
+      .logo strong {
+        font-size: 0.9rem;
+      }
+      .logo small {
+        font-size: 0.62rem;
+      }
+      .upload-link {
+        padding: 5px 7px;
+        font-size: 0.65rem;
       }
       .search-box input {
         font-size: 0.85rem;
@@ -559,6 +663,9 @@
       }
       .search-container {
         padding: 16px 24px 0;
+      }
+      .library-filters {
+        padding: 12px 24px 0;
       }
       .book-grid {
         grid-template-columns: repeat(auto-fill, minmax(200px, 1fr));

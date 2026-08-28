@@ -1,55 +1,9 @@
  (function() {
             'use strict';
 
-            // ─── PRELOADER ───
-            const preloader = document.getElementById('preloader');
-            const preloaderFill = document.getElementById('preloaderFill');
-            const startTime = Date.now();
-            const MIN_DISPLAY_TIME = 5000; // 5 seconds
-
-            // Animate progress bar from 0 to 100 over 5 seconds
-            let progress = 0;
-            const startProgress = Date.now();
-            const updateProgress = () => {
-                const elapsed = Date.now() - startProgress;
-                progress = Math.min((elapsed / MIN_DISPLAY_TIME) * 100, 100);
-                preloaderFill.style.width = progress + '%';
-
-                if (progress < 100) {
-                    requestAnimationFrame(updateProgress);
-                }
-            };
-            requestAnimationFrame(updateProgress);
-
-            // When the page is fully loaded, ensure the preloader stays for at least MIN_DISPLAY_TIME
-            window.addEventListener('load', function() {
-                const elapsed = Date.now() - startTime;
-                const remaining = Math.max(MIN_DISPLAY_TIME - elapsed, 0);
-
-                // Ensure progress bar is at 100% before hiding
-                preloaderFill.style.width = '100%';
-
-                setTimeout(function() {
-                    preloader.classList.add('hidden');
-                    // Allow body content to animate in
-                    document.querySelectorAll('.rise').forEach(el => {
-                        el.style.animationPlayState = 'running';
-                    });
-                }, remaining);
-            });
-
-            // Fallback: if load takes too long, force hide after 6 seconds total (5s min + 1s buffer)
-            setTimeout(function() {
-                if (!preloader.classList.contains('hidden')) {
-                    preloaderFill.style.width = '100%';
-                    setTimeout(function() {
-                        preloader.classList.add('hidden');
-                        document.querySelectorAll('.rise').forEach(el => {
-                            el.style.animationPlayState = 'running';
-                        });
-                    }, 400);
-                }
-            }, MIN_DISPLAY_TIME + 1000);
+            if (typeof loadHeaderAvatar === 'function') {
+                loadHeaderAvatar(document.getElementById('header-avatar'));
+            }
 
             // ─── CAROUSEL ───
             const track = document.getElementById('carouselTrack');
@@ -109,25 +63,11 @@
             goTo(0);
             startAutoPlay();
 
-            // ─── Greeting + semester progress ───
-            (function initGreeting() {
+            const greeting = document.getElementById('greeting-text');
+            if (greeting) {
                 const hour = new Date().getHours();
-                const g = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
-                document.getElementById('greeting-text').textContent = g + ' 👋';
-
-                const start = new Date('2026-05-01');
-                const end = new Date('2026-010-15');
-                const now = new Date();
-                const total = end - start;
-                const done = Math.min(Math.max(now - start, 0), total);
-                const pct = total > 0 ? Math.round((done / total) * 100) : 0;
-                const daysLeft = Math.max(Math.ceil((end - now) / (1000 * 60 * 60 * 24)), 0);
-
-                document.getElementById('term-fill').style.width = pct + '%';
-                document.getElementById('term-percent').textContent = pct + '%';
-                document.getElementById('term-countdown').textContent =
-                    daysLeft > 0 ? daysLeft + ' days left until exams — keep going.' : 'Exam period is here — good luck!';
-            })();
+                greeting.textContent = (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening') + ', student';
+            }
 
             // ─── toast ───
             const toastEl = document.getElementById('toast');
@@ -285,7 +225,7 @@
             });
 
             // ─── filter chips & search ───
-            const chips = Array.from(document.querySelectorAll('.chip'));
+            const chips = Array.from(document.querySelectorAll('button.chip'));
             const searchInput = document.getElementById('search');
             const noResults = document.getElementById('no-results');
             const searchMeta = document.getElementById('search-meta');

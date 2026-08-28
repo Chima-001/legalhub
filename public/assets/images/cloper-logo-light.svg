@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 220 32" height="24" role="img" aria-label="Cloper Technologies">
+  <g>
+    <path d="M16 4
+             a12 12 0 1 0 0 24
+             a12 12 0 0 0 8.5 -3.5
+             l-3 -3
+             a7.5 7.5 0 1 1 0 -10.6
+             l3 -3
+             a12 12 0 0 0 -8.5 -3.5 Z"
+          fill="#c98a1f"/>
+  </g>
+
+  <text x="36" y="21" font-family="'Segoe UI', 'Helvetica Neue', Arial, sans-serif" font-size="15" font-weight="600" fill="#f8fafc" letter-spacing="0.2">
+    Cloper<tspan fill="#f4c35e" font-weight="500"> Technologies</tspan>
+  </text>
+</svg>

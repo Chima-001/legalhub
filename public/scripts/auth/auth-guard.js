@@ -1,0 +1,69 @@
+/*
+  AUTH GUARD - include this on every page that requires login.
+
+  How to use in a page:
+    1. Add this near the top of <body>, right after the Supabase client
+       script tag, before any real page content:
+
+       <style>body { visibility: hidden; }</style>  <!-- prevents a flash of content before the check completes -->
+       <script src="supabase-client.js"></script>
+       <script src="auth-guard.js"></script>
+
+    2. That's it - this script checks for a valid session and either
+       reveals the page (visibility: visible) or redirects to login.html
+       before the person ever sees protected content.
+
+  This must run on EVERY protected page individually - protecting just the
+  landing page (e.g. index.html) does not protect pages linked from it,
+  since a direct URL to any page bypasses whatever came before it.
+*/
+
+(async function requireAuth() {
+  const pageBlocker = document.createElement("style");
+  pageBlocker.id = "auth-page-blocker";
+  pageBlocker.textContent = "body { display: none !important; }";
+  document.head.appendChild(pageBlocker);
+  document.documentElement.style.visibility = "hidden";
+
+  let session = null;
+  try {
+    const sessionCheck = supabaseClient.auth.getSession();
+    const timeout = new Promise((_, reject) => {
+      setTimeout(() => reject(new Error("Authentication check timed out")), 3000);
+    });
+    const result = await Promise.race([sessionCheck, timeout]);
+    session = result.data.session;
+  } catch (error) {
+    session = null;
+  }
+
+  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const loginTime = parseInt(localStorage.getItem("legalhub_login_time") || "0", 10);
+  const expired = Date.now() - loginTime > SEVEN_DAYS_MS;
+
+  if (!session || expired) {
+    localStorage.removeItem("legalhub_login_time");
+    const loginPath = window.location.pathname.includes("/pages/")
+      ? "login.html"
+      : "pages/login.html";
+    try {
+      void supabaseClient.auth.signOut();
+    } catch (error) {
+    }
+    window.location.replace(loginPath);
+    return;
+  }
+
+  const revealPage = () => {
+    pageBlocker.remove();
+    document.documentElement.style.visibility = "visible";
+    document.body.style.visibility = "visible";
+    document.body.style.display = "";
+  };
+
+  if (document.body) {
+    revealPage();
+  } else {
+    document.addEventListener("DOMContentLoaded", revealPage, { once: true });
+  }
+})();
