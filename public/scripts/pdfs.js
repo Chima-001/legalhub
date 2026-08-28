@@ -101,15 +101,15 @@
     if (error || !data) return;
 
     const withUrls = await Promise.all(data.map(async (m) => {
-      const { data: signed } = await supabaseClient
-        .storage.from("materials")
-        .createSignedUrl(m.storage_path, 3600); // 1 hour link
+      const { data: signed } = await supabaseClient.functions.invoke("r2-presign", {
+        body: { action: "download", key: m.storage_path },
+      });
       return {
         ...generateBookData(m.material_name || m.file_name, m.course),
         materialName: m.material_name || m.file_name.replace(/\.pdf$/i, ''),
         level: m.level || 'relevant',
         semester: m.semester || 'all',
-        url: signed?.signedUrl || null,
+        url: signed?.downloadUrl || null,
       };
     }));
 

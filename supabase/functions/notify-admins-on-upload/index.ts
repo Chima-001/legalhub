@@ -53,7 +53,7 @@ Deno.serve(async (req) => {
           "Content-Type": "application/json",
         },
         body: JSON.stringify({
-          from: "LegalHub <onboarding@resend.dev>", // TODO: swap to noreply@yourdomain.fyi once domain/SMTP is set up
+          from: "LegalHub <onboarding@resend.dev>", // TODO: swap to noreply@yourdomain.me once domain/SMTP is set up
           to: admin.email,
           subject: `New material pending review: ${record.file_name}`,
           html: `<p>${uploader?.full_name || "A student"} uploaded <strong>${record.file_name}</strong>${record.course ? ` (${record.course})` : ""}. Log in to review and approve it.</p>`,

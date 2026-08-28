@@ -13,7 +13,11 @@
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../scripts/auth/supabase-client.js"></script>
   <script src="../scripts/auth/auth-guard.js"></script>
-<style>body { visibility: hidden; }</style>
+  <style>
+    body {
+      visibility: hidden;
+    }
+  </style>
 </head>
 
 <body class="min-h-screen px-4 py-6" style="background: linear-gradient(135deg, #fdf6e3 0%, #f9e2a7 100%);">
@@ -231,8 +235,10 @@
       document.querySelectorAll(".view-material-btn").forEach(btn => btn.addEventListener("click", async event => {
         event.preventDefault();
         const item = data.find(material => material.id === btn.dataset.viewId);
-        const { data: signed } = await supabaseClient.storage.from("materials").createSignedUrl(item.storage_path, 3600);
-        if (signed?.signedUrl) window.open(signed.signedUrl, "_blank", "noopener,noreferrer");
+        const { data: signed } = await supabaseClient.functions.invoke("r2-presign", {
+          body: { action: "download", key: item.storage_path },
+        });
+        if (signed?.downloadUrl) window.open(signed.downloadUrl, "_blank", "noopener,noreferrer");
       }));
       document.querySelectorAll("[data-field=level]").forEach(select => select.addEventListener("change", () => {
         const row = select.closest("[data-admin-material]");
@@ -311,14 +317,24 @@
         statusEl.className = "text-xs mt-2 text-red-500";
         return;
       }
-      const path = `${currentUserId}/${Date.now()}_${file.name}`;
+      const { data: presignData, error: presignError } = await supabaseClient.functions.invoke("r2-presign", {
+        body: { action: "upload", fileName: file.name, contentType: file.type },
+      });
 
-      const { error: uploadError } = await supabaseClient.storage
-        .from("materials")
-        .upload(path, file);
+      if (presignError || !presignData?.uploadUrl) {
+        statusEl.textContent = "Couldn't prepare upload.";
+        statusEl.className = "text-xs mt-2 text-red-500";
+        return;
+      }
 
-      if (uploadError) {
-        statusEl.textContent = "Upload failed: " + uploadError.message;
+      const putResponse = await fetch(presignData.uploadUrl, {
+        method: "PUT",
+        body: file,
+        headers: { "Content-Type": file.type },
+      });
+
+      if (!putResponse.ok) {
+        statusEl.textContent = "Upload failed.";
         statusEl.className = "text-xs mt-2 text-red-500";
         return;
       }
@@ -330,7 +346,7 @@
         semester,
         course,
         status: "pending",
-        storage_path: path,
+        storage_path: presignData.key,
         uploaded_by: currentUserId,
       });
 
