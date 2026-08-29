@@ -196,7 +196,7 @@
         const preloader = document.getElementById('preloader');
         const preloaderFill = document.getElementById('preloaderFill');
         const preloaderStart = Date.now();
-        const preloaderDuration = 1200;
+        const preloaderDuration = 3000;
         function finishPreloader() {
             preloaderFill.style.width = '100%';
             setTimeout(() => preloader.classList.add('hidden'), Math.max(preloaderDuration - (Date.now() - preloaderStart), 0));
