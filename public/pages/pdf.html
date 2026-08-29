@@ -76,6 +76,7 @@
         <option value="300L">300L</option>
         <option value="400L">400L</option>
         <option value="500L">500L</option>
+        <option value="Relevant">Relevant Materials</option>
       </select>
     </label>
     <label>Semester
@@ -93,7 +94,17 @@
 
   <!-- ─── FOOTER ───────────────────────────────────────────────────── -->
   <div class="site-footer">
-    © 2026 <span>LegalHub</span> — Course Materials Library
+    <footer class="mt-8 mb-2 flex flex-col items-center gap-2 text-xs text-gray-400">
+      <span>&copy; <span id="footer-year"></span> LegalHub — Victorious Tech Institute</span>
+      <span class="flex items-center gap-1.5">
+        Powered by
+        <a href="https://clopertechnologies.me" target="_blank" rel="noopener noreferrer" class="inline-flex">
+          <img src="../assets/images/cloper-logo.svg" alt="Cloper Technologies" class="h-5" />
+        </a>
+      </span>
+    </footer>
+    <script>document.getElementById("footer-year").textContent = new Date().getFullYear();</script>
+    <!-- © 2026 <span>LegalHub</span> — Course Materials Library -->
   </div>
 
   <!-- ─── BOTTOM SHEET (Mobile Navigation) ────────────────────────── -->
