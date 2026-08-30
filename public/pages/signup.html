@@ -88,6 +88,7 @@
       </div>
 
       <p id="error-msg" class="text-sm text-red-500 hidden"></p>
+      <!-- <p id="success-msg" class="text-sm text-green-500 hidden"></p> -->
 
       <button type="submit" id="submit-btn"
         class="w-full py-3 rounded-full font-semibold text-gray-900 shadow-md transition"
@@ -130,7 +131,7 @@
   <script>
     const form = document.getElementById("signup-form");
     const errorMsg = document.getElementById("error-msg");
-    const successMsg = document.getElementById("success-msg");
+    // const successMsg = document.getElementById("success-msg");
     const submitBtn = document.getElementById("submit-btn");
 
     function showError(msg) {
@@ -142,7 +143,7 @@
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
       errorMsg.classList.add("hidden");
-      successMsg.classList.add("hidden");
+      // successMsg.classList.add("hidden");
       submitBtn.disabled = true;
       submitBtn.textContent = "Checking eligibility...";
 

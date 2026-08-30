@@ -5,7 +5,8 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
     <meta property="og:title" content="LegalHub - method ratio" />
-    <meta property="og:description" content="A law student's platform for course materials, case researches, and lots more." />
+    <meta property="og:description"
+        content="A law student's platform for course materials, case researches, and lots more." />
     <meta property="og:image" content="https://your-live-domain.com/social-preview.png" />
     <meta property="og:type" content="website" />
     <meta property="og:url" content="https://your-live-domain.com/" />
@@ -26,6 +27,7 @@
             visibility: hidden;
         }
     </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../scripts/auth/supabase-client.js"></script>
     <script src="../scripts/auth/auth-guard.js"></script>
 </head>
@@ -52,7 +54,8 @@
             </div>
             <div class="hidden md:flex items-center space-x-7">
                 <a href="../index.html" class="nav-link text-white/80 hover:text-white text-sm font-medium">Home</a>
-                <a href="legal-method-past.html" class="nav-link text-white/80 hover:text-white text-sm font-medium">Past Questions</a>
+                <a href="legal-method-past.html"
+                    class="nav-link text-white/80 hover:text-white text-sm font-medium">Past Questions</a>
                 <button id="navDashboardBtn"
                     class="nav-link text-white/80 hover:text-white text-sm font-medium">slides</button>
                 <button id="adminPanelBtn"
