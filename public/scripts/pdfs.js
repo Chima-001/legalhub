@@ -11,14 +11,16 @@
     '200L': { first: [], second: [] },
     '300L': { first: [], second: [] },
     '400L': { first: [], second: [] },
-    '500L': { first: [], second: [] }
+    '500L': { first: [], second: [] },
+    'Relevant': { first: [], second: [] }
   };
 
   let ALL_COURSES = ['All'];
 
   function getCourseSuggestions() {
+    const isRelevant = selectedLevel === 'Relevant';
     const levels = selectedLevel === 'all' ? Object.keys(COURSE_CATALOG) : [selectedLevel];
-    const semesters = selectedSemester === 'all' ? ['first', 'second'] : [selectedSemester];
+    const semesters = isRelevant ? ['all'] : selectedSemester === 'all' ? ['first', 'second'] : [selectedSemester];
     return [...new Set(levels.flatMap(level =>
       semesters.flatMap(semester => COURSE_CATALOG[level]?.[semester] || [])))];
   }
@@ -26,6 +28,19 @@
   function updateCourseFilters() {
     ALL_COURSES = ['All', ...getCourseSuggestions()];
     if (!ALL_COURSES.includes(activeFilter)) activeFilter = 'All';
+    const semesterSelect = document.getElementById('semesterFilter');
+    if (selectedLevel === 'Relevant') {
+      semesterSelect.value = 'all';
+      semesterSelect.disabled = true;
+      semesterSelect.innerHTML = `<option value="all">All</option>`;
+    } else {
+      semesterSelect.disabled = false;
+      semesterSelect.innerHTML = 
+      `<option value="all">All</option>
+      <option value="first">First Semester</option>
+      <option value="second">Second Semester</option>`;
+      semesterSelect.value = selectedSemester;
+    }
     buildFilterChips();
     buildMobileList();
     render();
