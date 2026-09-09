@@ -5,13 +5,16 @@
     }
     body {
     font-family: 'Inter', sans-serif;
-    background: #f5f7fc;
+    background:
+        radial-gradient(circle at 8% 0%, rgba(62, 113, 202, .24), transparent 38%),
+        linear-gradient(145deg, #080d1b 0%, #0d1426 55%, #101c35 100%);
 }
 body {
     font-family: 'Inter', sans-serif;
 
 }
 .glass {
+    -webkit-backdrop-filter: blur(20px);
     backdrop-filter: blur(20px);
     background: rgba(255, 255, 255, 0.08);
 }
@@ -19,6 +22,10 @@ body {
     background: linear-gradient(to right, #facc15, #f97316);
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
+}
+
+.page-brand-name {
+    font-size: 25px;
 }
 .case-card {
     cursor: pointer;
@@ -34,6 +41,7 @@ body {
 }
 .navbar-glass {
     background: rgba(2, 10, 30, 0.85);
+    -webkit-backdrop-filter: blur(12px);
     backdrop-filter: blur(12px);
     border-bottom: 1px solid rgba(255, 255, 255, 0.12);
     box-shadow: 0 4px 20px rgba(0, 0, 0, 0.2);
@@ -62,6 +70,7 @@ body {
     position: fixed;
     inset: 0;
     background: rgba(0, 0, 0, 0.6);
+    -webkit-backdrop-filter: blur(4px);
     backdrop-filter: blur(4px);
     z-index: 60;
     opacity: 0;
@@ -76,7 +85,7 @@ body {
     visibility: visible;
 }
 .mobile-recent-drawer {
-    background: white;
+    background: rgba(16, 28, 53, .94);
     width: 100%;
     max-height: 70vh;
     border-radius: 1.5rem 1.5rem 0 0;

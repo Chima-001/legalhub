@@ -1,1 +1,22 @@
 node_modules/
+
+# Local credentials and environment files
+.env
+.env.*
+!.env.example
+
+# Supabase CLI local state
+supabase/.temp/
+
+# Local machine and editor files
+.DS_Store
+Thumbs.db
+.vscode/
+
+# Local build output
+dist/
+build/
+.netlify/
+
+# Accidental laptop-specific duplicate of the canonical client
+public/scripts/auth/supabase-client-Chima-Laptop.js

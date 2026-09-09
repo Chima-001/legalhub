@@ -7,9 +7,21 @@
   <title>Course Materials - LegalHub</title>
   <meta name="description" content="Browse and upload course materials.">
   <meta name="author" content="Chima Nnaji — Cloper Technologies">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LegalHub">
+  <meta property="og:title" content="Course Materials - LegalHub">
+  <meta property="og:description" content="Browse and upload course materials on LegalHub.">
+  <meta property="og:url" content="https://legalhub-io.netlify.app/pages/materials.html">
+  <meta property="og:image" content="https://legalhub-io.netlify.app/assets/images/social-preview.png">
+  <meta property="og:image:alt" content="LegalHub social preview">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Course Materials - LegalHub">
+  <meta name="twitter:description" content="Browse and upload course materials on LegalHub.">
+  <meta name="twitter:image" content="https://legalhub-io.netlify.app/assets/images/social-preview.png">
   <link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0-beta3/css/all.min.css" />
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../styles/dark-theme.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../scripts/auth/supabase-client.js"></script>
   <script src="../scripts/auth/auth-guard.js"></script>
@@ -17,10 +29,23 @@
     body {
       visibility: hidden;
     }
+
+    .admin-material-card {
+      border: 1px solid #e5e7eb;
+      border-radius: 0.875rem;
+      padding: 0.875rem;
+      background: #fffdfa;
+    }
+
+    .admin-material-edit {
+      border-top: 1px solid #f3f4f6;
+      margin-top: 0.75rem;
+      padding-top: 0.75rem;
+    }
   </style>
 </head>
 
-<body class="min-h-screen px-4 py-6" style="background: linear-gradient(135deg, #fdf6e3 0%, #f9e2a7 100%);">
+<body class="min-h-screen px-4 py-6">
 
   <div class="max-w-3xl mx-auto">
 
@@ -88,7 +113,7 @@
       <p id="selected-file" class="text-xs text-gray-500 mt-2">No PDF selected</p>
       <button id="submit-upload-btn" disabled
         class="mt-2 px-5 py-2 rounded-xl text-sm font-semibold text-gray-900 disabled:opacity-60"
-        style="background: linear-gradient(90deg, #ffd166, #f4a123);">
+        >
         Upload material
       </button>
       <p id="upload-status" class="text-xs mt-2"></p>
@@ -159,12 +184,16 @@
       return div.innerHTML;
     }
 
+    function errorMessage(error, fallback) {
+      return error?.message || error?.context?.error || fallback;
+    }
+
     async function init() {
       const { data: { session } } = await supabaseClient.auth.getSession();
       if (!session) return;
       currentUserId = session.user.id;
 
-      const { data: userRow } = await supabaseClient
+      const { data: userRow, error: userError } = await supabaseClient
         .from("users")
         .select("username, full_name, is_admin")
         .eq("id", currentUserId)
@@ -173,6 +202,12 @@
       if (userRow) {
         renderAvatar(document.getElementById("header-avatar"), userRow.username || userRow.full_name);
         isAdmin = !!userRow.is_admin;
+      }
+
+      if (userError) {
+        const status = document.getElementById("upload-status");
+        status.textContent = `Could not load your profile: ${errorMessage(userError, "check the users table and RLS policies")}`;
+        status.className = "text-xs mt-2 text-red-500";
       }
 
       if (isAdmin) {
@@ -187,29 +222,37 @@
       const { data, error } = await supabaseClient
         .from("materials")
         .select("id, file_name, material_name, course, level, semester, status, storage_path, uploaded_at")
+        .eq("status", "pending")
         .order("uploaded_at", { ascending: true });
 
       const list = document.getElementById("pending-list");
-      if (error || !data || data.length === 0) {
+      if (error) {
+        list.innerHTML = `<p class="text-xs text-red-500">Could not load materials: ${escapeHtml(errorMessage(error, "database request failed"))}</p>`;
+        return;
+      }
+      if (!data || data.length === 0) {
         list.innerHTML = '<p class="text-xs text-gray-400">No materials to review.</p>';
         return;
       }
 
       list.innerHTML = data.map(item => `
-        <div class="border-b border-gray-100 pb-3" data-admin-material="${item.id}">
+        <div class="admin-material-card" data-admin-material="${item.id}">
           <div class="flex flex-col sm:flex-row sm:items-start justify-between gap-3">
             <div class="min-w-0 text-xs">
               <div class="font-semibold text-gray-700 break-words">${escapeHtml(item.material_name || item.file_name)}</div>
               <div class="text-gray-400 break-words">${escapeHtml(item.file_name)}</div>
-              <div class="text-gray-500 mt-1">${escapeHtml(item.status)} · ${escapeHtml(item.level === "relevant" ? "Relevant materials" : [item.level, item.semester, item.course].filter(Boolean).join(" / "))}</div>
+              <div class="text-gray-500 mt-1">${escapeHtml(item.level === "relevant" ? "Relevant materials" : [item.level, item.semester, item.course].filter(Boolean).join(" / "))}</div>
             </div>
             <div class="flex flex-wrap gap-2 sm:shrink-0">
+              <span class="text-xs px-2.5 py-1 rounded-full bg-gray-100 text-gray-500 font-semibold">${escapeHtml(item.status)}</span>
               ${item.storage_path ? `<a href="#" data-view-id="${item.id}" class="view-material-btn text-xs px-3 py-1 rounded-lg bg-gray-100 text-gray-700 font-semibold">View</a>` : ""}
+              <button type="button" data-edit-id="${item.id}" aria-expanded="false" class="edit-material-btn text-xs px-3 py-1 rounded-lg bg-[#fff4d6] text-[#9a6815] font-semibold">Edit</button>
               ${item.status === "pending" ? `<button data-id="${item.id}" class="approve-btn text-xs px-3 py-1 rounded-lg bg-green-100 text-green-700 font-semibold">Approve</button>` : ""}
-              ${item.status !== "rejected" ? `<button data-id="${item.id}" class="reject-btn text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold">Reject</button>` : ""}
+              ${item.status === "pending" ? `<button data-id="${item.id}" class="reject-btn text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold">Reject</button>` : ""}
+              ${item.status === "rejected" ? `<button data-id="${item.id}" class="remove-btn text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold">Remove</button>` : ""}
             </div>
           </div>
-          <div class="grid grid-cols-1 sm:grid-cols-4 gap-2 mt-3">
+          <div data-edit-panel="${item.id}" class="admin-material-edit hidden grid grid-cols-1 sm:grid-cols-4 gap-2">
             <input data-field="material_name" value="${escapeHtml(item.material_name || item.file_name.replace(/\\.pdf$/i, ""))}" class="sm:col-span-2 min-w-0 text-xs rounded-lg border border-gray-200 px-3 py-1.5" aria-label="Material name" />
             <select data-field="level" class="text-xs rounded-lg border border-gray-200 px-2 py-1.5">
               ${["100L", "200L", "300L", "400L", "500L", "relevant"].map(level => `<option value="${level}" ${item.level === level ? "selected" : ""}>${level === "relevant" ? "Relevant materials" : level}</option>`).join("")}
@@ -231,7 +274,15 @@
       document.querySelectorAll(".approve-btn").forEach(btn =>
         btn.addEventListener("click", () => updateStatus(btn.dataset.id, "approved")));
       document.querySelectorAll(".reject-btn").forEach(btn =>
-        btn.addEventListener("click", () => updateStatus(btn.dataset.id, "rejected")));
+        btn.addEventListener("click", () => deleteRejectedMaterial(btn.dataset.id)));
+      document.querySelectorAll(".remove-btn").forEach(btn =>
+        btn.addEventListener("click", () => deleteRejectedMaterial(btn.dataset.id)));
+      document.querySelectorAll(".edit-material-btn").forEach(btn => btn.addEventListener("click", () => {
+        const panel = document.querySelector(`[data-edit-panel="${btn.dataset.editId}"]`);
+        const isOpening = panel.classList.toggle("hidden") === false;
+        btn.setAttribute("aria-expanded", String(isOpening));
+        btn.textContent = isOpening ? "Close" : "Edit";
+      }));
       document.querySelectorAll(".view-material-btn").forEach(btn => btn.addEventListener("click", async event => {
         event.preventDefault();
         const item = data.find(material => material.id === btn.dataset.viewId);
@@ -275,10 +326,36 @@
       const status = document.querySelector(`[data-admin-status="${id}"]`);
       status.textContent = error ? "Could not save details." : "Details saved.";
       status.className = "text-xs mt-1 " + (error ? "text-red-500" : "text-green-600");
+      if (!error) {
+        const panel = document.querySelector(`[data-edit-panel="${id}"]`);
+        const editButton = document.querySelector(`[data-edit-id="${id}"]`);
+        panel.classList.add("hidden");
+        editButton.setAttribute("aria-expanded", "false");
+        editButton.textContent = "Edit";
+      }
     }
 
     async function updateStatus(id, status) {
       await supabaseClient.from("materials").update({ status }).eq("id", id);
+      loadPending();
+    }
+
+    async function deleteRejectedMaterial(id) {
+      const row = document.querySelector(`[data-admin-material="${id}"]`);
+      const item = row?.querySelector(".view-material-btn")
+        ? (await supabaseClient.from("materials").select("storage_path").eq("id", id).single()).data
+        : null;
+      if (!item?.storage_path) return;
+
+      const { error } = await supabaseClient.functions.invoke("r2-presign", {
+        body: { action: "reject", key: item.storage_path, materialId: id },
+      });
+      if (error) {
+        const status = document.querySelector(`[data-admin-status="${id}"]`);
+        status.textContent = `Could not remove material: ${errorMessage(error, "request failed")}`;
+        status.className = "text-xs mt-1 text-red-500";
+        return;
+      }
       loadPending();
     }
 
@@ -305,9 +382,6 @@
         return;
       }
 
-      statusEl.textContent = "Uploading...";
-      statusEl.className = "text-xs mt-2 text-gray-500";
-
       const materialName = document.getElementById("material-name-input").value.trim();
       const level = levelInput.value;
       const semester = level === "relevant" ? "all" : semesterInput.value;
@@ -317,24 +391,34 @@
         statusEl.className = "text-xs mt-2 text-red-500";
         return;
       }
+      statusEl.textContent = "Preparing upload...";
+      statusEl.className = "text-xs mt-2 text-gray-500";
+
       const { data: presignData, error: presignError } = await supabaseClient.functions.invoke("r2-presign", {
         body: { action: "upload", fileName: file.name, contentType: file.type },
       });
 
       if (presignError || !presignData?.uploadUrl) {
-        statusEl.textContent = "Couldn't prepare upload.";
+        statusEl.textContent = `Couldn't prepare upload: ${errorMessage(presignError, presignData?.error || "the presign function returned no upload URL")}`;
         statusEl.className = "text-xs mt-2 text-red-500";
         return;
       }
 
-      const putResponse = await fetch(presignData.uploadUrl, {
-        method: "PUT",
-        body: file,
-        headers: { "Content-Type": file.type },
-      });
+      let putResponse;
+      try {
+        putResponse = await fetch(presignData.uploadUrl, {
+          method: "PUT",
+          body: file,
+          headers: { "Content-Type": file.type },
+        });
+      } catch (error) {
+        statusEl.textContent = `Upload request failed: ${errorMessage(error, "check the R2 bucket CORS policy")}`;
+        statusEl.className = "text-xs mt-2 text-red-500";
+        return;
+      }
 
       if (!putResponse.ok) {
-        statusEl.textContent = "Upload failed.";
+        statusEl.textContent = `Upload failed: R2 returned HTTP ${putResponse.status}. Check R2 CORS and the presigned URL.`;
         statusEl.className = "text-xs mt-2 text-red-500";
         return;
       }
@@ -351,7 +435,7 @@
       });
 
       statusEl.textContent = insertError
-        ? "Saved file but couldn't log it - contact admin."
+        ? `File uploaded, but it could not be logged: ${errorMessage(insertError, "database insert failed")}`
         : "Uploaded! Waiting for admin approval.";
       statusEl.className = "text-xs mt-2 " + (insertError ? "text-red-500" : "text-green-600");
 
@@ -374,7 +458,7 @@
     <span class="flex items-center gap-1.5">
       Powered by
       <a href="https://clopertechnologies.me" target="_blank" rel="noopener noreferrer" class="inline-flex">
-        <img src="../assets/images/cloper-logo.svg" alt="Cloper Technologies" class="h-5" />
+        <img src="../assets/images/cloper-logo-light.svg" alt="Cloper Technologies" class="h-5" />
       </a>
     </span>
   </footer>

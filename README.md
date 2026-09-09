@@ -41,6 +41,21 @@ The public Supabase URL and publishable key are configured in `supabase-client.j
 
 ## Course Materials
 
-The authenticated materials page is `public/pages/materials.html`. It uses the private `materials` Supabase Storage bucket and the `materials` database table. Run `database/migrations/001-schema-additions.sql` followed by `database/migrations/002-materials-profile.sql` in the Supabase SQL Editor, then create a private Storage bucket named `materials` before uploading files.
+The authenticated materials page is `public/pages/materials.html`. It uses the `materials` database table and Cloudflare R2 through the `r2-presign` Supabase Edge Function.
+
+Run `database/migrations/001-schema-additions.sql`, `database/migrations/002-materials-profile.sql`, and `database/migrations/003-material-metadata.sql` in that order in the Supabase SQL Editor. To grant admin access, run this with the real registration number:
+
+```sql
+update public.users set is_admin = true where reg_number = 'YOUR_REG_NUMBER';
+```
+
+Deploy the function and configure its secrets:
+
+```text
+supabase functions deploy r2-presign
+supabase secrets set R2_ACCOUNT_ID=... R2_ACCESS_KEY_ID=... R2_SECRET_ACCESS_KEY=... R2_BUCKET_NAME=...
+```
+
+The R2 bucket CORS policy must allow `PUT` from `https://legalhub-io.netlify.app` and allow the `Content-Type` request header. No Supabase Storage bucket is required for this R2 upload path.
 
 The development-only helper `database/dev/reset-test-signup.sql` is destructive and should be run manually in Supabase SQL Editor only. It is not part of the deployment migration sequence.

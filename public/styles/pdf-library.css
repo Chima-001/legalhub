@@ -35,8 +35,8 @@
       top: 0;
       z-index: 50;
       background: rgba(255, 255, 255, 0.8);
-      backdrop-filter: saturate(180%) blur(12px);
       -webkit-backdrop-filter: saturate(180%) blur(12px);
+      backdrop-filter: saturate(180%) blur(12px);
       border-bottom: 1px solid rgba(226, 232, 240, 0.6);
       padding: 12px 16px;
       display: flex;
@@ -209,8 +209,6 @@
       padding: 8px 16px;
       gap: 8px;
       overflow-x: auto;
-      scrollbar-width: none;
-      -webkit-overflow-scrolling: touch;
     }
     .filter-chips-wrapper::-webkit-scrollbar {
       display: none;
@@ -396,6 +394,7 @@
       color: var(--primary);
       display: -webkit-box;
       -webkit-line-clamp: 2;
+      line-clamp: 2;
       -webkit-box-orient: vertical;
       overflow: hidden;
     }
@@ -462,8 +461,8 @@
       inset: 0;
       z-index: 200;
       background: rgba(15, 23, 42, 0.4);
-      backdrop-filter: blur(4px);
       -webkit-backdrop-filter: blur(4px);
+      backdrop-filter: blur(4px);
       visibility: hidden;
       opacity: 0;
       transition: opacity 0.25s ease, visibility 0.25s ease;
@@ -536,7 +535,6 @@
     .sheet-course-list {
       overflow-y: auto;
       padding: 8px 0;
-      -webkit-overflow-scrolling: touch;
     }
 
     .sheet-course-item {
@@ -694,7 +692,7 @@
 
     select:disabled{
       background-color: #f2f2f2;
-      color: #999;
+      color: #c4cee2;
       cursor: not-allowed;
       opacity: 0.6;
     }

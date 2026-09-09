@@ -1,0 +1,227 @@
+/* Shared dark visual theme for account and materials pages. */
+:root {
+  --night-950: #080d1b;
+  --night-900: #0d1426;
+  --night-800: #151f36;
+  --night-700: #22304d;
+  --ink-strong: #f7f9ff;
+  --ink: #e5eaf7;
+  --ink-muted: #aeb9d1;
+  --gold: #ffd166;
+  --gold-strong: #f6ad3c;
+  --cyan: #67e8f9;
+  --line-dark: rgba(184, 201, 235, 0.2);
+  --field-surface: #151f36;
+  --field-text: #f7f9ff;
+}
+
+html,
+body {
+  background: #080d1b !important;
+}
+
+body {
+  color: var(--ink) !important;
+  background:
+    radial-gradient(circle at 10% 0%, rgba(62, 113, 202, 0.28), transparent 38%),
+    radial-gradient(circle at 92% 12%, rgba(19, 184, 194, 0.16), transparent 32%),
+    linear-gradient(145deg, var(--night-950) 0%, var(--night-900) 52%, #101c35 100%) !important;
+  background-attachment: fixed !important;
+}
+
+body > div,
+main > section,
+body > main > div,
+body > main > section,
+body > div > section {
+  color: var(--ink);
+}
+
+.bg-white,
+.bg-\[\#faf7ee\],
+.bg-\[\#fffdf7\],
+.bg-\[\#fffdfa\] {
+  background: rgba(21, 31, 54, 0.92) !important;
+  border-color: var(--line-dark) !important;
+  box-shadow: 0 18px 50px rgba(0, 0, 0, 0.22) !important;
+}
+
+.text-gray-900,
+.text-gray-800,
+.text-gray-700,
+.text-gray-600 {
+  color: var(--ink-strong) !important;
+}
+
+.text-gray-500,
+.text-gray-400 {
+  color: var(--ink-muted) !important;
+}
+
+.view-material-btn,
+.save-material-btn {
+  color: var(--ink-strong) !important;
+  background: var(--night-700) !important;
+  border: 1px solid rgba(184, 201, 235, 0.35) !important;
+}
+
+.edit-material-btn {
+  color: var(--gold) !important;
+  background: #3b3019 !important;
+  border: 1px solid rgba(255, 209, 102, 0.42) !important;
+}
+
+.admin-material-card .bg-gray-100 {
+  color: var(--ink-muted) !important;
+  background: var(--night-700) !important;
+}
+
+.text-\[\#c98a1f\],
+.text-\[\#9a6815\] {
+  color: var(--gold) !important;
+}
+
+.border-gray-200,
+.border-gray-300,
+.border-\[\#e8d9b5\],
+.border-\[\#d9c697\] {
+  border-color: var(--line-dark) !important;
+}
+
+input,
+select,
+textarea,
+.field-shell,
+.bg-white input,
+.bg-white select,
+.bg-\[\#faf7ee\] input,
+.bg-\[\#faf7ee\] select {
+  color: var(--field-text) !important;
+  background: var(--field-surface) !important;
+  border-color: rgba(184, 201, 235, 0.3) !important;
+}
+
+.field-shell {
+  color: var(--field-text) !important;
+  background: var(--field-surface) !important;
+  border-color: rgba(184, 201, 235, 0.3) !important;
+}
+
+.field-shell input,
+.field-shell select,
+.field-shell textarea {
+  color: var(--field-text) !important;
+  background: var(--field-surface) !important;
+}
+
+.field-shell input::selection,
+.field-shell select::selection,
+.field-shell textarea::selection {
+  color: #ffffff;
+  background: #2563eb;
+}
+
+form .bg-white.rounded-xl:has(> input),
+form .bg-white.rounded-xl:has(> select),
+form .bg-white.rounded-xl:has(> textarea) {
+  color: var(--field-text) !important;
+  background: var(--field-surface) !important;
+  border-color: rgba(184, 201, 235, 0.3) !important;
+}
+
+option {
+  color: var(--field-text);
+  background: var(--field-surface);
+}
+
+input::placeholder,
+textarea::placeholder {
+  color: #64748b !important;
+}
+
+input:-webkit-autofill,
+select:-webkit-autofill,
+textarea:-webkit-autofill {
+  -webkit-text-fill-color: var(--field-text) !important;
+  -webkit-box-shadow: 0 0 0 1000px var(--field-surface) inset !important;
+}
+
+input:focus,
+select:focus,
+textarea:focus {
+  background: var(--field-surface) !important;
+  border-color: var(--cyan) !important;
+  box-shadow: 0 0 0 3px rgba(103, 232, 249, 0.16) !important;
+}
+
+button[style*="background"],
+#submit-btn,
+#submit-upload-btn,
+#choose-avatar-btn,
+#save-username-btn,
+#save-level-btn,
+#save-email-btn,
+#save-password-btn {
+  color: #10182b !important;
+  background: linear-gradient(100deg, var(--gold), var(--gold-strong)) !important;
+  box-shadow: 0 10px 24px rgba(246, 173, 60, 0.22) !important;
+}
+
+button:hover,
+a:hover {
+  filter: brightness(1.12);
+}
+
+button:focus-visible,
+a:focus-visible,
+input:focus-visible,
+select:focus-visible,
+textarea:focus-visible {
+  outline: 3px solid var(--cyan) !important;
+  outline-offset: 3px;
+}
+
+.bg-white button:hover,
+.bg-\[\#faf7ee\] button:hover,
+.bg-\[\#fffdf7\] button:hover,
+.bg-\[\#fffdfa\] button:hover {
+  color: #10182b !important;
+  background: linear-gradient(100deg, var(--gold), var(--gold-strong)) !important;
+}
+
+.view-material-btn:hover,
+.save-material-btn:hover {
+  color: #ffffff !important;
+  background: #304568 !important;
+}
+
+.edit-material-btn:hover {
+  color: #fff4c2 !important;
+  background: #55451f !important;
+}
+
+footer,
+.home-footer {
+  color: #b9c5dd !important;
+  border-color: var(--line-dark) !important;
+}
+
+footer img[src*="cloper-logo"],
+.footer-credit img {
+  filter: none !important;
+}
+
+.admin-material-card {
+  background: rgba(21, 31, 54, 0.8) !important;
+  border-color: var(--line-dark) !important;
+}
+
+.admin-material-edit {
+  border-color: var(--line-dark) !important;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    transition-duration: 0.01ms !important;
+  }
+}

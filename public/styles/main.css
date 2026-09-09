@@ -447,7 +447,7 @@
       left: 16px;
       top: 50%;
       transform: translateY(-50%);
-      color: #8a8aaa;
+      color: #ffffffff;
       pointer-events: none;
       transition: color 0.2s ease;
   }
@@ -492,7 +492,7 @@
       font-family: 'IBM Plex Mono', monospace;
       font-size: 10px;
       font-weight: 500;
-      color: #8a8aaa;
+      color: #070707;
       border: 1px solid rgba(0, 0, 0, 0.06);
       border-radius: 6px;
       padding: 2px 8px;
@@ -1088,7 +1088,6 @@
       overflow-x: auto;
       margin-top: 14px;
       padding-bottom: 2px;
-      scrollbar-width: none;
   }
 
   .thumb-row::-webkit-scrollbar {

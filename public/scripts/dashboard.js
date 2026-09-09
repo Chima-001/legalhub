@@ -66,7 +66,20 @@
             const greeting = document.getElementById('greeting-text');
             if (greeting) {
                 const hour = new Date().getHours();
-                greeting.textContent = (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening') + ', student';
+                const timeGreeting = hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening';
+                greeting.textContent = timeGreeting + ', student';
+                if (typeof supabaseClient !== 'undefined') {
+                    supabaseClient.auth.getSession().then(async ({ data: { session } }) => {
+                        if (!session) return;
+                        const { data: user } = await supabaseClient
+                            .from('users')
+                            .select('username, full_name')
+                            .eq('id', session.user.id)
+                            .single();
+                        const username = user?.username?.trim() || user?.full_name?.trim();
+                        if (username) greeting.textContent = timeGreeting + ', ' + username;
+                    });
+                }
             }
 
             // ─── toast ───

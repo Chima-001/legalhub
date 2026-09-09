@@ -7,8 +7,20 @@
   <title>My Profile - LegalHub</title>
   <meta name="description" content="Manage your LegalHub account.">
   <meta name="author" content="Cloper Technologies">
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="LegalHub">
+  <meta property="og:title" content="My Profile - LegalHub">
+  <meta property="og:description" content="Manage your LegalHub account and profile details.">
+  <meta property="og:url" content="https://legalhub-io.netlify.app/pages/profile.html">
+  <meta property="og:image" content="https://legalhub-io.netlify.app/assets/images/social-preview.png">
+  <meta property="og:image:alt" content="LegalHub social preview">
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="My Profile - LegalHub">
+  <meta name="twitter:description" content="Manage your LegalHub account and profile details.">
+  <meta name="twitter:image" content="https://legalhub-io.netlify.app/assets/images/social-preview.png">
   <link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg">
   <script src="https://cdn.tailwindcss.com"></script>
+  <link rel="stylesheet" href="../styles/dark-theme.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
   <script src="../scripts/auth/supabase-client.js"></script>
   <script src="../scripts/auth/auth-guard.js"></script>
@@ -20,7 +32,7 @@
 </head>
 
 <body class="min-h-screen px-4 py-8 text-gray-800"
-  style="background: linear-gradient(135deg, #fdf6e3 0%, #f9e2a7 100%);">
+  >
 
   <main class="w-full max-w-4xl mx-auto">
     <header class="flex items-center justify-between gap-4 mb-8">
@@ -49,9 +61,13 @@
             class="w-24 h-24 rounded-full mx-auto flex items-center justify-center text-white text-3xl font-bold overflow-hidden ring-4 ring-[#f2c14e]/25">
           </div>
           <input type="file" id="avatar-input" accept="image/*" class="hidden" />
-          <button id="choose-avatar-btn"
-            class="mt-4 px-4 py-2 rounded-lg text-sm font-semibold text-gray-900 shadow-sm hover:brightness-95"
-            style="background: linear-gradient(90deg, #ffd166, #f4a123);">Change photo</button>
+          <div class="mt-4 flex gap-2 justify-center">
+            <button id="choose-avatar-btn"
+              class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-900 shadow-sm hover:brightness-95"
+              >Change photo</button>
+            <button id="delete-avatar-btn"
+              class="hidden px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 border border-gray-300 hover:bg-gray-50">Delete</button>
+          </div>
           <p id="avatar-status" class="text-xs mt-2"></p>
         </div>
         <div class="w-full pt-1">
@@ -89,7 +105,7 @@
               class="min-w-0 flex-1 bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]" />
             <button id="save-username-btn"
               class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95"
-              style="background: linear-gradient(90deg, #ffd166, #f4a123);">Save</button>
+              >Save</button>
           </div>
           <p id="username-status" class="text-xs mt-2"></p>
         </div>
@@ -108,7 +124,7 @@
             </select>
             <button id="save-level-btn"
               class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95"
-              style="background: linear-gradient(90deg, #ffd166, #f4a123);">Save</button>
+              >Save</button>
           </div>
           <p id="level-status" class="text-xs mt-2"></p>
         </div>
@@ -129,7 +145,7 @@
               class="min-w-0 flex-1 bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]" />
             <button id="save-email-btn"
               class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95"
-              style="background: linear-gradient(90deg, #ffd166, #f4a123);">Update</button>
+              >Update</button>
           </div>
           <p id="email-status" class="text-xs mt-2"></p>
         </div>
@@ -144,7 +160,7 @@
           </div>
           <button id="save-password-btn"
             class="w-full mt-3 py-2.5 rounded-lg font-semibold text-gray-900 text-sm hover:brightness-95"
-            style="background: linear-gradient(90deg, #ffd166, #f4a123);">Update password</button>
+            >Update password</button>
           <p id="password-status" class="text-xs mt-2"></p>
         </div>
       </div>
@@ -160,7 +176,7 @@
 
   <script src="../scripts/avatar.js"></script>
   <script>
-    async function compressImage(file, targetKB = 200, maxDim = 500) {
+    async function compressImage(file, targetKB = 100, maxDim = 400) {
       const img = await new Promise((resolve, reject) => {
         const image = new Image();
         image.onload = () => resolve(image);
@@ -191,13 +207,31 @@
       const { data } = await supabaseClient.from("users").select("avatar_path, username, full_name").eq("id", user.id).single();
       const preview = document.getElementById("avatar-preview");
 
+            const smallAvatar = document.getElementById("avatar-large");
+      const deleteBtn = document.getElementById("delete-avatar-btn");
+
       if (data?.avatar_path) {
         const { data: urlData } = supabaseClient.storage.from("avatars").getPublicUrl(data.avatar_path);
-        preview.innerHTML = `<img src="${urlData.publicUrl}" class="w-full h-full object-cover" />`;
+        const cacheBustedUrl = `${urlData.publicUrl}?t=${Date.now()}`;
+        preview.innerHTML = `<img src="${cacheBustedUrl}" class="w-full h-full object-cover" />`;
+        smallAvatar.innerHTML = `<img src="${cacheBustedUrl}" class="w-full h-full object-cover rounded-full" />`;
+        deleteBtn.classList.remove("hidden");
       } else {
         renderAvatar(preview, data?.username || data?.full_name);
+        renderAvatar(smallAvatar, data?.username || data?.full_name);
+        deleteBtn.classList.add("hidden");
       }
     }
+    document.getElementById("delete-avatar-btn").addEventListener("click", async () => {
+      const { data: { user } } = await supabaseClient.auth.getUser();
+      const path = `${user.id}/avatar.jpg`;
+
+      await supabaseClient.storage.from("avatars").remove([path]);
+      await supabaseClient.from("users").update({ avatar_path: null }).eq("id", user.id);
+
+      document.getElementById("avatar-status").textContent = "Photo removed.";
+      loadAvatar();
+    });
     loadAvatar();
 
     document.getElementById("choose-avatar-btn").addEventListener("click", () => document.getElementById("avatar-input").click());
@@ -281,7 +315,7 @@
       document.getElementById("display-name").textContent = data.full_name || "Unnamed";
       document.getElementById("display-reg").textContent = data.reg_number;
       document.getElementById("username-input").value = data.username || "";
-      renderAvatar(document.getElementById("avatar-large"), data.username || data.full_name, "text-2xl w-20 h-20");
+      // renderAvatar(document.getElementById("avatar-large"), data.username || data.full_name, "text-2xl w-20 h-20");
     }
 
     document.getElementById("save-username-btn").addEventListener("click", async () => {
@@ -361,7 +395,7 @@
     <span class="flex items-center gap-1.5">
       Powered by
       <a href="https://clopertechnologies.me" target="_blank" rel="noopener noreferrer" class="inline-flex">
-        <img src="../assets/images/cloper-logo.svg" alt="Cloper Technologies" class="h-5" />
+        <img src="../assets/images/cloper-logo-light.svg" alt="Cloper Technologies" class="h-5" />
       </a>
     </span>
   </footer>
