@@ -367,10 +367,17 @@
 
     async function deleteRejectedMaterial(id) {
       const row = document.querySelector(`[data-admin-material="${id}"]`);
-      const item = row?.querySelector(".view-material-btn")
-        ? (await supabaseClient.from("materials").select("storage_path").eq("id", id).single()).data
-        : null;
-      if (!item?.storage_path) return;
+      const { data: item, error: fetchError } = await supabaseClient
+        .from("materials").select("storage_path").eq("id", id).single();
+
+      if (fetchError || !item?.storage_path) {
+        const status = document.querySelector(`[data-admin-status="${id}"]`);
+        if (status) {
+          status.textContent = "Could not find this material's file path.";
+          status.className = "text-xs mt-1 text-red-500";
+        }
+        return;
+      }
 
       const { error } = await supabaseClient.functions.invoke("r2-presign", {
         body: { action: "reject", key: item.storage_path, materialId: id },

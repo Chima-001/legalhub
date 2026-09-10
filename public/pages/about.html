@@ -17,6 +17,14 @@
         rel="stylesheet">
 
     <link rel="stylesheet" href="../styles/about.css">
+    <style>
+        body {
+            visibility: hidden;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../scripts/auth/supabase-client.js"></script>
+    <script src="../scripts/auth/auth-guard.js"></script>
 </head>
 
 <body>
@@ -85,7 +93,6 @@
                 </p>
             </div>
 
-
             <div class="developers-grid">
 
                 <!-- Developer One -->
@@ -94,58 +101,9 @@
                     <div class="card-glow"></div>
 
                     <div class="developer-image-wrapper">
-                        <!-- Replace with your actual image -->
-                        <img src="images/developer-one.jpg" alt="Developer One" class="developer-image">
-
-                        <div class="developer-number">01</div>
-                    </div>
-
-                    <div class="developer-content">
-
-                        <div class="developer-role">
-                            <span></span>
-                            DEVELOPER
-                        </div>
-
-                        <h3>Hillary Mmaka</h3>
-
-                        <p class="developer-title">
-                            Founder, Victorious Tech Institute
-                        </p>
-
-                        <p class="developer-bio">
-                            [Write your bio here. Introduce yourself,
-                            your background, your interests in technology,
-                            your role in Legal Hub, and what motivated you
-                            to be part of the project.]
-                        </p>
-
-                        <div class="skills">
-                            <span>[Skill]</span>
-                            <span>[Skill]</span>
-                            <span>[Skill]</span>
-                        </div>
-
-                        <a href="mailto:[colleague-email]" class="profile-button secondary-button">
-                            <span>Get in Touch</span>
-                            <span class="button-arrow">↗</span>
-                        </a>
-
-                    </div>
-
-                </article>
-
-
-                <!-- Developer Two -->
-                <article class="developer-card">
-
-                    <div class="card-glow"></div>
-
-                    <div class="developer-image-wrapper">
-                        <!-- Replace with your colleague's actual image -->
                         <img src="../assets/images/profile-picture2.webp" alt="Developer Two" class="developer-image">
 
-                        <div class="developer-number">02</div>
+                        <div class="developer-number">01</div>
                     </div>
 
                     <div class="developer-content">
@@ -162,19 +120,21 @@
                         </p>
 
                         <p class="developer-bio">
-                            I'm a software developer and software engineering student enrolled at Brigham Young
+                            I'm a software engineering student enrolled at Brigham Young
                             University, Idaho, and also a law student at University of Nigeria, Nsukka. I have a passion
                             for creating innovative solutions and contributing to the tech community. I enjoy building
                             things that live on the internet — clean, functional, and accessible web applications that
-                            solve real problems. When I'm not coding, I enjoy traveling, hiking, hitting the gym, or
-                            thinking through logical problems.
+                            solve real problems. With skills and experience in many areas including full-stack
+                            development, UI/UX design, and database management, I strive to create
+                            impactful and user-friendly digital experiences.
                         </p>
 
                         <div class="skills">
-                            <span>FullStack Development</span>
+                            <span>Full-stack Development</span>
                             <span>UI/UX Design</span>
                             <span>Programming</span>
                             <span>Database Management</span>
+                            <span>Database Design</span>
                             <span>Software Engineering</span>
                         </div>
 
@@ -183,6 +143,52 @@
                             <span>Visit My Portfolio</span>
                             <span class="button-arrow">↗</span>
                         </a>
+                    </div>
+
+                </article>
+
+                <!-- Developer Two -->
+                <article class="developer-card">
+
+                    <div class="card-glow"></div>
+
+                    <div class="developer-image-wrapper">
+                        <img src="../assets/images/victorious-tech.jpeg" alt="Developer One" class="developer-image">
+
+                        <div class="developer-number">02</div>
+                    </div>
+
+                    <div class="developer-content">
+
+                        <div class="developer-role">
+                            <span></span>
+                            DEVELOPER
+                        </div>
+
+                        <h3>Hillary Mmaka</h3>
+
+                        <p class="developer-title">
+                            Founder, Victorious Tech Institute
+                        </p>
+
+                        <p class="developer-bio">
+                            I am a modern day revolutionary software developer and a Law student at the Faculty of Law,
+                            University of Nigeria, Nsukka. I am aimed at bringing technology to the
+                            forefront of education and knowledge. I aspire to create innovative solutions that make
+                            information more accessible and useful to people.
+                        </p>
+
+                        <div class="skills">
+                            <span>Software Development</span>
+                            <span>Web Development</span>
+                            <span>Database Design</span>
+                        </div>
+
+                        <a href="mailto:hillarymmaka@gmail.com" class="profile-button secondary-button">
+                            <span>Get in Touch</span>
+                            <span class="button-arrow">↗</span>
+                        </a>
+
                     </div>
 
                 </article>
@@ -317,12 +323,12 @@
 
                         <a href="https://clopertechnologies.me/projects.html" target="_blank" rel="noopener noreferrer"
                             class="cta-button">
-                            Explore My Portfolio
+                            Explore my Portfolio
                             <span>↗</span>
                         </a>
 
-                        <a href="mailto:[colleague-email]" class="cta-button outline-button">
-                            Contact [Colleague]
+                        <a href="mailto:hillarymmaka@gmail.com" class="cta-button outline-button">
+                            Contact Victorious Tech Institute
                             <span>↗</span>
                         </a>
 
