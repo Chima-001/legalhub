@@ -29,11 +29,11 @@ body {
   background-attachment: fixed !important;
 }
 
-body > div,
-main > section,
-body > main > div,
-body > main > section,
-body > div > section {
+body>div,
+main>section,
+body>main>div,
+body>main>section,
+body>div>section {
   color: var(--ink);
 }
 
@@ -221,7 +221,10 @@ footer img[src*="cloper-logo"],
 }
 
 @media (prefers-reduced-motion: reduce) {
-  *, *::before, *::after {
+
+  *,
+  *::before,
+  *::after {
     transition-duration: 0.01ms !important;
   }
 }

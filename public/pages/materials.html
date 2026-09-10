@@ -50,7 +50,7 @@
   <div class="max-w-3xl mx-auto">
 
     <div class="flex items-center justify-between mb-4">
-      <a href="../index.html" class="text-sm text-[#c98a1f] hover:underline">&larr; Back</a>
+      <a href="#" id="back-link" class="text-sm text-[#c98a1f] hover:underline">&larr; Back</a>
       <div class="flex items-center gap-3">
         <span id="admin-badge"
           class="hidden text-xs px-3 py-1 rounded-full bg-[#c98a1f]/10 text-[#c98a1f] font-semibold">Admin</span>
@@ -112,8 +112,7 @@
         Choose PDF</button>
       <p id="selected-file" class="text-xs text-gray-500 mt-2">No PDF selected</p>
       <button id="submit-upload-btn" disabled
-        class="mt-2 px-5 py-2 rounded-xl text-sm font-semibold text-gray-900 disabled:opacity-60"
-        >
+        class="mt-2 px-5 py-2 rounded-xl text-sm font-semibold text-gray-900 disabled:opacity-60">
         Upload material
       </button>
       <p id="upload-status" class="text-xs mt-2"></p>
@@ -143,6 +142,14 @@
     let currentUserId = null;
     let isAdmin = false;
 
+    document.getElementById("back-link").addEventListener("click", (e) => {
+      e.preventDefault();
+      if (document.referrer && document.referrer.includes(window.location.host)) {
+        history.back();
+      } else {
+        window.location.href = "../index.html";
+      }
+    });
     // Replace these lists with the official course offering when it is ready.
     const COURSE_CATALOG = {
       "100L": {
@@ -195,12 +202,18 @@
 
       const { data: userRow, error: userError } = await supabaseClient
         .from("users")
-        .select("username, full_name, is_admin")
+        .select("username, full_name, is_admin, avatar_path")
         .eq("id", currentUserId)
         .single();
 
       if (userRow) {
-        renderAvatar(document.getElementById("header-avatar"), userRow.username || userRow.full_name);
+        const headerAvatar = document.getElementById("header-avatar");
+        if (userRow.avatar_path) {
+          const { data: urlData } = supabaseClient.storage.from("avatars").getPublicUrl(userRow.avatar_path);
+          headerAvatar.innerHTML = `<img src="${urlData.publicUrl}?t=${Date.now()}" class="w-full h-full object-cover rounded-full" />`;
+        } else {
+          renderAvatar(headerAvatar, userRow.username || userRow.full_name);
+        }
         isAdmin = !!userRow.is_admin;
       }
 
@@ -272,11 +285,23 @@
       `).join("");
 
       document.querySelectorAll(".approve-btn").forEach(btn =>
-        btn.addEventListener("click", () => updateStatus(btn.dataset.id, "approved")));
+        btn.addEventListener("click", () => {
+          if (confirm("Approve this material? It will become visible to all students.")) {
+            updateStatus(btn.dataset.id, "approved");
+          }
+        }));
       document.querySelectorAll(".reject-btn").forEach(btn =>
-        btn.addEventListener("click", () => deleteRejectedMaterial(btn.dataset.id)));
+        btn.addEventListener("click", () => {
+          if (confirm("Reject and permanently delete this upload? This cannot be undone.")) {
+            deleteRejectedMaterial(btn.dataset.id);
+          }
+        }));
       document.querySelectorAll(".remove-btn").forEach(btn =>
-        btn.addEventListener("click", () => deleteRejectedMaterial(btn.dataset.id)));
+        btn.addEventListener("click", () => {
+          if (confirm("Permanently delete this material? This cannot be undone.")) {
+            deleteRejectedMaterial(btn.dataset.id);
+          }
+        }));
       document.querySelectorAll(".edit-material-btn").forEach(btn => btn.addEventListener("click", () => {
         const panel = document.querySelector(`[data-edit-panel="${btn.dataset.editId}"]`);
         const isOpening = panel.classList.toggle("hidden") === false;
@@ -433,7 +458,7 @@
         storage_path: presignData.key,
         uploaded_by: currentUserId,
       });
-
+      if (!insertError && isAdmin) loadPending();
       statusEl.textContent = insertError
         ? `File uploaded, but it could not be logged: ${errorMessage(insertError, "database insert failed")}`
         : "Uploaded! Waiting for admin approval.";

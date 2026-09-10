@@ -35,8 +35,8 @@
       semesterSelect.innerHTML = `<option value="all">All</option>`;
     } else {
       semesterSelect.disabled = false;
-      semesterSelect.innerHTML = 
-      `<option value="all">All</option>
+      semesterSelect.innerHTML =
+        `<option value="all">All</option>
       <option value="first">First Semester</option>
       <option value="second">Second Semester</option>`;
       semesterSelect.value = selectedSemester;
@@ -95,12 +95,14 @@
   const requestedLevel = new URLSearchParams(window.location.search).get('level');
   let selectedLevel = Object.prototype.hasOwnProperty.call(COURSE_CATALOG, requestedLevel) ? requestedLevel : 'all';
   let selectedSemester = 'all';
+  let isAdmin = false;
 
   async function loadUserFilters() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabaseClient.from('users').select('current_level, level').eq('id', user.id).single();
+    const { data } = await supabaseClient.from('users').select('current_level, level, is_admin').eq('id', user.id).single();
+    isAdmin = !!data?.is_admin;
     const profileLevel = data?.current_level || data?.level;
     if (profileLevel && selectedLevel === 'all') {
       selectedLevel = profileLevel;
@@ -126,6 +128,8 @@
         level: m.level || 'relevant',
         semester: m.semester || 'all',
         url: signed?.downloadUrl || null,
+        materialId: m.id,
+        storagePath: m.storage_path,
       };
     }));
 
@@ -322,6 +326,15 @@
                   <div class="fallback-title">${book.displayName}</div>
                 </div>
               </div>
+              ${isAdmin ? `
+                <button class="material-kebab" data-material-id="${book.materialId}" data-storage-path="${book.storagePath}"
+                  onclick="event.stopPropagation(); toggleKebabMenu(this);"
+                  style="position:absolute; top:8px; right:8px; z-index:5; width:28px; height:28px; border-radius:50%; border:none; background:rgba(255,255,255,0.9); box-shadow:0 1px 4px rgba(0,0,0,0.2); cursor:pointer; font-weight:bold; font-size:16px; line-height:1;">⋮</button>
+                <div class="kebab-menu" style="display:none; position:absolute; top:38px; right:8px; z-index:6; background:white; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.2); overflow:hidden;">
+                  <button onclick="event.stopPropagation(); deleteMaterial('${book.materialId}', '${book.storagePath}');"
+                    style="display:block; width:100%; padding:8px 16px; border:none; background:white; color:#dc2626; font-size:13px; cursor:pointer; text-align:left;">Delete</button>
+                </div>
+              ` : ""}
               <div class="book-meta">
                 <div class="book-title">${book.materialName}</div>
                 <span class="course-tag">${book.courseName}</span>
@@ -422,4 +435,33 @@
   });
   console.log(`📚 Library ready · ${books.length} book(s) · ${ALL_COURSES.length - 1} courses`);
   console.log('💡 Click any card to open the PDF · Ctrl+K to search');
+
+  window.toggleKebabMenu = function (btn) {
+    document.querySelectorAll('.kebab-menu').forEach(menu => {
+      if (menu !== btn.nextElementSibling) menu.style.display = 'none';
+    });
+    const menu = btn.nextElementSibling;
+    menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  };
+
+  document.addEventListener('click', () => {
+    document.querySelectorAll('.kebab-menu').forEach(menu => menu.style.display = 'none');
+  });
+
+  window.deleteMaterial = async function (materialId, storagePath) {
+    if (!confirm("Permanently delete this material for everyone? This cannot be undone.")) return;
+
+    const { error } = await supabaseClient.functions.invoke("r2-presign", {
+      body: { action: "reject", key: storagePath, materialId: materialId },
+    });
+
+    if (error) {
+      alert("Couldn't delete this material. Try again.");
+      return;
+    }
+
+    books = books.filter(b => b.materialId !== materialId);
+    filteredBooks = filteredBooks.filter(b => b.materialId !== materialId);
+    render();
+  };
 })();

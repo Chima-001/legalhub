@@ -292,6 +292,7 @@
 
     /* ─── Book Card ────────────────────────────────────────────────── */
     .book-card {
+      position: relative;
       background: var(--surface);
       border-radius: var(--radius);
       overflow: hidden;
