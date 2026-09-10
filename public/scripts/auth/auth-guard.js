@@ -37,7 +37,7 @@
     session = null;
   }
 
-  const SEVEN_DAYS_MS = 7 * 24 * 60 * 60 * 1000;
+  const SEVEN_DAYS_MS = 3 * 24 * 60 * 60 * 1000;
   const loginTime = parseInt(localStorage.getItem("legalhub_login_time") || "0", 10);
   const expired = Date.now() - loginTime > SEVEN_DAYS_MS;
 

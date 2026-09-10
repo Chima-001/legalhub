@@ -1,6 +1,15 @@
 (function () {
   'use strict';
 
+  document.getElementById('back-link')?.addEventListener('click', (e) => {
+    e.preventDefault();
+    if (document.referrer && document.referrer.includes(window.location.host)) {
+      history.back();
+    } else {
+      window.location.href = '../index.html';
+    }
+  });
+
   // ─── 1. CONFIGURATION ──────────────────────────────────────────
 
   const COURSE_CATALOG = {
@@ -206,13 +215,21 @@
 
   // ─── 5. DOWNLOAD HELPER ────────────────────────────────────────
 
-  window.downloadPDF = function (filePath) {
-    const link = document.createElement('a');
-    link.href = filePath;
-    link.download = filePath.split('/').pop();
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+  window.downloadPDF = async function (filePath, fileName) {
+    try {
+      const response = await fetch(filePath);
+      const blob = await response.blob();
+      const blobUrl = URL.createObjectURL(blob);
+      const link = document.createElement('a');
+      link.href = blobUrl;
+      link.download = (fileName || 'document') + '.pdf';
+      document.body.appendChild(link);
+      link.click();
+      document.body.removeChild(link);
+      URL.revokeObjectURL(blobUrl);
+    } catch (err) {
+      alert('Could not download this file. Try again.');
+    }
   };
 
   // ─── 6. BUILD UI COMPONENTS ────────────────────────────────────
@@ -311,10 +328,8 @@
 
       html += `
             <div class="book-card"
-                 style="--spine-color: ${book.spineColor}; --cover-bg: ${book.coverBg};"
-                 data-filename="${book.fileName}"
-                 onclick="window.open('${filePath}', '_blank')"
-                 title="Open ${book.displayName}">
+                 style="--spine-color: ${book.spineColor}; --cover-bg: ${book.coverBg}; position: relative;"
+                 data-filename="${book.fileName}">
               <div class="book-cover" id="${id}">
                 <canvas></canvas>
                 <div class="cover-placeholder">
@@ -340,7 +355,7 @@
                 <span class="course-tag">${book.courseName}</span>
                 <div class="book-actions">
                   <button class="btn-read" onclick="event.stopPropagation(); window.open('${filePath}', '_blank');">📖 Read</button>
-                  <button class="btn-download" onclick="event.stopPropagation(); downloadPDF('${filePath}');">⬇ Download</button>
+                  <button class="btn-download" onclick="event.stopPropagation(); downloadPDF('${filePath}', '${book.materialName.replace(/'/g, "\\'")}');">⬇ Download</button>
                 </div>
               </div>
             </div>

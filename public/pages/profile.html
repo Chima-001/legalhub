@@ -31,8 +31,7 @@
   </style>
 </head>
 
-<body class="min-h-screen px-4 py-8 text-gray-800"
-  >
+<body class="min-h-screen px-4 py-8 text-gray-800">
 
   <main class="w-full max-w-4xl mx-auto">
     <header class="flex items-center justify-between gap-4 mb-8">
@@ -63,8 +62,8 @@
           <input type="file" id="avatar-input" accept="image/*" class="hidden" />
           <div class="mt-4 flex gap-2 justify-center">
             <button id="choose-avatar-btn"
-              class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-900 shadow-sm hover:brightness-95"
-              >Change photo</button>
+              class="px-4 py-2 rounded-lg text-sm font-semibold text-gray-900 shadow-sm hover:brightness-95">Change
+              photo</button>
             <button id="delete-avatar-btn"
               class="hidden px-4 py-2 rounded-lg text-sm font-semibold text-gray-700 border border-gray-300 hover:bg-gray-50">Delete</button>
           </div>
@@ -104,8 +103,7 @@
             <input id="username-input" type="text" placeholder="Not set"
               class="min-w-0 flex-1 bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]" />
             <button id="save-username-btn"
-              class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95"
-              >Save</button>
+              class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95">Save</button>
           </div>
           <p id="username-status" class="text-xs mt-2"></p>
         </div>
@@ -123,8 +121,7 @@
               <option value="500L">500L</option>
             </select>
             <button id="save-level-btn"
-              class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95"
-              >Save</button>
+              class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95">Save</button>
           </div>
           <p id="level-status" class="text-xs mt-2"></p>
         </div>
@@ -144,8 +141,7 @@
             <input id="new-email-input" type="email" placeholder="you@example.com"
               class="min-w-0 flex-1 bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]" />
             <button id="save-email-btn"
-              class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95"
-              >Update</button>
+              class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95">Update</button>
           </div>
           <p id="email-status" class="text-xs mt-2"></p>
         </div>
@@ -156,12 +152,20 @@
           <div class="mt-4 space-y-2">
             <input id="current-password-input" type="password" placeholder="Current password"
               class="w-full bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]" />
-            <input id="new-password-input" type="password" minlength="6" placeholder="New Password (at least 6 characters)"
+            <input id="new-password-input" type="password" minlength="6"
+              placeholder="New Password (at least 6 characters)"
               class="w-full bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]" />
           </div>
           <button id="save-password-btn"
-            class="w-full mt-3 py-2.5 rounded-lg font-semibold text-gray-900 text-sm hover:brightness-95"
-            >Update password</button>
+            class="mt-3 px-4 py-2 rounded-lg text-sm font-semibold text-gray-900 shadow-sm hover:brightness-95 flex items-center justify-center gap-2"
+            style="background: linear-gradient(90deg, #ffd166, #f4a123);">
+            <svg id="password-spinner" class="hidden animate-spin h-4 w-4 text-gray-900" viewBox="0 0 24 24"
+              fill="none">
+              <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+              <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"></path>
+            </svg>
+            <span id="password-btn-text">Update password</span>
+          </button>
           <p id="password-status" class="text-xs mt-2"></p>
         </div>
       </div>
@@ -208,7 +212,7 @@
       const { data } = await supabaseClient.from("users").select("avatar_path, username, full_name").eq("id", user.id).single();
       const preview = document.getElementById("avatar-preview");
 
-            const smallAvatar = document.getElementById("avatar-large");
+      const smallAvatar = document.getElementById("avatar-large");
       const deleteBtn = document.getElementById("delete-avatar-btn");
 
       if (data?.avatar_path) {
@@ -333,6 +337,8 @@
       const newEmail = document.getElementById("new-email-input").value.trim();
       if (!newEmail) return;
 
+      if (!confirm(`Change your login email to ${newEmail}? You'll need to confirm it before it takes effect.`)) return;
+
       const { error } = await supabaseClient.auth.updateUser({ email: newEmail });
 
       statusEl(
@@ -351,6 +357,15 @@
         return;
       }
 
+      if (!confirm("Update your password now?")) return;
+
+      const spinner = document.getElementById("password-spinner");
+      const btnText = document.getElementById("password-btn-text");
+      const btn = document.getElementById("save-password-btn");
+      spinner.classList.remove("hidden");
+      btnText.textContent = "Updating...";
+      btn.disabled = true;
+
       // Re-verify identity with current password before allowing a change -
       // Supabase's updateUser doesn't require this by default, but it
       // stops someone from changing the password on an unattended
@@ -367,6 +382,10 @@
 
       const { error } = await supabaseClient.auth.updateUser({ password: newPassword });
       statusEl("password-status", error ? error.message : "Password updated!", !!error);
+
+      spinner.classList.add("hidden");
+      btnText.textContent = "Update password";
+      btn.disabled = false;
 
       if (!error) {
         document.getElementById("current-password-input").value = "";
