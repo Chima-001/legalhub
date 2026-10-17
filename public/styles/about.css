@@ -405,6 +405,16 @@ a {
     transition: transform 0.7s ease;
 }
 
+.hill-image-wrapper {
+    height: 240px;
+    background: #f1f5f9;
+}
+
+.hill-image-wrapper .developer-image {
+    object-fit: cover;
+    object-position: center top;
+}
+
 .developer-card:hover .developer-image {
     transform: scale(1.04);
 }
@@ -1149,6 +1159,10 @@ a {
 
     .developer-image-wrapper {
         height: 330px;
+    }
+
+    .hill-image-wrapper {
+        height: 200px;
     }
 
     .developer-content {

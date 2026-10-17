@@ -808,7 +808,7 @@
 
   .carousel-track {
       display: flex;
-      transition: transform 0.7s cubic-bezier(0.16, 1, 0.3, 1);
+      transition: transform 0.85s cubic-bezier(0.65, 0, 0.35, 1);
       will-change: transform;
   }
 
@@ -818,6 +818,18 @@
       position: relative;
       overflow: hidden;
       background: #e8edf8;
+      opacity: 0.78;
+      transition: opacity 0.85s ease-in-out;
+  }
+
+  .carousel-slide::after {
+      content: '';
+      position: absolute;
+      inset: 0;
+      pointer-events: none;
+      background: linear-gradient(115deg, rgba(255, 255, 255, 0.12), transparent 38%);
+      opacity: 0;
+      transition: opacity 0.9s ease-in-out;
   }
 
   .carousel-slide img {
@@ -825,11 +837,20 @@
       height: 100%;
       object-fit: cover;
       display: block;
-      transition: transform 0.6s ease;
+      transform: scale(1.04);
+      transition: transform 0.85s cubic-bezier(0.65, 0, 0.35, 1);
   }
 
-  .carousel-slide:hover img {
-      transform: scale(1.03);
+  .carousel-slide.is-active img {
+      transform: scale(1);
+  }
+
+  .carousel-slide.is-active {
+      opacity: 1;
+  }
+
+  .carousel-slide.is-active::after {
+      opacity: 1;
   }
 
   .carousel-slide .slide-overlay {
@@ -840,6 +861,37 @@
       padding: 20px 24px 24px;
       background: linear-gradient(0deg, rgba(0, 0, 0, 0.60) 0%, transparent 100%);
       color: #fff;
+      opacity: 0;
+      transform: translateY(12px);
+      transition: opacity 0.55s ease-out, transform 0.7s cubic-bezier(0.65, 0, 0.35, 1);
+  }
+
+  .carousel-slide.is-active .slide-overlay {
+      opacity: 1;
+      transform: translateY(0);
+  }
+
+  .carousel-slide .slide-overlay blockquote,
+  .carousel-slide .slide-overlay cite,
+  .carousel-slide .slide-overlay .slide-tag {
+      opacity: 0;
+      transform: translateY(8px);
+      transition: opacity 0.45s ease-out, transform 0.55s ease-out;
+  }
+
+  .carousel-slide .slide-overlay cite {
+      transition-delay: 0.08s;
+  }
+
+  .carousel-slide .slide-overlay .slide-tag {
+      transition-delay: 0.16s;
+  }
+
+  .carousel-slide.is-active .slide-overlay blockquote,
+  .carousel-slide.is-active .slide-overlay cite,
+  .carousel-slide.is-active .slide-overlay .slide-tag {
+      opacity: 1;
+      transform: translateY(0);
   }
 
   .carousel-slide .slide-overlay blockquote {

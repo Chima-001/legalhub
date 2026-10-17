@@ -45,6 +45,18 @@
   <script src="../scripts/auth/supabase-client.js"></script>
   <script>
     const statusText = document.getElementById("status-text");
+    const redirectTarget = localStorage.getItem("legalhub_auth_redirect") || "../index.html";
+
+    function getSafeRedirect(target) {
+      try {
+        const url = new URL(target, window.location.origin);
+        return url.origin === window.location.origin
+          ? `${url.pathname}${url.search}${url.hash}`
+          : "../index.html";
+      } catch (error) {
+        return "../index.html";
+      }
+    }
 
     // Supabase's JS client auto-detects the confirmation token in the URL
     // and creates a real session (detectSessionInUrl is on by default).
@@ -52,9 +64,10 @@
     supabaseClient.auth.onAuthStateChange((event, session) => {
       if (session) {
         localStorage.setItem("legalhub_login_time", Date.now().toString());
+        localStorage.removeItem("legalhub_auth_redirect");
         statusText.textContent = "Account confirmed! Taking you in...";
         setTimeout(() => {
-          window.location.href = "../index.html";
+          window.location.href = getSafeRedirect(redirectTarget);
         }, 1200);
       }
     });

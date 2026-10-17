@@ -19,6 +19,9 @@
                 if (index < 0) index = total - 1;
                 if (index >= total) index = 0;
                 current = index;
+                slides.forEach((slide, slideIndex) => {
+                    slide.classList.toggle('is-active', slideIndex === current);
+                });
                 track.style.transform = 'translateX(-' + (current * 100) + '%)';
                 resetAutoPlay();
             }

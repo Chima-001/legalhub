@@ -101,7 +101,10 @@
 
   let books = [];
   let filteredBooks = [];
-  const requestedLevel = new URLSearchParams(window.location.search).get('level');
+  const libraryParams = new URLSearchParams(window.location.search);
+  const requestedLevel = libraryParams.get('level');
+  const requestedCourse = libraryParams.get('course');
+  const requestedMaterial = libraryParams.get('material');
   let selectedLevel = Object.prototype.hasOwnProperty.call(COURSE_CATALOG, requestedLevel) ? requestedLevel : 'all';
   let selectedSemester = 'all';
   let isAdmin = false;
@@ -146,7 +149,7 @@
     filteredBooks = [...books];
     render();
   }
-  let activeFilter = 'All';
+  let activeFilter = requestedCourse || 'All';
   let searchTerm = '';
 
   const grid = document.getElementById('bookGrid');
@@ -299,12 +302,13 @@
     filteredBooks = books.filter(book => {
       const matchesLevel = selectedLevel === 'all' || book.level === selectedLevel || book.level === 'relevant';
       const matchesSemester = selectedSemester === 'all' || book.semester === selectedSemester || book.semester === 'all';
+      const matchesMaterial = !requestedMaterial || String(book.materialId) === requestedMaterial;
       const matchFilter = activeFilter === 'All' || book.courseName.toLowerCase() === activeFilter.toLowerCase();
       const matchSearch = searchTerm === '' ||
         book.displayName.toLowerCase().includes(searchTerm) ||
         book.courseName.toLowerCase().includes(searchTerm) ||
         book.raw.includes(searchTerm);
-      return matchesLevel && matchesSemester && matchFilter && matchSearch;
+      return matchesMaterial && matchesLevel && matchesSemester && matchFilter && matchSearch;
     });
 
     totalBooksEl.textContent = books.length;
@@ -356,6 +360,13 @@
                 <div class="book-actions">
                   <button class="btn-read" onclick="event.stopPropagation(); window.open('${filePath}', '_blank');">📖 Read</button>
                   <button class="btn-download" onclick="event.stopPropagation(); downloadPDF('${filePath}', '${book.materialName.replace(/'/g, "\\'")}');">⬇ Download</button>
+                  <button class="btn-share" aria-label="Share ${book.materialName.replace(/"/g, '&quot;')}" title="Share material"
+                    onclick="event.stopPropagation(); shareMaterial('${book.materialId}', '${book.materialName.replace(/'/g, "\\'")}');">
+                    <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                      <path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"
+                        stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
+                    </svg>
+                  </button>
                 </div>
               </div>
             </div>
@@ -457,6 +468,30 @@
     });
     const menu = btn.nextElementSibling;
     menu.style.display = menu.style.display === 'block' ? 'none' : 'block';
+  };
+
+  window.shareMaterial = async function (materialId, materialName) {
+    const shareUrl = new URL('/pages/pdf.html', window.location.origin);
+    shareUrl.searchParams.set('material', materialId);
+    const shareData = {
+      title: materialName,
+      text: `View ${materialName} on LegalHub`,
+      url: shareUrl.href,
+    };
+
+    try {
+      if (navigator.share) {
+        await navigator.share(shareData);
+        return;
+      }
+
+      await navigator.clipboard.writeText(shareUrl.href);
+      alert('Material link copied to your clipboard.');
+    } catch (error) {
+      if (error.name !== 'AbortError') {
+        alert('Could not share this material. Please copy the link from your browser.');
+      }
+    }
   };
 
   document.addEventListener('click', () => {

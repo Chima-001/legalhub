@@ -90,6 +90,20 @@
     const form = document.getElementById("login-form");
     const errorMsg = document.getElementById("error-msg");
     const submitBtn = document.getElementById("submit-btn");
+    const redirectTarget = new URLSearchParams(window.location.search).get("redirect")
+      || localStorage.getItem("legalhub_auth_redirect")
+      || "../index.html";
+
+    function getSafeRedirect(target) {
+      try {
+        const url = new URL(target, window.location.origin);
+        return url.origin === window.location.origin
+          ? `${url.pathname}${url.search}${url.hash}`
+          : "../index.html";
+      } catch (error) {
+        return "../index.html";
+      }
+    }
 
     function showError(msg) {
       errorMsg.textContent = msg;
@@ -136,7 +150,8 @@
 
       // Success - stamp the login time so auth-guard.js can enforce a 7-day expiry
       localStorage.setItem("legalhub_login_time", Date.now().toString());
-      window.location.href = "../index.html";
+      localStorage.removeItem("legalhub_auth_redirect");
+      window.location.href = getSafeRedirect(redirectTarget);
     });
   </script>
 

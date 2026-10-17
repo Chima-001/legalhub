@@ -104,7 +104,7 @@
     </form>
 
     <p class="text-sm text-gray-500 text-center mt-6">
-      Already have an account? <a href="login.html" class="text-[#c98a1f] font-medium hover:underline">Log in</a>
+      Already have an account? <a id="login-link" href="login.html" class="text-[#c98a1f] font-medium hover:underline">Log in</a>
     </p>
   </div>
 
@@ -114,6 +114,24 @@
     const errorMsg = document.getElementById("error-msg");
     const successMsg = document.getElementById("success-msg");
     const submitBtn = document.getElementById("submit-btn");
+    const redirectTarget = new URLSearchParams(window.location.search).get("redirect")
+      || localStorage.getItem("legalhub_auth_redirect")
+      || "../index.html";
+
+    function getSafeRedirect(target) {
+      try {
+        const url = new URL(target, window.location.origin);
+        return url.origin === window.location.origin
+          ? `${url.pathname}${url.search}${url.hash}`
+          : "../index.html";
+      } catch (error) {
+        return "../index.html";
+      }
+    }
+
+    localStorage.setItem("legalhub_auth_redirect", getSafeRedirect(redirectTarget));
+    document.getElementById("login-link").href =
+      `login.html?redirect=${encodeURIComponent(getSafeRedirect(redirectTarget))}`;
 
     function showError(msg) {
       successMsg.classList.add("hidden");

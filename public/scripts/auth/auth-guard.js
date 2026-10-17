@@ -43,14 +43,16 @@
 
   if (!session || expired) {
     localStorage.removeItem("legalhub_login_time");
+    const destination = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    localStorage.setItem("legalhub_auth_redirect", destination);
     const loginPath = window.location.pathname.includes("/pages/")
-      ? "login.html"
-      : "pages/login.html";
+      ? "signup.html"
+      : "pages/signup.html";
     try {
       void supabaseClient.auth.signOut();
     } catch (error) {
     }
-    window.location.replace(loginPath);
+    window.location.replace(`${loginPath}?redirect=${encodeURIComponent(destination)}`);
     return;
   }
 
