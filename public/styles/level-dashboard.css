@@ -445,6 +445,10 @@ body::before {
     object-position: center;
 }
 
+.carousel-ctrl[hidden] {
+    display: none;
+}
+
 .carousel-slide img.carousel-image--top-crop {
     height: 82%;
     object-fit: cover;
