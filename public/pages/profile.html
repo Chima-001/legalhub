@@ -29,6 +29,8 @@
       visibility: hidden;
     }
   </style>
+  <link rel="stylesheet" href="../styles/password-visibility.css">
+  <script defer src="../scripts/password-visibility.js"></script>
 </head>
 
 <body class="min-h-screen px-4 py-8 text-gray-800">
@@ -317,8 +319,13 @@
 
       currentUser = data;
 
-      document.getElementById("display-name").textContent = data.full_name || "Unnamed";
-      document.getElementById("display-reg").textContent = data.reg_number;
+      document.getElementById("display-name").textContent = data.full_name || data.username || "LegalHub member";
+      // An existing official number takes precedence. The owner's Auth metadata is unverified.
+      const meta = session.user.user_metadata || {};
+      const reported = [meta.reported_reg_number, meta.reg_number]
+        .find(value => typeof value === "string" && value.trim());
+      document.getElementById("display-reg").textContent = data.reg_number
+        || (reported ? `${reported.trim()} (self-reported)` : "Not provided");
       document.getElementById("username-input").value = data.username || "";
       // renderAvatar(document.getElementById("avatar-large"), data.username || data.full_name, "text-2xl w-20 h-20");
     }

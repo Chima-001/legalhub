@@ -1,0 +1,7 @@
+{
+  "name": "legalhub-auth-rehearsal",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Isolated synthetic database checks; no service credentials",
+  "dependencies": { "@electric-sql/pglite": "0.3.16" }
+}

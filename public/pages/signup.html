@@ -22,6 +22,8 @@
   <script src="https://cdn.tailwindcss.com"></script>
   <link rel="stylesheet" href="../styles/dark-theme.css">
   <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <link rel="stylesheet" href="../styles/password-visibility.css">
+  <script defer src="../scripts/password-visibility.js"></script>
 </head>
 
 <body class="min-h-screen flex flex-col items-center justify-center px-4 py-10"
@@ -40,55 +42,56 @@
     </div>
 
     <h1 class="text-xl font-bold text-center text-gray-800">Create Account</h1>
-    <p class="text-sm text-gray-500 text-center mt-1 mb-6">Sign up with your student details</p>
+    <p class="text-sm text-gray-500 text-center mt-1 mb-6">Create an account with your email and password. No registration number is needed.</p>
 
     <form id="signup-form" class="space-y-4">
 
       <div>
-        <label class="text-sm text-gray-600 mb-1 block">Reg Number</label>
-        <div class="field-shell flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
-          <input id="reg_number" type="text" required placeholder="e.g. 2025/231184"
-            class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
-        </div>
-      </div>
-
-      <div>
-        <label class="text-sm text-gray-600 mb-1 block">Username <span class="text-gray-400">(optional)</span></label>
-        <div class="field-shell flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
-          <input id="username" type="text" placeholder="How you'll appear on the site"
-            class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
-        </div>
-      </div>
-
-      <div>
-        <label class="text-sm text-gray-600 mb-1 block">Email</label>
+        <label for="email" class="text-sm text-gray-600 mb-1 block">Email</label>
         <div class="field-shell flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24"
             stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M21.75 6.75v10.5a2.25 2.25 0 01-2.25 2.25h-15a2.25 2.25 0 01-2.25-2.25V6.75m19.5 0A2.25 2.25 0 0019.5 4.5h-15a2.25 2.25 0 00-2.25 2.25m19.5 0v.243a2.25 2.25 0 01-1.07 1.916l-7.5 4.615a2.25 2.25 0 01-2.36 0L3.32 8.91a2.25 2.25 0 01-1.07-1.916V6.75" />
           </svg>
-          <input id="email" type="email" required placeholder="you@example.com"
+          <input id="email" type="email" autocomplete="email" autocapitalize="none" required placeholder="you@example.com"
             class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
         </div>
       </div>
 
       <div>
-        <label class="text-sm text-gray-600 mb-1 block">Password</label>
+        <label for="password" class="text-sm text-gray-600 mb-1 block">Password</label>
         <div class="field-shell flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
           <svg xmlns="http://www.w3.org/2000/svg" class="w-5 h-5 text-gray-400 mr-2" fill="none" viewBox="0 0 24 24"
             stroke="currentColor" stroke-width="1.8">
             <path stroke-linecap="round" stroke-linejoin="round"
               d="M16.5 10.5V6.75a4.5 4.5 0 10-9 0v3.75m-.75 11.25h10.5a2.25 2.25 0 002.25-2.25v-6.75a2.25 2.25 0 00-2.25-2.25H6.75a2.25 2.25 0 00-2.25 2.25v6.75a2.25 2.25 0 002.25 2.25z" />
           </svg>
-          <input id="password" type="password" required minlength="6" placeholder="At least 6 characters"
+          <input id="password" type="password" autocomplete="new-password" required minlength="6" placeholder="At least 6 characters"
             class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
         </div>
       </div>
       <div>
-        <label class="text-sm text-gray-600 mb-1 block">Confirm Password</label>
+        <label for="confirm_password" class="text-sm text-gray-600 mb-1 block">Confirm Password</label>
         <div class="field-shell flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
-          <input id="confirm_password" type="password" required minlength="6" placeholder="Re-enter password"
+          <input id="confirm_password" type="password" autocomplete="new-password" required minlength="6" placeholder="Re-enter password"
+            class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
+        </div>
+      </div>
+
+      <div>
+        <label for="reg_number" class="text-sm text-gray-600 mb-1 block">Registration number <span class="text-gray-400">(optional)</span></label>
+        <div class="field-shell flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
+          <input id="reg_number" type="text" aria-describedby="reg-hint" placeholder="e.g. 2025/231184"
+            class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
+        </div>
+        <p id="reg-hint" class="mt-1 text-xs text-gray-500">For your profile only. It is not used to sign in.</p>
+      </div>
+
+      <div>
+        <label for="username" class="text-sm text-gray-600 mb-1 block">Username <span class="text-gray-400">(optional)</span></label>
+        <div class="field-shell flex items-center bg-white rounded-xl px-4 py-3 border border-gray-200">
+          <input id="username" type="text" placeholder="How you'll appear on the site"
             class="w-full bg-transparent outline-none text-gray-800 placeholder-gray-400" />
         </div>
       </div>
@@ -121,7 +124,7 @@
     function getSafeRedirect(target) {
       try {
         const url = new URL(target, window.location.origin);
-        return url.origin === window.location.origin
+        return url.origin === window.location.origin && !url.pathname.startsWith("//") && !url.username && !url.password
           ? `${url.pathname}${url.search}${url.hash}`
           : "../index.html";
       } catch (error) {
@@ -141,68 +144,45 @@
 
     form.addEventListener("submit", async (e) => {
       e.preventDefault();
+      if (submitBtn.disabled) return;
       errorMsg.classList.add("hidden");
       successMsg.classList.add("hidden");
-      submitBtn.disabled = true;
-      submitBtn.textContent = "Checking eligibility...";
-
-      const regNumber = document.getElementById("reg_number").value.trim();
-      const username = document.getElementById("username").value.trim();
       const email = document.getElementById("email").value.trim();
       const password = document.getElementById("password").value;
-      const confirmPassword = document.getElementById("confirm_password").value;
-
-      if (password !== confirmPassword) {
+      if (password !== document.getElementById("confirm_password").value) {
         showError("Passwords don't match. Please re-enter.");
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Sign Up";
         return;
       }
+      const username = document.getElementById("username").value.trim();
+      const reportedNumber = document.getElementById("reg_number").value.trim();
+      const metadata = {};
+      if (username) metadata.username = username;
+      // Self-reported profile detail only. No lookup, official identity or role assignment.
+      if (reportedNumber) metadata.reported_reg_number = reportedNumber;
 
-      // Step 1: confirm this reg number is on the official class list
-      const { data: isEligible, error: eligibilityError } = await supabaseClient
-        .rpc("check_student_eligibility", { p_reg_number: regNumber });
-
-      if (eligibilityError) {
-        showError("Something went wrong checking eligibility. Please try again.");
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Sign Up";
-        return;
-      }
-
-      if (!isEligible) {
-        showError(
-          "This reg number isn't recognized, or has already been used to sign up. Contact the site admin if you believe this is a mistake."
-        );
-        submitBtn.disabled = false;
-        submitBtn.textContent = "Sign Up";
-        return;
-      }
-
-      // Step 2: create the account. Your full name is pulled automatically
-      // from the class list (matched by reg number) once you confirm your
-      // email - not typed here, so there's no risk of a name mismatch.
+      submitBtn.disabled = true;
       submitBtn.textContent = "Creating account...";
-      const { error: signUpError } = await supabaseClient.auth.signUp({
-        email,
-        password,
-        options: {
-          data: { reg_number: regNumber, username: username || null },
-        },
-      });
-
-      if (signUpError) {
-        showError(signUpError.message);
-        submitBtn.disabled = false;
+      try {
+        const emailRedirectTo = new URL("/pages/confirmed.html", window.location.origin).href;
+        const { error } = await supabaseClient.auth.signUp({
+          email, password, options: { data: metadata, emailRedirectTo }
+        });
+        if (error && !["user_already_exists", "email_exists"].includes(error.code)) {
+          if (error.status === 429) showError("Too many requests. Please wait before trying again.");
+          else if (error.code === "weak_password") showError("Choose a stronger password and try again.");
+          else if (error.code === "email_address_invalid") showError("Enter a valid email address.");
+          else showError("Unable to create an account right now. Please try again.");
+          return;
+        }
+        successMsg.textContent = "Check your inbox for a confirmation link. If you already have an account, log in with your email.";
+        successMsg.classList.remove("hidden");
+        form.reset();
+      } catch {
+        showError("Unable to reach the sign-in service. Please try again.");
+      } finally {
         submitBtn.textContent = "Sign Up";
-        return;
+        submitBtn.disabled = false;
       }
-
-      successMsg.textContent = "Account created! Check your email to confirm before logging in.";
-      successMsg.classList.remove("hidden");
-      form.reset();
-      submitBtn.textContent = "Sign Up";
-      submitBtn.disabled = false;
     });
   </script>
 

@@ -3,6 +3,7 @@
 
 <head>
   <meta charset="UTF-8">
+  <meta name="referrer" content="no-referrer">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta name="author" content="Chima Nnaji — Cloper Technologies">
   <meta property="og:type" content="website">
@@ -39,49 +40,12 @@
       <span class="font-semibold text-[#c98a1f] text-lg">LegalHub</span>
     </div>
 
-    <p id="status-text" class="text-gray-700 text-sm">Confirming your account...</p>
+    <p id="status-text" role="status" class="text-gray-700 text-sm">Checking your email confirmation...</p>
+    <p class="mt-3 text-sm"><a href="login.html" class="text-[#c98a1f] underline">Sign in with your email</a></p>
   </div>
 
+  <script src="../scripts/auth/signup-confirmation.js"></script>
   <script src="../scripts/auth/supabase-client.js"></script>
-  <script>
-    const statusText = document.getElementById("status-text");
-    const redirectTarget = localStorage.getItem("legalhub_auth_redirect") || "../index.html";
-
-    function getSafeRedirect(target) {
-      try {
-        const url = new URL(target, window.location.origin);
-        return url.origin === window.location.origin
-          ? `${url.pathname}${url.search}${url.hash}`
-          : "../index.html";
-      } catch (error) {
-        return "../index.html";
-      }
-    }
-
-    // Supabase's JS client auto-detects the confirmation token in the URL
-    // and creates a real session (detectSessionInUrl is on by default).
-    // We just wait for that, then move them on.
-    supabaseClient.auth.onAuthStateChange((event, session) => {
-      if (session) {
-        localStorage.setItem("legalhub_login_time", Date.now().toString());
-        localStorage.removeItem("legalhub_auth_redirect");
-        statusText.textContent = "Account confirmed! Taking you in...";
-        setTimeout(() => {
-          window.location.href = getSafeRedirect(redirectTarget);
-        }, 1200);
-      }
-    });
-
-    // Fallback: if no session shows up within a few seconds, the link was
-    // likely invalid/expired or already used.
-    setTimeout(async () => {
-      const { data: { session } } = await supabaseClient.auth.getSession();
-      if (!session) {
-        statusText.innerHTML =
-          'Couldn\'t confirm automatically. <a href="login.html" class="text-[#c98a1f] underline">Try logging in</a> instead.';
-      }
-    }, 5000);
-  </script>
   <footer class="mt-8 mb-2 flex flex-col items-center gap-2 text-xs text-gray-400">
     <span>&copy; <span id="footer-year"></span> LegalHub</span>
     <span class="flex items-center gap-1.5">

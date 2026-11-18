@@ -24,6 +24,8 @@
   pageBlocker.textContent = "body { display: none !important; }";
   document.head.appendChild(pageBlocker);
   document.documentElement.style.visibility = "hidden";
+  // A legacy signup link is already navigating to its callback. Stay hidden; do not sign out.
+  if (document.documentElement.dataset.signupHandoff === "1") return;
 
   let session = null;
   try {
@@ -43,7 +45,12 @@
 
   if (!session || expired) {
     localStorage.removeItem("legalhub_login_time");
-    const destination = `${window.location.pathname}${window.location.search}${window.location.hash}`;
+    const query = new URLSearchParams(window.location.search);
+    const fragment = new URLSearchParams(window.location.hash.slice(1));
+    const authResponse = ["access_token", "refresh_token", "provider_token", "provider_refresh_token", "token", "token_hash", "code", "error", "error_code"]
+      .some(k => query.has(k) || fragment.has(k));
+    const destination = authResponse ? window.location.pathname
+      : `${window.location.pathname}${window.location.search}${window.location.hash}`;
     localStorage.setItem("legalhub_auth_redirect", destination);
     const loginPath = window.location.pathname.includes("/pages/")
       ? "signup.html"

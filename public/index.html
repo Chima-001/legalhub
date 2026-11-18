@@ -20,6 +20,21 @@
     <meta name="twitter:image" content="https://legalhub-io.netlify.app/assets/images/social-preview.png" />
     <link rel="icon" type="image/svg+xml" href="./assets/images/favicon.svg" />
     <link rel="stylesheet" href="./styles/home.css" />
+    <script>
+        // Older signup emails defaulted to the homepage. Hand off before Auth or the guard reads the URL.
+        (() => {
+            const fragment = new URLSearchParams(window.location.hash.slice(1));
+            if (fragment.get("type") !== "signup") return;
+            const destination = new URL("/pages/confirmed.html", window.location.origin);
+            const query = new URLSearchParams(window.location.search);
+            if (!["error", "error_code", "error_description"].some(k => fragment.has(k) || query.has(k))) {
+                destination.hash = window.location.hash; // Same origin, fixed page, fragment only.
+            }
+            document.documentElement.dataset.signupHandoff = "1";
+            try { history.replaceState(null, "", window.location.pathname); } catch {}
+            window.location.replace(destination.href);
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./scripts/auth/supabase-client.js"></script>
     <script src="./scripts/avatar.js"></script>

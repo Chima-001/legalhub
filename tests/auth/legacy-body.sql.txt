@@ -1,0 +1,22 @@
+
+declare
+  v_full_name text;
+begin
+  if new.email_confirmed_at is not null and old.email_confirmed_at is null then
+    select full_name into v_full_name
+    from allowed_students
+    where reg_number = new.raw_user_meta_data->>'reg_number';
+
+    insert into public.users (id, full_name, username, reg_number, email, email_verified, level)
+    values (new.id, v_full_name, new.raw_user_meta_data->>'username',
+            new.raw_user_meta_data->>'reg_number', new.email, true,
+            new.raw_user_meta_data->>'level');
+
+    update allowed_students set used = true
+    where reg_number = new.raw_user_meta_data->>'reg_number';
+
+    insert into signup_log (reg_number, username, full_name)
+    values (new.raw_user_meta_data->>'reg_number', new.raw_user_meta_data->>'username', v_full_name);
+  end if;
+  return new;
+end;
