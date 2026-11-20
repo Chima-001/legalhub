@@ -39,6 +39,8 @@
     <script src="./scripts/auth/supabase-client.js"></script>
     <script src="./scripts/avatar.js"></script>
     <script src="./scripts/auth/auth-guard.js"></script>
+    <script defer src="./scripts/academic/term.js"></script>
+    <script defer src="./scripts/academic/home-calendar.js"></script>
     <style>
         body {
             visibility: hidden;
@@ -75,6 +77,7 @@
                 <a href="#levels">Levels</a>
                 <a href="#resources">Resources</a>
                 <a href="./pages/about.html">About</a>
+                <a id="calendar-settings-nav" href="./pages/admin-settings.html" hidden>Admin settings</a>
             </nav>
             <div class="header-actions">
                 <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open navigation menu"
@@ -106,10 +109,12 @@
             </section>
 
             <section class="countdown-strip" aria-label="Semester progress">
-                <div class="countdown-label"><span class="live-dot"></span><span>SECOND SEMESTER</span></div>
-                <p id="term-countdown">Counting down to exams...</p>
-                <div class="progress-track"><span id="term-fill"></span></div>
-                <span class="progress-value" id="term-percent">--</span>
+                <div class="countdown-label"><span class="live-dot" aria-hidden="true"></span><div>
+                    <strong id="term-label">Academic calendar</strong><small id="term-session"></small></div></div>
+                <p id="term-countdown" role="status">Loading the academic calendar…</p>
+                <div class="progress-track" id="term-meter" role="progressbar" aria-label="Semester progress"
+                    aria-valuemin="0" aria-valuemax="100" hidden><span id="term-fill"></span></div>
+                <span class="progress-value" id="term-percent"></span>
             </section>
 
             <section class="section-block" id="levels">
@@ -268,17 +273,6 @@
         });
         const hour = new Date().getHours();
         greeting.firstChild.textContent = (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening');
-
-        const start = new Date('2026-05-01T00:00:00');
-        const exams = new Date('2026-10-15T00:00:00');
-        const now = new Date();
-        const span = exams - start;
-        const elapsed = Math.min(Math.max(now - start, 0), span);
-        const percent = span > 0 ? Math.round((elapsed / span) * 100) : 0;
-        const days = Math.max(Math.ceil((exams - now) / 86400000), 0);
-        document.getElementById('term-countdown').textContent = days ? days + ' days until exams' : 'Exam period is here';
-        document.getElementById('term-fill').style.width = percent + '%';
-        document.getElementById('term-percent').textContent = percent + '% through';
 
         const track = document.getElementById('home-carousel-track');
         const slides = track.children;

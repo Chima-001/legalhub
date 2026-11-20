@@ -1,0 +1,111 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="referrer" content="same-origin" />
+    <title>Academic calendar · LegalHub admin settings</title>
+    <link rel="icon" href="../assets/images/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../styles/admin-settings.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../scripts/auth/supabase-client.js"></script>
+    <script src="../scripts/auth/auth-guard.js"></script>
+    <script defer src="../scripts/academic/term.js"></script>
+    <script defer src="../scripts/academic/admin-calendar.js"></script>
+  </head>
+  <body style="visibility: hidden">
+    <header class="mast">
+      <a class="brand" href="../index.html"><span class="monogram" aria-hidden="true">LH</span>LegalHub</a
+      ><a class="back" href="../index.html">← Common room</a>
+    </header>
+    <main>
+      <div id="settings-gate" class="gate" role="status">Checking administrator access…</div>
+      <button id="gate-retry" class="secondary" type="button" hidden>Try again</button>
+      <div id="settings-workspace" hidden>
+        <p class="eyebrow">Administration <span>/</span> Settings</p>
+        <h1>Academic calendar</h1>
+        <p class="intro">
+          Set the dates students see in the common room. The final exam date is the last day of the semester.
+        </p>
+        <div class="workspace-grid">
+          <aside class="published" aria-labelledby="published-title">
+            <div class="card-index">REGISTRAR’S DESK <span>01 / 01</span></div>
+            <p class="overline" id="published-title">Published calendar</p>
+            <h2 id="published-session">No active term</h2>
+            <p id="published-semester" class="subheading"></p>
+            <dl class="timeline">
+              <div>
+                <dt>Semester starts</dt>
+                <dd id="published-start">—</dd>
+              </div>
+              <div>
+                <dt>Exams begin</dt>
+                <dd id="published-exams">—</dd>
+              </div>
+              <div>
+                <dt>Semester ends</dt>
+                <dd id="published-end">—</dd>
+              </div>
+            </dl>
+            <p class="timezone">School dates · Africa/Lagos</p>
+          </aside>
+          <form id="calendar-form" aria-labelledby="edit-title">
+            <fieldset id="calendar-fields" disabled>
+              <legend id="edit-title">Term details</legend>
+              <p class="form-note">
+                Publishing replaces the active schedule. Editing a term never promotes students.
+              </p>
+              <div class="fields">
+                <label
+                  >Academic session<input
+                    id="cal-session"
+                    required
+                    maxlength="9"
+                    pattern="[0-9]{4}/[0-9]{4}"
+                    placeholder="2026/2027"
+                    autocomplete="off"
+                /></label>
+                <label
+                  >Semester<select id="cal-semester" required>
+                    <option value="">Choose semester</option>
+                    <option value="1">First semester</option>
+                    <option value="2">Second semester</option>
+                  </select></label
+                >
+                <label
+                  >Semester start<input id="cal-start" type="date" min="1900-01-01" max="9999-12-31" required
+                /></label>
+                <label
+                  >Exam start<input id="cal-exams" type="date" min="1900-01-01" max="9999-12-31" required
+                /></label>
+                <label
+                  >Exam end <small>· semester end</small
+                  ><input id="cal-end" type="date" min="1900-01-01" max="9999-12-31" required
+                /></label>
+              </div>
+              <section class="review" aria-label="Review changes">
+                <p class="overline">Confirm the schedule</p>
+                <p id="cal-preview">Complete the term details to review the countdown.</p>
+                <label for="cal-confirm">Type the phrase below to save.</label
+                ><code id="cal-phrase">Complete the term details first.</code>
+                <input
+                  id="cal-confirm"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  spellcheck="false"
+                  aria-describedby="cal-phrase"
+                  disabled
+                />
+              </section>
+              <button type="submit" id="cal-save" disabled>Publish calendar</button>
+            </fieldset>
+            <p id="cal-status" role="status"></p>
+            <button type="button" id="cal-reload" class="secondary" hidden>Reload published calendar</button>
+          </form>
+        </div>
+      </div>
+    </main>
+    <footer><span>LegalHub</span> Academic services</footer>
+  </body>
+</html>

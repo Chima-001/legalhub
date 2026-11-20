@@ -106,6 +106,7 @@
   const requestedCourse = libraryParams.get('course');
   const requestedMaterial = libraryParams.get('material');
   let selectedLevel = Object.prototype.hasOwnProperty.call(COURSE_CATALOG, requestedLevel) ? requestedLevel : 'all';
+  let readerChoseLevel = requestedLevel === 'all' || selectedLevel !== 'all';
   let selectedSemester = 'all';
   let isAdmin = false;
 
@@ -113,13 +114,16 @@
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
 
-    const { data } = await supabaseClient.from('users').select('current_level, level, is_admin').eq('id', user.id).single();
-    isAdmin = !!data?.is_admin;
-    const profileLevel = data?.current_level || data?.level;
-    if (profileLevel && selectedLevel === 'all') {
+    const [role, level] = await Promise.allSettled([
+      supabaseClient.from('users').select('is_admin').eq('id', user.id).single(),
+      supabaseClient.rpc('get_effective_level', { p_uid: user.id })
+    ]);
+    isAdmin = role.status === 'fulfilled' && role.value.data?.is_admin === true;
+    const profileLevel = level.status === 'fulfilled' ? level.value.data : null;
+    if (['100L', '200L', '300L', '400L', '500L'].includes(profileLevel) && selectedLevel === 'all' && !readerChoseLevel) {
       selectedLevel = profileLevel;
-      document.getElementById('levelFilter').value = profileLevel;
     }
+    document.getElementById('levelFilter').value = selectedLevel;
   }
 
   async function loadApprovedMaterials() {
@@ -417,6 +421,7 @@
   sheetCloseBtn.addEventListener('click', closeBottomSheet);
 
   document.getElementById('levelFilter').addEventListener('change', function () {
+    readerChoseLevel = true;
     selectedLevel = this.value;
     updateCourseFilters();
   });
@@ -427,6 +432,7 @@
   });
 
   document.getElementById('resetFilters').addEventListener('click', () => {
+    readerChoseLevel = true;
     selectedLevel = 'all';
     selectedSemester = 'all';
     document.getElementById('levelFilter').value = 'all';
