@@ -25,7 +25,7 @@
         (() => {
             const fragment = new URLSearchParams(window.location.hash.slice(1));
             if (fragment.get("type") !== "signup") return;
-            const destination = new URL("/pages/confirmed.html", window.location.origin);
+            const destination = new URL("pages/confirmed.html", window.location.href);
             const query = new URLSearchParams(window.location.search);
             if (!["error", "error_code", "error_description"].some(k => fragment.has(k) || query.has(k))) {
                 destination.hash = window.location.hash; // Same origin, fixed page, fragment only.
@@ -242,7 +242,8 @@
 
         const greeting = document.getElementById('greeting-text');
         loadHeaderAvatar(document.getElementById('header-avatar'));
-        if (window.location.hash) {
+        // Keep real landing-page section links on a return from login. Still clear other fragments.
+        if (window.location.hash && !['#levels', '#resources'].includes(window.location.hash)) {
             history.replaceState(null, document.title, window.location.pathname + window.location.search);
             window.scrollTo(0, 0);
         }

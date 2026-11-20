@@ -7,22 +7,69 @@ function page(name){return source('public/pages/'+name+'.html');}
 function appScript(name){const scripts=[...page(name).matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi)].map(m=>m[1]);const main=scripts.find(s=>s.includes('form.addEventListener("submit"'));assert(main,name);return main;}
 const passed=[];
 const tests=[];function test(name,fn){tests.push([name,fn]);}
-function setup(name,auth,overrides={}) {
+function setup(name,auth,overrides={},route={}) {
   const ids=[...page(name).matchAll(/\bid=(["'])([\w-]+)\1/g)].map(m=>m[2]);const nodes={};let submit;const timers=new Map();let timerId=0;
   for(const id of ids){const startHidden=['error-msg','success-msg','invalid-link','update-form'].includes(id);const flags=new Set(startHidden?['hidden']:[]);nodes[id]={id,value:'',textContent:'',disabled:false,flags,resets:0,classList:{add(k){flags.add(k)},remove(k){flags.delete(k)}},addEventListener(type,cb){if(type==='submit')submit=cb;},reset(){this.resets++;}};}
   for(const [id,value] of Object.entries(overrides))nodes[id].value=value;
-  const store=new Map();if(name==='login')store.set('legalhub_auth_redirect','/pages/materials.html');let next='';
-  const loc={origin:'https://fixture.example.test',href:`https://fixture.example.test/pages/${name}.html`,search:'',replace(v){next=v;}};
+  const store=new Map();if(route.saved)store.set('legalhub_auth_redirect',route.saved);let next='';
+  const current=new URL(route.page || `/pages/${name}.html`,'https://fixture.example.test');
+  if(route.requested)current.searchParams.set('redirect',route.requested);
+  const loc={origin:current.origin,href:current.href,pathname:current.pathname,search:current.search,replace(v){next=v;}};
   const registrar={getElementById:id=>nodes[id]};
   const ctx={document:registrar,window:{location:loc},localStorage:{getItem:k=>store.get(k),setItem:(k,v)=>store.set(k,v),removeItem:k=>store.delete(k)},URL,URLSearchParams,supabaseClient:{auth},setTimeout(fn,ms){timers.set(++timerId,{fn,ms});return timerId;},clearTimeout(id){timers.delete(id);}};
-  vm.runInNewContext(appScript(name),ctx);
-  return {nodes,store,loc,visible:k=>!nodes[k].flags.has('hidden'),submit:()=>submit({preventDefault(){}}),runTimer(ms){for(const [key,t] of [...timers])if(t.ms===ms){timers.delete(key);t.fn();}},next:()=>next};
+  const script=appScript(name),markup=page(name),routes=markup.indexOf('src="../scripts/auth/account-routes.js"');
+  if(routes>=0 && !route.missingAsset){assert(routes<markup.indexOf(script));vm.runInNewContext(source('public/scripts/auth/account-routes.js'),ctx);}
+  vm.runInNewContext(script,ctx);
+  return {nodes,store,loc,sourceUrl:current.href,visible:k=>!nodes[k].flags.has('hidden'),submit:()=>submit({preventDefault(){}}),runTimer(ms){for(const [key,t] of [...timers])if(t.ms===ms){timers.delete(key);t.fn();}},next:()=>next};
 }
 const fields={email:'  member@example.test  ',password:'  synthetic pass  ',confirm_password:'  synthetic pass  ',username:'',reg_number:''};
 const plain=x=>JSON.parse(JSON.stringify(x));
 
-test('Login uses the trimmed email, not the number; preserves password, timestamp and target',async()=>{let called;const t=setup('login',{async signInWithPassword(payload){called=plain(payload);return {error:null};}},{email:fields.email,password:fields.password});await t.submit();assert.deepEqual(called,{email:'member@example.test',password:fields.password});assert(+t.store.get('legalhub_login_time')>0);assert(!t.store.has('legalhub_auth_redirect'));assert.equal(t.loc.href,'/pages/materials.html');});
+test('Login uses the trimmed email, not the number; preserves password, timestamp and target',async()=>{let called;const t=setup('login',{async signInWithPassword(payload){called=plain(payload);return {error:null};}},{email:fields.email,password:fields.password},{saved:'/pages/materials.html'});await t.submit();assert.deepEqual(called,{email:'member@example.test',password:fields.password});assert(+t.store.get('legalhub_login_time')>0);assert(!t.store.has('legalhub_auth_redirect'));assert.equal(t.loc.href,'/pages/materials.html');});
 test('Unconfirmed email is not treated as a successful login',async()=>{const t=setup('login',{async signInWithPassword(){return{error:{code:'email_not_confirmed'}};}});await t.submit();assert.match(t.nodes['error-msg'].textContent,/confirm/i);assert(!t.store.has('legalhub_login_time'));});
+// Cover the actual UI handlers with the app at the origin root and under Live Server folders.
+const mounts=['/','/public/','/classroom/legalhub/public/'];
+const signIn=()=>({signInWithPassword:async()=>({error:null})});
+const credentials={email:fields.email,password:fields.password};
+test('Direct login opens the homepage under the current mount, not the server root',async()=>{
+  for(const base of mounts)for(const leaf of ['login.html','login','login/']){
+    const t=setup('login',signIn(),credentials,{page:base+'pages/'+leaf});await t.submit();
+    assert.equal(new URL(t.loc.href,t.sourceUrl).pathname,base+'index.html');
+  }
+});
+test('Old root-level home, unrelated paths and account callbacks fall back to the mounted homepage',async()=>{
+  for(const saved of ['/index.html','/some-other-site/index.html','/public/pages/login.html','/public/index.html?code=fixture','https://outside.example.test/']){
+    const t=setup('login',signIn(),credentials,{page:'/public/pages/login.html',saved});await t.submit();
+    assert.equal(t.loc.href,'/public/index.html');assert(!t.store.has('legalhub_auth_redirect'));
+  }
+});
+test('A requested in-app destination wins over an older saved one; filters and anchors survive',async()=>{
+  for(const base of mounts){
+    const requested=base+'pages/pdf.html?level=200&semester=First#library';
+    const t=setup('login',signIn(),credentials,{page:base+'pages/login.html',requested,saved:base+'pages/profile.html'});
+    await t.submit();assert.equal(t.loc.href,requested);
+  }
+});
+test('Signup hands the same mounted destination to login and requests the mounted confirmation page',async()=>{
+  for(const base of mounts)for(const requested of [null,base+'pages/profile.html#account']){
+    let callback;const t=setup('signup',{signUp:async req=>{callback=req.options.emailRedirectTo;return {error:null}}},fields,
+      {page:base+'pages/signup.html',requested,saved:base==='/'?null:'/index.html'});
+    const expected=requested || base+'index.html';assert.equal(t.store.get('legalhub_auth_redirect'),expected);
+    const link=new URL(t.nodes['login-link'].href,t.sourceUrl);assert.equal(link.pathname,base+'pages/login.html');
+    assert.equal(link.searchParams.get('redirect'),expected);await t.submit();
+    assert.equal(callback,t.loc.origin+base+'pages/confirmed.html');
+  }
+});
+test('The reset request still targets the isolated update-password page inside each mount',async()=>{
+  for(const base of mounts){let callback;const t=setup('forgot-password',{resetPasswordForEmail:async (_email,opts)=>{
+    callback=opts.redirectTo;return {error:null};}},{email:fields.email},{page:base+'pages/forgot-password.html'});
+    await t.submit();assert.equal(callback,t.loc.origin+base+'pages/update-password.html');
+  }
+});
+test('A missing optional routing asset still signs in to the mounted home without forwarding a target',async()=>{
+  const t=setup('login',signIn(),credentials,{page:'/public/pages/login.html',saved:'/pages/old.html',missingAsset:true});
+  await t.submit();assert.equal(t.loc.href,'/public/index.html');
+});
 test('Signup accepts a fresh email with every optional field blank',async()=>{let request;const t=setup('signup',{async signUp(x){request=plain(x);return{error:null};}},fields);await t.submit();assert.deepEqual(request,{email:'member@example.test',password:fields.password,options:{data:{},emailRedirectTo:'https://fixture.example.test/pages/confirmed.html'}});assert(t.visible('success-msg'));assert(!/\brequired\b/.test(page('signup').match(/<input id="reg_number"[^>]+>/)[0]));});
 test('Optional number is submitted only as self-reported metadata',async()=>{let req;const t=setup('signup',{async signUp(x){req=plain(x);return{error:null};}},{...fields,username:'  Reader  ',reg_number:'  TEST-OLD  '});await t.submit();assert.deepEqual(req.options.data,{username:'Reader',reported_reg_number:'TEST-OLD'});});
 test('Signup with mismatched passwords never contacts Auth',async()=>{let calls=0;const t=setup('signup',{async signUp(){calls++;return {};}},{...fields,confirm_password:'different'});await t.submit();assert.equal(calls,0);assert(t.visible('error-msg'));});

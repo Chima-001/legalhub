@@ -18,18 +18,9 @@
     return fragment.get('access_token');
   }
   function returnTo() {
-    const home = new URL('../index.html', window.location.href);
     const target = localStorage.getItem('legalhub_auth_redirect');
-    if (!target) return home.href;
-    try {
-      const url = new URL(target, window.location.origin);
-      const callbackKeys = ['access_token', 'refresh_token', 'provider_token', 'provider_refresh_token', 'token', 'token_hash', 'code', 'error', 'error_code'];
-      const hash = new URLSearchParams(url.hash.slice(1));
-      if (url.origin === home.origin && url.protocol === home.protocol && !url.username && !url.password
-          && !/^\/\//.test(url.pathname) && !/\/(?:login|signup|confirmed|forgot-password|update-password)(?:\.html)?\/?$/i.test(url.pathname)
-          && !callbackKeys.some(k => url.searchParams.has(k) || hash.has(k))) return url.href;
-    } catch { /* Use the known same-site home page. */ }
-    return home.href;
+    const safe = window.legalHubAccountRoutes?.returnPath(target) || '../index.html';
+    return new URL(safe, window.location.href).href;
   }
 
   let expected = signupReceipt(); // In memory only. Do not log, serialize, or forward it as a return target.

@@ -104,24 +104,16 @@
   </main>
 
   <script src="../scripts/auth/supabase-client.js"></script>
+  <script src="../scripts/auth/account-routes.js"></script>
   <script>
     const form = document.getElementById("login-form");
     const errorMsg = document.getElementById("error-msg");
     const submitBtn = document.getElementById("submit-btn");
-    const redirectTarget = new URLSearchParams(window.location.search).get("redirect")
-      || localStorage.getItem("legalhub_auth_redirect")
-      || "../index.html";
-
-    function getSafeRedirect(target) {
-      try {
-        const url = new URL(target, window.location.origin);
-        return url.origin === window.location.origin && !url.pathname.startsWith("//") && !url.username && !url.password
-          ? `${url.pathname}${url.search}${url.hash}`
-          : "../index.html";
-      } catch (error) {
-        return "../index.html";
-      }
-    }
+    const routes = window.legalHubAccountRoutes;
+    const requested = new URLSearchParams(window.location.search).get("redirect")
+      || localStorage.getItem("legalhub_auth_redirect");
+    // A missing routing asset must never stop sign-in or forward an unchecked destination.
+    const redirectTarget = routes?.returnPath(requested) || new URL("../index.html", window.location.href).pathname;
 
     function showError(msg) {
       errorMsg.textContent = msg;
@@ -159,10 +151,10 @@
         submitBtn.textContent = "Log In";
       }
 
-      // Success - stamp the login time so auth-guard.js can enforce a 7-day expiry
+      // Stamp a successful sign-in; the existing guard owns the expiry policy.
       localStorage.setItem("legalhub_login_time", Date.now().toString());
       localStorage.removeItem("legalhub_auth_redirect");
-      window.location.href = getSafeRedirect(redirectTarget);
+      window.location.href = redirectTarget;
     });
   </script>
 

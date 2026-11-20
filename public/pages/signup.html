@@ -129,29 +129,21 @@
   </main>
 
   <script src="../scripts/auth/supabase-client.js"></script>
+  <script src="../scripts/auth/account-routes.js"></script>
   <script>
     const form = document.getElementById("signup-form");
     const errorMsg = document.getElementById("error-msg");
     const successMsg = document.getElementById("success-msg");
     const submitBtn = document.getElementById("submit-btn");
-    const redirectTarget = new URLSearchParams(window.location.search).get("redirect")
-      || localStorage.getItem("legalhub_auth_redirect")
-      || "../index.html";
+    const routes = window.legalHubAccountRoutes;
+    const requested = new URLSearchParams(window.location.search).get("redirect")
+      || localStorage.getItem("legalhub_auth_redirect");
+    // A missing routing asset must never stop sign-in or forward an unchecked destination.
+    const redirectTarget = routes?.returnPath(requested) || new URL("../index.html", window.location.href).pathname;
 
-    function getSafeRedirect(target) {
-      try {
-        const url = new URL(target, window.location.origin);
-        return url.origin === window.location.origin && !url.pathname.startsWith("//") && !url.username && !url.password
-          ? `${url.pathname}${url.search}${url.hash}`
-          : "../index.html";
-      } catch (error) {
-        return "../index.html";
-      }
-    }
-
-    localStorage.setItem("legalhub_auth_redirect", getSafeRedirect(redirectTarget));
+    localStorage.setItem("legalhub_auth_redirect", redirectTarget);
     document.getElementById("login-link").href =
-      `login.html?redirect=${encodeURIComponent(getSafeRedirect(redirectTarget))}`;
+      `${routes?.loginPath || "login.html"}?redirect=${encodeURIComponent(redirectTarget)}`;
 
     function showError(msg) {
       successMsg.classList.add("hidden");
@@ -180,7 +172,7 @@
       submitBtn.disabled = true;
       submitBtn.textContent = "Creating account...";
       try {
-        const emailRedirectTo = new URL("/pages/confirmed.html", window.location.origin).href;
+        const emailRedirectTo = routes?.confirmationHref || new URL("confirmed.html", window.location.href).href;
         const { error } = await supabaseClient.auth.signUp({
           email, password, options: { data: metadata, emailRedirectTo }
         });
