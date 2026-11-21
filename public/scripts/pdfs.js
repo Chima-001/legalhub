@@ -12,31 +12,44 @@
 
   // ─── 1. CONFIGURATION ──────────────────────────────────────────
 
-  const COURSE_CATALOG = {
-    '100L': {
-      first: ['Legal Method', 'Customary Law', 'Philosophy', 'Psychology', 'Communication in English', 'Natural Science', 'Logics', 'Introduction to Nigerian Literature'],
-      second: ['Legal Method', 'Customary Law', 'Philosophy', 'Psychology', 'Communication in English', 'Natural Science', 'Logics', 'Introduction to Nigerian Literature']
-    },
-    '200L': { first: [], second: [] },
-    '300L': { first: [], second: [] },
-    '400L': { first: [], second: [] },
-    '500L': { first: [], second: [] },
-    'Relevant': { first: [], second: [] }
-  };
+  const levelChoices = ['100L','200L','300L','400L','500L','Relevant'];
+  let catalog = []; // Only current, published courses. Approved inventory remains available independently.
+  function catalogScope() {
+    return catalog.filter(r => (selectedLevel === 'all' || selectedLevel === r.level) &&
+      (selectedSemester === 'all' || selectedSemester === r.semester));
+  }
+  function courseLabel(key, rows = catalogScope()) {
+    const names = new Set(rows.filter(r => r.key.toLowerCase() === key.toLowerCase()).map(r=>r.name));
+    if(names.size !== 1) return key;
+    const label=[...names][0], matched=rows.filter(r=>r.key.toLowerCase()===key.toLowerCase());
+    const namesakes=rows.some(r=>r.name.toLowerCase()===label.toLowerCase() && r.key.toLowerCase()!==key.toLowerCase());
+    if (namesakes && matched.length) return label+' · '+[...new Set(matched.map(r=>r.curriculum_name||'Existing desk'))].join(' / ');
+    return label;
+  }
+  const textHTML = value => String(value).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
 
   let ALL_COURSES = ['All'];
 
+  function withinDesk(book) {
+    return (selectedLevel === 'all' || book.level === selectedLevel || book.level === 'relevant') &&
+      (selectedSemester === 'all' || book.semester === selectedSemester || book.semester === 'all');
+  }
+
   function getCourseSuggestions() {
-    const isRelevant = selectedLevel === 'Relevant';
-    const levels = selectedLevel === 'all' ? Object.keys(COURSE_CATALOG) : [selectedLevel];
-    const semesters = isRelevant ? ['all'] : selectedSemester === 'all' ? ['first', 'second'] : [selectedSemester];
-    return [...new Set(levels.flatMap(level =>
-      semesters.flatMap(semester => COURSE_CATALOG[level]?.[semester] || [])))];
+    const values = [...catalogScope().map(r => r.key), ...books.filter(withinDesk).map(b => b.courseName)];
+    return [...new Set(values.filter(Boolean))];
   }
 
   function updateCourseFilters() {
+    if (selectedLevel === 'Relevant') selectedSemester = 'all';
     ALL_COURSES = ['All', ...getCourseSuggestions()];
+    // A desk can acquire a course before the library's legacy suggestion list is updated.
+    // Keep that explicit filter in its own level/semester; it is not an upload permission.
+    if (requestedCourse && !userChangedScope && !ALL_COURSES.includes(requestedCourse)) {
+      ALL_COURSES.push(requestedCourse);
+    }
     if (!ALL_COURSES.includes(activeFilter)) activeFilter = 'All';
+    document.getElementById('levelFilter').value = selectedLevel;
     const semesterSelect = document.getElementById('semesterFilter');
     if (selectedLevel === 'Relevant') {
       semesterSelect.value = 'all';
@@ -84,7 +97,7 @@
       .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
       .join(' ');
 
-    const style = COURSE_STYLES[courseName] || DEFAULT_STYLE;
+    const style = Object.hasOwn(COURSE_STYLES, courseName) ? COURSE_STYLES[courseName] : DEFAULT_STYLE;
 
     return {
       fileName,
@@ -99,27 +112,59 @@
 
   // ─── 3. STATE ──────────────────────────────────────────────────
 
+  let libraryState = 'loading';
   let books = [];
   let filteredBooks = [];
   const libraryParams = new URLSearchParams(window.location.search);
   const requestedLevel = libraryParams.get('level');
-  const requestedCourse = libraryParams.get('course');
+  const courseParam = (libraryParams.get('course') || '').trim();
+  const requestedCourse = courseParam.length <= 240 ? courseParam : '';
+  const termParam = libraryParams.get('semester');
+  const requestedSemester = ['first', 'second'].includes(termParam) ? termParam : 'all';
   const requestedMaterial = libraryParams.get('material');
-  let selectedLevel = Object.prototype.hasOwnProperty.call(COURSE_CATALOG, requestedLevel) ? requestedLevel : 'all';
-  let selectedSemester = 'all';
+  let selectedLevel = levelChoices.includes(requestedLevel) ? requestedLevel : 'all';
+  // Both Home Library links are unscoped. Bookmarks from a desk or a shared material are instructions,
+  // not defaults: don't replace their scope with the profile, even if its response arrives later.
+  const unscopedEntry = !['level', 'semester', 'course', 'material'].some(key => libraryParams.has(key));
+  let acceptProfileLevel = selectedLevel === 'all' && requestedLevel !== 'all' && !libraryParams.has('material');
+  let profileNote = null;
+  function keepReaderFilters() {
+    acceptProfileLevel = false;
+    profileNote?.remove();
+    profileNote = null;
+  }
+  function explainMissingDefault() {
+    if (!unscopedEntry || !acceptProfileLevel || profileNote) return;
+    const host = document.querySelector?.('.library-filters');
+    if (!host) return;
+    profileNote = document.createElement('p');
+    profileNote.setAttribute('role', 'status');
+    profileNote.textContent = 'Your study level is unavailable. Showing all levels and semesters; you can choose either filter.';
+    host.after(profileNote);
+  }
+  let selectedSemester = requestedLevel === 'Relevant' ? 'all' : requestedSemester;
+  let userChangedScope = false;
   let isAdmin = false;
+  let viewerId = null;
 
   async function loadUserFilters() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
+    viewerId = user.id;
 
-    const { data } = await supabaseClient.from('users').select('current_level, level, is_admin').eq('id', user.id).single();
-    isAdmin = !!data?.is_admin;
-    const profileLevel = data?.current_level || data?.level;
-    if (profileLevel && selectedLevel === 'all') {
+    const [role, level] = await Promise.allSettled([
+      supabaseClient.from('users').select('is_admin').eq('id', user.id).single(),
+      supabaseClient.rpc('get_effective_level', { p_uid: user.id })
+    ]);
+    isAdmin = role.status === 'fulfilled' && !role.value.error && role.value.data?.is_admin === true;
+    const profileLevel = level.status === 'fulfilled' && !level.value.error ? level.value.data : null;
+    if (acceptProfileLevel && ['100L', '200L', '300L', '400L', '500L'].includes(profileLevel)) {
       selectedLevel = profileLevel;
-      document.getElementById('levelFilter').value = profileLevel;
+      if (unscopedEntry) selectedSemester = 'first';
+    } else if (acceptProfileLevel) {
+      explainMissingDefault();
     }
+    document.getElementById('levelFilter').value = selectedLevel;
   }
 
   async function loadApprovedMaterials() {
@@ -128,7 +173,7 @@
       .select("id, file_name, material_name, course, level, semester, storage_path")
       .eq("status", "approved");
 
-    if (error || !data) return;
+    if (error || !Array.isArray(data)) throw Error('Approved materials unavailable');
 
     const withUrls = await Promise.all(data.map(async (m) => {
       const { data: signed } = await supabaseClient.functions.invoke("r2-presign", {
@@ -140,14 +185,15 @@
         level: m.level || 'relevant',
         semester: m.semester || 'all',
         url: signed?.downloadUrl || null,
+        reviewItem: {id:m.id, material_name:m.material_name, file_name:m.file_name, level:m.level,semester:m.semester,course:m.course,status:"approved",storage_path:m.storage_path},
         materialId: m.id,
         storagePath: m.storage_path,
       };
     }));
 
     books = withUrls.filter(b => b.url);
-    filteredBooks = [...books];
-    render();
+    libraryState = 'ready';
+    updateCourseFilters();
   }
   let activeFilter = requestedCourse || 'All';
   let searchTerm = '';
@@ -172,8 +218,8 @@
     const placeholder = container.querySelector('.cover-placeholder');
     const fallback = container.querySelector('.cover-fallback');
 
-    if (coverCache.has(book.fileName)) {
-      const dataUrl = coverCache.get(book.fileName);
+    if (coverCache.has(book.materialId)) {
+      const dataUrl = coverCache.get(book.materialId);
       const ctx = canvas.getContext('2d');
       const img = new Image();
       img.onload = () => {
@@ -202,7 +248,7 @@
       const ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport: scaled }).promise;
       const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      coverCache.set(book.fileName, dataUrl);
+      coverCache.set(book.materialId, dataUrl);
       container.classList.add('cover-loaded');
     } catch (err) {
       console.warn('Cover render failed:', book.fileName, err);
@@ -237,40 +283,29 @@
 
   // ─── 6. BUILD UI COMPONENTS ────────────────────────────────────
 
-  function buildFilterChips() {
-    let html = '';
-    ALL_COURSES.forEach(course => {
-      const activeClass = course === activeFilter ? 'active' : '';
-      html += `<button class="filter-chip ${activeClass}" data-filter="${course}">${course}</button>`;
-    });
-    filterChipsContainer.innerHTML = html;
-
-    document.querySelectorAll('.filter-chip').forEach(chip => {
-      chip.addEventListener('click', function () {
-        setActiveFilter(this.dataset.filter);
+  function buildCourseControls(parent, cssClass, mobile) {
+    const controls = ALL_COURSES.map(course => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = cssClass;
+      button.classList.toggle('active', course === activeFilter);
+      button.dataset.filter = course;
+      button.textContent = courseLabel(course);
+      button.addEventListener('click', () => {
+        setActiveFilter(course);
+        if (mobile) closeBottomSheet();
       });
+      return button;
     });
+    parent.replaceChildren(...controls);
   }
-
-  function buildMobileList() {
-    let html = '';
-    ALL_COURSES.forEach(course => {
-      const activeClass = course === activeFilter ? 'active' : '';
-      html += `<div class="sheet-course-item ${activeClass}" data-filter="${course}">${course}</div>`;
-    });
-    mobileListContainer.innerHTML = html;
-
-    document.querySelectorAll('.sheet-course-item').forEach(item => {
-      item.addEventListener('click', function () {
-        setActiveFilter(this.dataset.filter);
-        closeBottomSheet();
-      });
-    });
-  }
+  function buildFilterChips() { buildCourseControls(filterChipsContainer, 'filter-chip', false); }
+  function buildMobileList() { buildCourseControls(mobileListContainer, 'sheet-course-item', true); }
 
   // ─── 7. FILTER LOGIC ───────────────────────────────────────────
 
   function setActiveFilter(filter) {
+    keepReaderFilters();
     activeFilter = filter;
 
     document.querySelectorAll('.filter-chip').forEach(chip => {
@@ -299,16 +334,23 @@
   // ─── 9. RENDER GRID ────────────────────────────────────────────
 
   function render() {
+    if (libraryState !== 'ready') {
+      const message = document.createElement('p');
+      message.className = 'empty-state';
+      message.setAttribute('role', 'status');
+      message.textContent = libraryState === 'loading' ? 'Loading approved materials…' : 'Library temporarily unavailable. Please try again.';
+      grid.replaceChildren(message);
+      return;
+    }
     filteredBooks = books.filter(book => {
-      const matchesLevel = selectedLevel === 'all' || book.level === selectedLevel || book.level === 'relevant';
-      const matchesSemester = selectedSemester === 'all' || book.semester === selectedSemester || book.semester === 'all';
       const matchesMaterial = !requestedMaterial || String(book.materialId) === requestedMaterial;
       const matchFilter = activeFilter === 'All' || book.courseName.toLowerCase() === activeFilter.toLowerCase();
       const matchSearch = searchTerm === '' ||
         book.displayName.toLowerCase().includes(searchTerm) ||
         book.courseName.toLowerCase().includes(searchTerm) ||
+        courseLabel(book.courseName).toLowerCase().includes(searchTerm) ||
         book.raw.includes(searchTerm);
-      return matchesMaterial && matchesLevel && matchesSemester && matchFilter && matchSearch;
+      return matchesMaterial && withinDesk(book) && matchFilter && matchSearch;
     });
 
     totalBooksEl.textContent = books.length;
@@ -326,15 +368,12 @@
     }
 
     let html = '';
-    filteredBooks.forEach((book) => {
-      const filePath = book.url;
-      const id = 'cover-' + book.fileName.replace(/[^a-zA-Z0-9]/g, '_');
-
+    filteredBooks.forEach((book, bookIndex) => {
       html += `
             <div class="book-card"
                  style="--spine-color: ${book.spineColor}; --cover-bg: ${book.coverBg}; position: relative;"
-                 data-filename="${book.fileName}">
-              <div class="book-cover" id="${id}">
+                 data-book-index="${bookIndex}">
+              <div class="book-cover">
                 <canvas></canvas>
                 <div class="cover-placeholder">
                   <span class="cover-icon">${book.icon}</span>
@@ -342,26 +381,25 @@
                 </div>
                 <div class="cover-fallback">
                   <span class="fallback-icon">${book.icon}</span>
-                  <div class="fallback-title">${book.displayName}</div>
+                  <div class="fallback-title">${textHTML(book.displayName)}</div>
                 </div>
               </div>
               ${isAdmin ? `
-                <button class="material-kebab" data-material-id="${book.materialId}" data-storage-path="${book.storagePath}"
-                  onclick="event.stopPropagation(); toggleKebabMenu(this);"
+                <button class="material-kebab" type="button" aria-label="Material actions"
+                  data-book-action="menu"
                   style="position:absolute; top:8px; right:8px; z-index:5; width:28px; height:28px; border-radius:50%; border:none; background:rgba(255,255,255,0.9); box-shadow:0 1px 4px rgba(0,0,0,0.2); cursor:pointer; font-weight:bold; font-size:16px; line-height:1;">⋮</button>
                 <div class="kebab-menu" style="display:none; position:absolute; top:38px; right:8px; z-index:6; background:white; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.2); overflow:hidden;">
-                  <button onclick="event.stopPropagation(); deleteMaterial('${book.materialId}', '${book.storagePath}');"
+                  <button type="button" data-book-action="delete"
                     style="display:block; width:100%; padding:8px 16px; border:none; background:white; color:#dc2626; font-size:13px; cursor:pointer; text-align:left;">Delete</button>
                 </div>
               ` : ""}
               <div class="book-meta">
-                <div class="book-title">${book.materialName}</div>
-                <span class="course-tag">${book.courseName}</span>
+                <div class="book-title">${textHTML(book.materialName)}</div>
+                <span class="course-tag">${textHTML(courseLabel(book.courseName, catalog.filter(r => r.level === book.level && (book.semester === 'all' || r.semester === book.semester))))}</span>
                 <div class="book-actions">
-                  <button class="btn-read" onclick="event.stopPropagation(); window.open('${filePath}', '_blank');">📖 Read</button>
-                  <button class="btn-download" onclick="event.stopPropagation(); downloadPDF('${filePath}', '${book.materialName.replace(/'/g, "\\'")}');">⬇ Download</button>
-                  <button class="btn-share" aria-label="Share ${book.materialName.replace(/"/g, '&quot;')}" title="Share material"
-                    onclick="event.stopPropagation(); shareMaterial('${book.materialId}', '${book.materialName.replace(/'/g, "\\'")}');">
+                  <button class="btn-read" type="button" data-book-action="read">📖 Read</button>
+                  <button class="btn-download" type="button" data-book-action="download">⬇ Download</button>
+                  <button class="btn-share" type="button" data-book-action="share" aria-label="Share material" title="Share material">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                       <path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -378,8 +416,7 @@
     const coverContainers = grid.querySelectorAll('.book-cover');
     coverContainers.forEach((container, idx) => {
       const card = container.closest('.book-card');
-      const fileName = card.dataset.filename;
-      const book = books.find(b => b.fileName === fileName);
+      const book = filteredBooks[Number(card.dataset.bookIndex)];
       if (book) {
         setTimeout(() => renderCover(book, container), 80 + idx * 60);
       }
@@ -398,6 +435,7 @@
   });
 
   document.addEventListener('keydown', (e) => {
+    if (document.querySelector?.('dialog.lh-review[open]')) return;
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
       searchInput.focus();
@@ -417,17 +455,24 @@
   sheetCloseBtn.addEventListener('click', closeBottomSheet);
 
   document.getElementById('levelFilter').addEventListener('change', function () {
+    keepReaderFilters();
+    userChangedScope = true;
     selectedLevel = this.value;
     updateCourseFilters();
   });
 
   document.getElementById('semesterFilter').addEventListener('change', function () {
+    keepReaderFilters();
+    userChangedScope = true;
     selectedSemester = this.value;
     updateCourseFilters();
   });
 
   document.getElementById('resetFilters').addEventListener('click', () => {
+    keepReaderFilters();
+    userChangedScope = true;
     selectedLevel = 'all';
+    activeFilter = 'All';
     selectedSemester = 'all';
     document.getElementById('levelFilter').value = 'all';
     document.getElementById('semesterFilter').value = 'all';
@@ -453,11 +498,25 @@
 
   // ─── 13. INIT ──────────────────────────────────────────────────
 
-  buildFilterChips();
-  buildMobileList();
-  loadUserFilters().then(() => {
+  updateCourseFilters();
+  // Keep explicit URL filters and approved old/archived materials, even if the optional list read fails.
+  import('./academic/catalog.mjs').then(m => m.readCatalog(supabaseClient)).then(rows => {
+    catalog = rows;
+    updateCourseFilters();
+  }).catch(() => {
+    const host = document.querySelector?.('.library-filters');
+    if (!host) return;
+    const note = document.createElement('p');
+    note.setAttribute('role', 'status');
+    note.textContent = 'Course list temporarily unavailable. Filters from approved materials are still available.';
+    host.after(note);
+  });
+  loadUserFilters().catch(explainMissingDefault).then(() => {
     updateCourseFilters();
     return loadApprovedMaterials();
+  }).catch(() => {
+    libraryState = 'unavailable';
+    render();
   });
   console.log(`📚 Library ready · ${books.length} book(s) · ${ALL_COURSES.length - 1} courses`);
   console.log('💡 Click any card to open the PDF · Ctrl+K to search');
@@ -471,7 +530,9 @@
   };
 
   window.shareMaterial = async function (materialId, materialName) {
-    const shareUrl = new URL('/pages/pdf.html', window.location.origin);
+    const shareUrl = new URL('./pdf.html', window.location.href);
+    // A shared item is not restricted to the recipient's default level or the sender's desk.
+    shareUrl.searchParams.set('level', 'all');
     shareUrl.searchParams.set('material', materialId);
     const shareData = {
       title: materialName,
@@ -498,20 +559,27 @@
     document.querySelectorAll('.kebab-menu').forEach(menu => menu.style.display = 'none');
   });
 
-  window.deleteMaterial = async function (materialId, storagePath) {
-    if (!confirm("Permanently delete this material for everyone? This cannot be undone.")) return;
-
-    const { error } = await supabaseClient.functions.invoke("r2-presign", {
-      body: { action: "reject", key: storagePath, materialId: materialId },
-    });
-
-    if (error) {
-      alert("Couldn't delete this material. Try again.");
-      return;
+  grid.addEventListener('click', async event => {
+    const button=event.target.closest('button[data-book-action]');
+    if(!button||!grid.contains(button))return;
+    event.stopPropagation();
+    const card=button.closest('.book-card'), book=filteredBooks[Number(card?.dataset.bookIndex)];
+    if(!book)return;
+    switch(button.dataset.bookAction){
+      case 'menu': window.toggleKebabMenu(button);break;
+      case 'read': window.open(book.url,'_blank','noopener,noreferrer');break;
+      case 'download': await window.downloadPDF(book.url,book.materialName);break;
+      case 'share': await window.shareMaterial(book.materialId,book.materialName);break;
+      case 'delete':
+        if(!isAdmin||!viewerId)return;
+        try {
+          const {reviewMaterial}=await import('./materials/review.mjs');
+          if(await reviewMaterial(supabaseClient,{actor:viewerId,item:book.reviewItem,action:'delete'})){
+            coverCache.delete(book.materialId);
+            books=books.filter(b=>b.materialId!==book.materialId);updateCourseFilters();
+          }
+        }catch(error){alert(error.message||'Could not review the material. Reload to try again.');}
+        break;
     }
-
-    books = books.filter(b => b.materialId !== materialId);
-    filteredBooks = filteredBooks.filter(b => b.materialId !== materialId);
-    render();
-  };
+  });
 })();

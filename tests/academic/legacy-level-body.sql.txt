@@ -1,0 +1,27 @@
+
+declare
+  tiers text[] := array['100L','200L','300L','400L','500L'];
+  base_level text;
+  base_date timestamptz;
+  idx int;
+  check_date date;
+  today date := current_date;
+begin
+  select current_level, level_updated_at into base_level, base_date from users where id = p_uid;
+  if base_level is null then return '100L'; end if;
+
+  idx := array_position(tiers, base_level);
+  if idx is null then return base_level; end if;
+
+  check_date := make_date(extract(year from base_date)::int, 12, 1);
+  if base_date::date >= check_date then
+    check_date := check_date + interval '1 year';
+  end if;
+
+  while today >= check_date and idx < array_length(tiers, 1) loop
+    idx := idx + 1;
+    check_date := check_date + interval '1 year';
+  end loop;
+
+  return tiers[idx];
+end;

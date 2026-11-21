@@ -29,6 +29,8 @@
       visibility: hidden;
     }
   </style>
+  <link rel="stylesheet" href="../styles/password-visibility.css">
+  <script defer src="../scripts/password-visibility.js"></script>
 </head>
 
 <body class="min-h-screen px-4 py-8 text-gray-800">
@@ -110,9 +112,9 @@
 
         <div class="bg-[#fffdf7] rounded-xl border border-[#e8d9b5] p-6 shadow-sm">
           <label for="level-select" class="block text-sm font-semibold text-gray-800">Current level</label>
-          <p class="mt-1 text-xs text-gray-500">Correct this if your academic level is ever wrong.</p>
+          <p class="mt-1 text-xs text-gray-500"><span id="level-session-hint">Loading the academic session…</span></p>
           <div class="mt-4 flex flex-col sm:flex-row gap-2">
-            <select id="level-select"
+            <select id="level-select" disabled
               class="min-w-0 flex-1 bg-white rounded-lg px-4 py-2.5 border border-gray-300 outline-none focus:border-[#c98a1f]">
               <option value="100L">100L</option>
               <option value="200L">200L</option>
@@ -120,10 +122,18 @@
               <option value="400L">400L</option>
               <option value="500L">500L</option>
             </select>
-            <button id="save-level-btn"
+            <button id="save-level-btn" type="button" disabled
               class="px-5 py-2.5 rounded-lg text-sm font-semibold text-gray-900 hover:brightness-95">Save</button>
           </div>
-          <p id="level-status" class="text-xs mt-2"></p>
+          <div id="level-review" class="mt-4" hidden>
+            <label for="level-confirm" class="block text-sm font-semibold">Confirm level correction</label>
+            <p class="text-sm mt-1" id="level-instruction">Type <code id="level-phrase"></code></p>
+            <input id="level-confirm" autocomplete="off" autocapitalize="none" spellcheck="false" aria-describedby="level-instruction"
+              class="mt-2 w-full rounded-lg border px-3 py-2" />
+            <button type="button" id="level-apply" disabled class="mt-2 rounded-lg border px-3 py-2">Confirm change</button>
+            <button type="button" id="level-cancel" class="mt-2 rounded-lg border px-3 py-2">Cancel</button>
+          </div>
+          <p id="level-status" role="status" class="text-xs mt-2"></p>
         </div>
       </div>
     </section>
@@ -267,33 +277,7 @@
       statusEl.textContent = "Photo updated!";
     });
   </script>
-  <script>
-    async function loadLevel() {
-      const { data: { user } } = await supabaseClient.auth.getUser();
-      if (!user) return;
-      const { data } = await supabaseClient.rpc("get_effective_level", { p_uid: user.id });
-      const levelEl = document.getElementById("display-level");
-      if (levelEl && data) levelEl.textContent = data;
-      const select = document.getElementById("level-select");
-      if (select && data) select.value = data;
-    }
-    loadLevel();
-
-    document.getElementById("save-level-btn").addEventListener("click", async () => {
-      const statusEl = document.getElementById("level-status");
-      const newLevel = document.getElementById("level-select").value;
-      const { data: { user } } = await supabaseClient.auth.getUser();
-
-      const { error } = await supabaseClient
-        .from("users")
-        .update({ current_level: newLevel, level_updated_at: new Date().toISOString() })
-        .eq("id", user.id);
-
-      statusEl.textContent = error ? "Couldn't save." : "Saved!";
-      statusEl.className = error ? "text-sm mt-2 text-red-500" : "text-sm mt-2 text-green-600";
-      if (!error) loadLevel();
-    });
-  </script>
+  <script src="../scripts/academic/profile-level.js"></script>
   <script>
     let currentUser = null;
 
@@ -317,8 +301,13 @@
 
       currentUser = data;
 
-      document.getElementById("display-name").textContent = data.full_name || "Unnamed";
-      document.getElementById("display-reg").textContent = data.reg_number;
+      document.getElementById("display-name").textContent = data.full_name || data.username || "LegalHub member";
+      // An existing official number takes precedence. The owner's Auth metadata is unverified.
+      const meta = session.user.user_metadata || {};
+      const reported = [meta.reported_reg_number, meta.reg_number]
+        .find(value => typeof value === "string" && value.trim());
+      document.getElementById("display-reg").textContent = data.reg_number
+        || (reported ? `${reported.trim()} (self-reported)` : "Not provided");
       document.getElementById("username-input").value = data.username || "";
       // renderAvatar(document.getElementById("avatar-large"), data.username || data.full_name, "text-2xl w-20 h-20");
     }

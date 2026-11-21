@@ -20,3 +20,6 @@ build/
 
 # Accidental laptop-specific duplicate of the canonical client
 public/scripts/auth/supabase-client-Chima-Laptop.js
+
+# Others
+others/

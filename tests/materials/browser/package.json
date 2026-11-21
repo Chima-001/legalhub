@@ -1,0 +1,7 @@
+{
+  "name": "legalhub-material-browser-checks",
+  "private": true,
+  "version": "1.0.0",
+  "description": "Optional, intercepted local browser smoke tests; never use a real project",
+  "dependencies": { "playwright-core": "1.55.0" }
+}

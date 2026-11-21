@@ -1,0 +1,319 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <meta name="robots" content="noindex,nofollow" />
+    <meta name="referrer" content="same-origin" />
+    <title>Admin workspace · LegalHub</title>
+    <link rel="icon" href="../assets/images/favicon.svg" type="image/svg+xml" />
+    <link rel="stylesheet" href="../styles/admin-settings.css" />
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../scripts/auth/supabase-client.js"></script>
+    <script src="../scripts/auth/auth-guard.js"></script>
+    <script type="module" src="../scripts/academic/admin-return.mjs"></script>
+    <script defer src="../scripts/academic/term.js"></script>
+    <script defer src="../scripts/academic/admin-access.js"></script>
+    <script defer src="../scripts/academic/curriculum-editor.js"></script>
+    <script defer src="../scripts/academic/admin-calendar.js"></script>
+  </head>
+  <body style="visibility: hidden">
+    <header class="mast">
+      <a class="brand" href="../index.html"
+        ><span class="monogram" aria-hidden="true">LH</span>LegalHub</a
+      ><a id="admin-back" class="back" role="link" aria-disabled="true"
+        title="There is no previous LegalHub page to return to.">← Back</a>
+    </header>
+    <main>
+      <div id="settings-gate" class="gate" role="status">Checking administrator access…</div>
+      <button id="gate-retry" class="secondary" type="button" hidden>Try again</button>
+      <div id="settings-workspace" hidden>
+        <p class="eyebrow">Administration <span>/</span> Settings</p>
+        <h1>Admin workspace</h1>
+        <p class="intro">Manage the academic calendar, curricula and courses for LegalHub.</p>
+        <div class="console-tools">
+          <details id="panel-term" class="tool-card" name="console-tool">
+            <summary>
+              <span class="tool-no" aria-hidden="true">01</span
+              ><span class="tool-copy"
+                ><strong>Term details</strong
+                ><span
+                  >Publishing replaces the active schedule. Editing a term never promotes students.</span
+                ></span
+              ><span class="tool-chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="workspace-grid">
+              <aside class="published" aria-labelledby="published-title">
+                <div class="card-index">REGISTRAR’S DESK <span>01 / 01</span></div>
+                <p class="overline" id="published-title">Published calendar</p>
+                <h2 id="published-session">No active term</h2>
+                <p id="published-semester" class="subheading"></p>
+                <dl class="timeline">
+                  <div>
+                    <dt>Semester starts</dt>
+                    <dd id="published-start">—</dd>
+                  </div>
+                  <div>
+                    <dt>Exams begin</dt>
+                    <dd id="published-exams">—</dd>
+                  </div>
+                  <div>
+                    <dt>Semester ends</dt>
+                    <dd id="published-end">—</dd>
+                  </div>
+                </dl>
+                <p class="timezone">School dates · Africa/Lagos</p>
+              </aside>
+              <form id="calendar-form" aria-labelledby="edit-title">
+                <fieldset id="calendar-fields" disabled>
+                  <legend id="edit-title">Edit schedule</legend>
+                  <p class="form-note">Use the academic session and dates approved for publication.</p>
+                  <div class="fields">
+                    <label
+                      >Academic session<input
+                        id="cal-session"
+                        required
+                        maxlength="9"
+                        pattern="[0-9]{4}/[0-9]{4}"
+                        placeholder="2026/2027"
+                        autocomplete="off"
+                    /></label>
+                    <label
+                      >Semester<select id="cal-semester" required>
+                        <option value="">Choose semester</option>
+                        <option value="1">First semester</option>
+                        <option value="2">Second semester</option>
+                      </select></label
+                    >
+                    <label
+                      >Semester start<input
+                        id="cal-start"
+                        type="date"
+                        min="1900-01-01"
+                        max="9999-12-31"
+                        required
+                    /></label>
+                    <label
+                      >Exam start<input
+                        id="cal-exams"
+                        type="date"
+                        min="1900-01-01"
+                        max="9999-12-31"
+                        required
+                    /></label>
+                    <label
+                      >Exam end <small>· semester end</small
+                      ><input id="cal-end" type="date" min="1900-01-01" max="9999-12-31" required
+                    /></label>
+                  </div>
+                  <section class="review" aria-label="Review changes">
+                    <p class="overline">Confirm the schedule</p>
+                    <p id="cal-preview">Complete the term details to review the countdown.</p>
+                    <label for="cal-confirm">Type the phrase below to save.</label
+                    ><code id="cal-phrase">Complete the term details first.</code>
+                    <input
+                      id="cal-confirm"
+                      autocomplete="off"
+                      autocapitalize="none"
+                      spellcheck="false"
+                      aria-describedby="cal-phrase"
+                      disabled
+                    />
+                  </section>
+                  <button type="submit" id="cal-save" disabled>Publish calendar</button>
+                </fieldset>
+                <p id="cal-status" role="status"></p>
+                <button type="button" id="cal-reload" class="secondary" hidden>
+                  Reload published calendar
+                </button>
+              </form>
+            </div>
+          </details>
+          <details id="panel-curricula" class="tool-card" name="console-tool" hidden>
+            <summary>
+              <span class="tool-no" aria-hidden="true">02</span
+              ><span class="tool-copy"
+                ><strong>Curricula</strong
+                ><span
+                  >Set up named curricula. Each curriculum can hold many courses across levels and
+                  semesters.</span
+                ></span
+              ><span class="tool-chevron" aria-hidden="true"></span>
+            </summary>
+            <form id="curriculum-form" class="tool-body" novalidate>
+              <fieldset id="curriculum-fields" disabled>
+                <legend class="small-legend">Curriculum directory</legend>
+                <label>Curriculum<select id="curriculum-pick"></select></label>
+                <div class="fields">
+                  <label>Action<select id="curriculum-action"></select></label
+                  ><label
+                    >Curriculum name<input id="curriculum-name" maxlength="100" autocomplete="off"
+                  /></label>
+                </div>
+                <label
+                  >Description <small>· optional</small
+                  ><textarea id="curriculum-description" maxlength="400" rows="2"></textarea>
+                </label>
+                <p id="curriculum-count" class="tool-hint"></p>
+                <button type="button" id="curriculum-courses" class="secondary" hidden>
+                  Manage courses in this curriculum →
+                </button>
+                <section class="review" aria-label="Review curriculum change">
+                  <p class="overline">Review the change</p>
+                  <p id="curriculum-review-note"></p>
+                  <label for="curriculum-confirm">Type this exact phrase to save:</label
+                  ><code id="curriculum-phrase"></code
+                  ><input
+                    id="curriculum-confirm"
+                    autocomplete="off"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    aria-describedby="curriculum-phrase"
+                  />
+                </section>
+                <button type="submit" class="primary-action" id="curriculum-save" disabled>Save</button>
+              </fieldset>
+              <p id="curriculum-status" class="tool-status" role="status"></p>
+              <button type="button" id="curriculum-reload" class="secondary">Reload list</button>
+            </form>
+          </details>
+          <details id="panel-courses" class="tool-card" name="console-tool" hidden>
+            <summary>
+              <span class="tool-no" aria-hidden="true">03</span
+              ><span class="tool-copy"
+                ><strong>Courses</strong
+                ><span
+                  >Assign courses to a curriculum, level and semester. Changes appear on the study desk,
+                  in Upload Material and in the library.</span
+                ></span
+              ><span class="tool-chevron" aria-hidden="true"></span>
+            </summary>
+            <form id="course-form" class="tool-body" novalidate>
+              <fieldset id="course-scope">
+                <legend class="small-legend">Course directory</legend>
+                <label
+                  >Browse curriculum<select id="directory-curriculum">
+                    <option value="">All curricula</option>
+                  </select></label
+                >
+                <div class="fields">
+                  <label
+                    >Level<select id="course-level">
+                      <option>100L</option>
+                      <option>200L</option>
+                      <option>300L</option>
+                      <option>400L</option>
+                      <option>500L</option>
+                    </select></label
+                  ><label
+                    >Semester<select id="course-sem">
+                      <option value="first">First semester</option>
+                      <option value="second">Second semester</option>
+                    </select></label
+                  >
+                </div>
+              </fieldset>
+              <fieldset id="course-fields" disabled>
+                <legend class="small-legend">Course details</legend>
+                <label>Course<select id="course-pick"></select></label>
+                <div class="fields">
+                  <label>Action<select id="course-action"></select></label
+                  ><label>Assign to curriculum<select id="course-curriculum"></select></label>
+                </div>
+                <div class="fields">
+                  <label>Course name<input id="course-name" maxlength="120" autocomplete="off" /></label
+                  ><label
+                    >Course code <small>· optional</small
+                    ><input id="course-code" maxlength="32" autocomplete="off"
+                  /></label>
+                </div>
+                <button type="button" class="secondary" id="course-create-curriculum" hidden>
+                  Set up a curriculum first →
+                </button>
+                <section class="review" aria-label="Review course change">
+                  <p class="overline">Review the change</p>
+                  <p id="course-review-note"></p>
+                  <label for="course-confirm">Type this exact phrase to save:</label
+                  ><code id="course-phrase"></code
+                  ><input
+                    id="course-confirm"
+                    autocomplete="off"
+                    autocapitalize="none"
+                    spellcheck="false"
+                    aria-describedby="course-phrase"
+                  />
+                </section>
+                <button type="submit" class="primary-action" id="course-save" disabled>Save</button>
+              </fieldset>
+              <p id="course-status" class="tool-status" role="status"></p>
+              <button type="button" id="course-reload" class="secondary">Reload list</button>
+            </form>
+          </details>
+          <details id="panel-roles" class="tool-card" name="console-tool" hidden>
+            <summary>
+              <span class="tool-no" aria-hidden="true">04</span
+              ><span class="tool-copy"
+                ><strong>Admin access</strong
+                ><span
+                  >Grant or revoke administrator access by confirmed email. Removing access does not
+                  delete the account.</span
+                ></span
+              ><span class="tool-chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="tool-body">
+              <p class="scope-badge">Owner and designated role managers</p>
+              <form id="role-lookup">
+                <label class="wide-label"
+                  >Member’s verified email<input
+                    id="role-email"
+                    type="email"
+                    maxlength="254"
+                    required
+                    autocomplete="off"
+                    autocapitalize="none"
+                    spellcheck="false"
+                /></label>
+                <button type="submit" id="role-review" class="primary-action">Review account</button>
+              </form>
+              <div id="role-result" class="review" hidden>
+                <p class="overline">Reviewed account</p>
+                <p id="role-preview"></p>
+                <label for="role-confirm">Type this exact phrase to confirm:</label
+                ><code id="role-phrase"></code>
+                <input
+                  id="role-confirm"
+                  aria-describedby="role-phrase"
+                  autocomplete="off"
+                  autocapitalize="none"
+                  spellcheck="false"
+                />
+                <button id="role-apply" type="button" class="primary-action" disabled>
+                  Confirm change
+                </button>
+              </div>
+              <p id="role-status" class="tool-status" role="status"></p>
+              <section id="owner-roster" aria-labelledby="roster-heading" hidden>
+                <p class="overline">Owner only</p>
+                <h2 id="roster-heading">Admins you added</h2>
+                <p class="tool-hint">Current admins you granted access to. Only you can see this list.</p>
+                <ul id="roster-emails" hidden></ul>
+                <p id="roster-status" class="tool-status" role="status"></p>
+                <button id="roster-refresh" class="secondary" type="button">Refresh list</button>
+              </section>
+            </div>
+          </details>
+        </div>
+        <p id="tools-status" class="tool-status" role="status"></p>
+        <button id="tools-retry" class="secondary" type="button" hidden>Recheck admin tools</button>
+      </div>
+    </main>
+    <footer>
+      <a class="brand footer-brand" href="../index.html"><span class="brand-mark">LH</span><span>LegalHub</span></a>
+      <span class="footer-credit">Powered by 
+        <a href="https://clopertechnologies.me" target="_blank" rel="noopener noreferrer">
+          <img src="../assets/images/cloper-logo.svg" alt="Cloper Technologies" />
+        </a>
+      </span> Academic services
+    </footer>
+  </body>
+</html>

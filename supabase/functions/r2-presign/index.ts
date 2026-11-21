@@ -2,7 +2,7 @@
 //
 // Browser JavaScript can never hold your real R2 secret key (anyone could
 // read it and access your whole bucket). Instead, the browser asks THIS
-// function for a temporary, single-use presigned URL - one for uploading,
+// function for a temporary presigned URL - one for uploading,
 // one for viewing - and only this function (running on Supabase's server,
 // never exposed to the browser) ever touches your actual R2 credentials.
 //
@@ -14,10 +14,10 @@
 //   supabase secrets set R2_BUCKET_NAME=legalhub-storage
 // (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are auto-provided)
 
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3";
-import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3";
+// No runtime import of a type-declaration package. Deno supplies serve/env.
+import { createClient } from "jsr:@supabase/supabase-js@2.119.2";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3.1175.0";
+import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.1175.0";
 
 const accountId = Deno.env.get("R2_ACCOUNT_ID")!;
 const bucketName = Deno.env.get("R2_BUCKET_NAME")!;
@@ -40,6 +40,11 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  // Operator non-mutating boot/contract check. A GET cannot authorize a presign, removal, or RPC.
+  if (req.method !== "POST") return new Response(null, {
+    status: 405,
+    headers: { ...corsHeaders, Allow: "POST, OPTIONS", "Cache-Control": "no-store", "X-LegalHub-Storage-Contract": "material-id-key-v1" },
+  });
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     const supabaseUser = createClient(
@@ -52,8 +57,8 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: corsHeaders });
     }
 
-    const { action, key, contentType, fileName, materialId } = await req.json();
-
+    const body = await req.json();
+    const { action, key, contentType, fileName, materialId } = body;
     if (action === "reject") {
       const supabaseAdmin = createClient(
         Deno.env.get("SUPABASE_URL")!,
@@ -68,23 +73,31 @@ Deno.serve(async (req) => {
       if (userRow?.is_admin !== true) {
         return new Response(JSON.stringify({ error: "Not authorized" }), { status: 403, headers: corsHeaders });
       }
-      if (!materialId || !key) {
+      if (typeof materialId !== "string" || !materialId || typeof key !== "string" || !key) {
         return new Response(JSON.stringify({ error: "Missing material ID or storage key" }), { status: 400, headers: corsHeaders });
       }
 
       const { data: material } = await supabaseAdmin
         .from("materials")
-        .select("id, storage_path")
+        .select("id, storage_path, uploaded_by, status")
         .eq("id", materialId)
         .eq("storage_path", key)
         .single();
-      if (!material) {
+      if (!material || material.id !== materialId || material.storage_path !== key) {
         return new Response(JSON.stringify({ error: "Material not found" }), { status: 404, headers: corsHeaders });
       }
 
+      const parts = key.split("/");
+      if (!["approved", "pending"].includes(material.status) || !material.uploaded_by || parts.length !== 3 ||
+        parts[0] !== "materials" || parts[1] !== material.uploaded_by || !parts[2] || [".", ".."].includes(parts[2])) {
+        return Response.json({ error: "Unverified upload path or material state" }, { status: 409, headers: corsHeaders });
+      }
+      // A shared key must not remove a second material's PDF. This check is additive to the published ID/key contract.
+      const { data: refs, error: refError } = await supabaseAdmin.from("materials").select("id").eq("storage_path", key).limit(2);
+      if (refError || refs?.length !== 1 || refs[0].id !== materialId) return Response.json({error: "File reference is not unique"}, {status: 409, headers:corsHeaders});
       await s3.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
-      const { error: deleteError } = await supabaseAdmin.from("materials").delete().eq("id", materialId);
-      if (deleteError) throw deleteError;
+      const { data: gone, error: deleteError } = await supabaseAdmin.from("materials").delete().eq("id", materialId).eq("storage_path", key).eq("uploaded_by", material.uploaded_by).eq("status", material.status).select("id").maybeSingle();
+      if (deleteError || gone?.id !== materialId) throw Error("Row removal not confirmed");
 
       return new Response(JSON.stringify({ deleted: true }), {
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -93,7 +106,7 @@ Deno.serve(async (req) => {
 
     if (action === "upload") {
       const safeName = (fileName || "file.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
-      const objectKey = `materials/${user.id}/${Date.now()}_${safeName}`;
+      const objectKey = `materials/${user.id}/${crypto.randomUUID()}_${safeName.slice(-220)}`;
 
       const command = new PutObjectCommand({
         Bucket: bucketName,
@@ -133,7 +146,7 @@ Deno.serve(async (req) => {
         .eq("id", user.id)
         .single();
 
-      const allowed = material?.status === "approved" || userRow?.is_admin === true;
+      const allowed = material && (material.status === "approved" || userRow?.is_admin === true);
       if (!allowed) {
         return new Response(JSON.stringify({ error: "Not authorized to view this file" }), { status: 403, headers: corsHeaders });
       }
@@ -147,7 +160,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: corsHeaders });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: corsHeaders });
+  } catch {
+    return new Response(JSON.stringify({ error: "Storage operation was not confirmed." }), { status: 500, headers: corsHeaders });
   }
 });

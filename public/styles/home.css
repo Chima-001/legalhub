@@ -500,6 +500,12 @@ h1 {
     background: var(--yellow);
 }
 
+.primary-nav [hidden], .countdown-strip [hidden] { display: none !important; }
+.countdown-label strong, .countdown-label small { display: block; }
+.countdown-label strong { text-transform: uppercase; }
+.countdown-label small { color: rgb(239, 196, 110); font-size: 10px; margin-top: 3px; }
+.countdown-label small:empty { display: none; }
+
 .countdown-strip p {
     margin: 0;
     color: rgb(195, 202, 207);
@@ -1103,4 +1109,54 @@ body {
 
 .home-carousel {
     box-shadow: 0 15px 35px rgba(24, 33, 43, .12);
+}
+
+/* Each level has two real, always-available semester destinations. Only a verified
+   published calendar stretches one of those links across the rest of its card. */
+#desk-term-hint { max-width: 37ch; }
+.level-card[data-desk-level] { isolation: isolate; }
+html:not([data-desk-semester]) .level-card[data-desk-level] .level-arrow { visibility: hidden; }
+.level-card[data-desk-level] strong { margin-top: 18px; }
+.desk-choices { display: grid; gap: 6px; margin-top: 14px; }
+.desk-choice {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 5px;
+    min-height: 40px;
+    padding: 6px 9px;
+    color: #1d3143;
+    border: 1px solid #83949f;
+    border-radius: 7px;
+    background: #fffdf7;
+    font-size: 12px;
+    line-height: 1.3;
+    font-weight: 700;
+}
+.desk-choice:hover { text-decoration: underline; text-underline-offset: 3px; }
+.desk-choice:focus-visible { outline: 3px solid #ba7122; outline-offset: 2px; }
+.desk-sr {
+    position: absolute; width: 1px; height: 1px; overflow: hidden;
+    padding: 0; border: 0; clip-path: inset(50%); white-space: nowrap;
+}
+.desk-published { display: none; }
+html[data-desk-semester="first"] .desk-choice[data-term="first"],
+html[data-desk-semester="second"] .desk-choice[data-term="second"] {
+    color: #fff5dc; background: #192d3c; border-color: #192d3c;
+}
+html[data-desk-semester="first"] .desk-choice[data-term="first"]::before,
+html[data-desk-semester="second"] .desk-choice[data-term="second"]::before {
+    content: ''; position: absolute; inset: 0; z-index: 1;
+}
+html[data-desk-semester="first"] .desk-choice[data-term="second"],
+html[data-desk-semester="second"] .desk-choice[data-term="first"] { position: relative; z-index: 2; }
+html[data-desk-semester="first"] .desk-choice[data-term="first"] .desk-published,
+html[data-desk-semester="second"] .desk-choice[data-term="second"] .desk-published {
+    display: inline-block; flex: none; width: 7px; height: 7px; border-radius: 100%; background: #ead09b;
+}
+@media (max-width: 560px) { .desk-choice { min-height: 44px; } }
+@media (prefers-reduced-motion: reduce) { .level-card[data-desk-level]:hover { transform: none; } }
+@media (forced-colors: active) {
+    .desk-choice:focus-visible { outline-color: Highlight; }
+    .desk-published { border: 2px solid LinkText; }
 }

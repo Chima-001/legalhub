@@ -150,31 +150,48 @@
         window.location.href = "../index.html";
       }
     });
-    // Replace these lists with the official course offering when it is ready.
-    const COURSE_CATALOG = {
-      "100L": {
-        first: ["Legal Method", "Customary Law", "Philosophy", "Psychology", "Communication in English", "Natural Science", "Logics", "Introduction to Nigerian Literature"],
-        second: ["Legal Method", "Customary Law", "Philosophy", "Psychology", "Communication in English", "Natural Science", "Logics", "Introduction to Nigerian Literature"]
-      },
-      "200L": { first: [], second: [] },
-      "300L": { first: [], second: [] },
-      "400L": { first: [], second: [] },
-      "500L": { first: [], second: [] }
-    };
+    // Use the shared catalogue. Keys saved on materials stay stable when a course is renamed.
+    const courseReads = new WeakMap();
+    async function fillCourseSelect(select, level, semester, keep = '') {
+      const ticket = {};
+      courseReads.set(select, ticket);
+      select.disabled = true;
+      select.replaceChildren(new Option('Loading courses…', ''));
+      try {
+        const {readCatalog} = await import('../scripts/academic/catalog.mjs');
+        const rows = await readCatalog(supabaseClient, level, semester === 'all' ? null : semester);
+        if (courseReads.get(select) !== ticket) return;
+        const groups = new Map(), seen = new Set();
+        for (const r of rows) {
+          const group = r.curriculum_name || 'Existing desk courses';
+          if (!groups.has(group)) { const g = document.createElement('optgroup'); g.label=group; groups.set(group,g); }
+          if (!seen.has(r.key)) { groups.get(group).append(new Option(r.name,r.key)); seen.add(r.key); }
+        }
+        const retained = keep && !seen.has(keep) ? [new Option(keep+' (existing material)',keep)] : [];
+        select.replaceChildren(new Option(seen.size || retained.length ? 'Choose course' : 'No published courses yet', ''), ...groups.values(), ...retained);
+        select.value = keep;
+        select.disabled = !(seen.size || retained.length);
+      } catch {
+        if (courseReads.get(select) === ticket) select.replaceChildren(new Option('Courses unavailable — reselect semester to retry', ''));
+      }
+    }
 
     const levelInput = document.getElementById("level-input");
     const semesterInput = document.getElementById("semester-input");
     const courseInput = document.getElementById("course-input");
 
     function populateCourses() {
-      const courses = COURSE_CATALOG[levelInput.value]?.[semesterInput.value] || [];
-      courseInput.innerHTML = courses.length
-        ? '<option value="">Choose course</option>' + courses.map(course => `<option value="${escapeHtml(course)}">${escapeHtml(course)}</option>`).join("")
-        : '<option value="">Courses will be added soon</option>';
-      courseInput.disabled = !courses.length;
+      if (!levelInput.value || !semesterInput.value) {
+        courseReads.delete(courseInput);
+        courseInput.replaceChildren(new Option('Choose level and semester first',''));
+        courseInput.disabled = true;
+        return;
+      }
+      void fillCourseSelect(courseInput, levelInput.value, semesterInput.value);
     }
 
     levelInput.addEventListener("change", () => {
+      courseReads.delete(courseInput);
       const isRelevant = levelInput.value === "relevant";
       semesterInput.disabled = isRelevant || !levelInput.value;
       semesterInput.value = isRelevant ? "all" : "";
@@ -186,9 +203,7 @@
     semesterInput.addEventListener("change", populateCourses);
 
     function escapeHtml(str) {
-      const div = document.createElement("div");
-      div.textContent = str;
-      return div.innerHTML;
+      return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
     }
 
     function errorMessage(error, fallback) {
@@ -217,10 +232,8 @@
         isAdmin = !!userRow.is_admin;
       }
 
-      if (userError) {
-        const status = document.getElementById("upload-status");
-        status.textContent = `Could not load your profile: ${errorMessage(userError, "check the users table and RLS policies")}`;
-        status.className = "text-xs mt-2 text-red-500";
+      if (userError && noticeVersion === 0) {
+        showUploadNotice(`Could not load your profile: ${errorMessage(userError, "profile unavailable")}`, "error");
       }
 
       if (isAdmin) {
@@ -262,11 +275,10 @@
               <button type="button" data-edit-id="${item.id}" aria-expanded="false" class="edit-material-btn text-xs px-3 py-1 rounded-lg bg-[#fff4d6] text-[#9a6815] font-semibold">Edit</button>
               ${item.status === "pending" ? `<button data-id="${item.id}" class="approve-btn text-xs px-3 py-1 rounded-lg bg-green-100 text-green-700 font-semibold">Approve</button>` : ""}
               ${item.status === "pending" ? `<button data-id="${item.id}" class="reject-btn text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold">Reject</button>` : ""}
-              ${item.status === "rejected" ? `<button data-id="${item.id}" class="remove-btn text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold">Remove</button>` : ""}
             </div>
           </div>
           <div data-edit-panel="${item.id}" class="admin-material-edit hidden grid grid-cols-1 sm:grid-cols-4 gap-2">
-            <input data-field="material_name" value="${escapeHtml(item.material_name || item.file_name.replace(/\\.pdf$/i, ""))}" class="sm:col-span-2 min-w-0 text-xs rounded-lg border border-gray-200 px-3 py-1.5" aria-label="Material name" />
+            <input data-field="material_name" value="${escapeHtml(item.material_name || item.file_name.replace(/\.pdf$/i, ""))}" class="sm:col-span-2 min-w-0 text-xs rounded-lg border border-gray-200 px-3 py-1.5" aria-label="Material name" />
             <select data-field="level" class="text-xs rounded-lg border border-gray-200 px-2 py-1.5">
               ${["100L", "200L", "300L", "400L", "500L", "relevant"].map(level => `<option value="${level}" ${item.level === level ? "selected" : ""}>${level === "relevant" ? "Relevant materials" : level}</option>`).join("")}
             </select>
@@ -284,27 +296,27 @@
         </div>
       `).join("");
 
-      document.querySelectorAll(".approve-btn").forEach(btn =>
-        btn.addEventListener("click", () => {
-          if (confirm("Approve this material? It will become visible to all students.")) {
-            updateStatus(btn.dataset.id, "approved");
+      async function moderate(id,action,values=null) {
+        const item = data.find(m => m.id === id);
+        const note = document.querySelector(`[data-admin-status="${id}"]`);
+        if (!item || !note || !isAdmin) return;
+        try {
+          const {reviewMaterial} = await import('../scripts/materials/review.mjs');
+          if (await reviewMaterial(supabaseClient, {actor:currentUserId,item,action,values})) {
+            await loadPending();
           }
-        }));
-      document.querySelectorAll(".reject-btn").forEach(btn =>
-        btn.addEventListener("click", () => {
-          if (confirm("Reject and permanently delete this upload? This cannot be undone.")) {
-            deleteRejectedMaterial(btn.dataset.id);
-          }
-        }));
-      document.querySelectorAll(".remove-btn").forEach(btn =>
-        btn.addEventListener("click", () => {
-          if (confirm("Permanently delete this material? This cannot be undone.")) {
-            deleteRejectedMaterial(btn.dataset.id);
-          }
-        }));
+        } catch (error) { note.setAttribute('role','status'); note.textContent=error.message || 'Unable to review this material. Reload and try again.'; }
+      }
+      for (const action of ['approve','reject']) document.querySelectorAll(`.${action}-btn`).forEach(btn =>
+        btn.addEventListener('click', () => void moderate(btn.dataset.id,action)));
       document.querySelectorAll(".edit-material-btn").forEach(btn => btn.addEventListener("click", () => {
         const panel = document.querySelector(`[data-edit-panel="${btn.dataset.editId}"]`);
         const isOpening = panel.classList.toggle("hidden") === false;
+        if (isOpening) {
+          const row = btn.closest('[data-admin-material]');
+          const level = row.querySelector('[data-field="level"]').value;
+          if (level !== 'relevant') updateAdminCourses(row, level, row.querySelector('[data-field="semester"]').value, row.querySelector('[data-field="course"]').value);
+        }
         btn.setAttribute("aria-expanded", String(isOpening));
         btn.textContent = isOpening ? "Close" : "Edit";
       }));
@@ -320,6 +332,7 @@
         const row = select.closest("[data-admin-material]");
         const semester = row.querySelector('[data-field="semester"]');
         const course = row.querySelector('[data-field="course"]');
+        courseReads.delete(course);
         semester.disabled = select.value === "relevant";
         if (select.value === "relevant") {
           semester.value = "all";
@@ -331,155 +344,130 @@
         const row = select.closest("[data-admin-material]");
         updateAdminCourses(row, row.querySelector('[data-field="level"]').value, select.value);
       }));
-      document.querySelectorAll(".save-material-btn").forEach(btn => btn.addEventListener("click", () => saveMaterialDetails(btn.dataset.saveId)));
+      document.querySelectorAll(".save-material-btn").forEach(btn => btn.addEventListener("click", () => saveMaterialDetails(btn.dataset.saveId, moderate)));
     }
 
-    function updateAdminCourses(row, level, semester) {
+    function updateAdminCourses(row, level, semester, keep = '') {
       const select = row.querySelector('[data-field="course"]');
-      const courses = COURSE_CATALOG[level]?.[semester] || [];
-      select.innerHTML = courses.length ? courses.map(course => `<option value="${escapeHtml(course)}">${escapeHtml(course)}</option>`).join("") : '<option value="">Course not in catalog</option>';
+      void fillCourseSelect(select,level,semester,keep);
     }
 
-    async function saveMaterialDetails(id) {
+    async function saveMaterialDetails(id, moderate) {
       const row = document.querySelector(`[data-admin-material="${id}"]`);
       const level = row.querySelector('[data-field="level"]').value;
       const semester = level === "relevant" ? "all" : row.querySelector('[data-field="semester"]').value;
       const course = level === "relevant" ? "relevant materials" : row.querySelector('[data-field="course"]').value;
-      const { error } = await supabaseClient.from("materials").update({
-        material_name: row.querySelector('[data-field="material_name"]').value.trim(), level, semester, course
-      }).eq("id", id);
-      const status = document.querySelector(`[data-admin-status="${id}"]`);
-      status.textContent = error ? "Could not save details." : "Details saved.";
-      status.className = "text-xs mt-1 " + (error ? "text-red-500" : "text-green-600");
-      if (!error) {
-        const panel = document.querySelector(`[data-edit-panel="${id}"]`);
-        const editButton = document.querySelector(`[data-edit-id="${id}"]`);
-        panel.classList.add("hidden");
-        editButton.setAttribute("aria-expanded", "false");
-        editButton.textContent = "Edit";
+      if (!course) {
+        row.querySelector(`[data-admin-status="${id}"]`).textContent = 'Choose a course before saving.';
+        return;
+      }
+      const title = row.querySelector('[data-field="material_name"]').value.trim();
+      if (!title || title.length>240) { row.querySelector(`[data-admin-status="${id}"]`).textContent='Use a material name of 1 to 240 characters.'; return; }
+      await moderate(id,'edit',{material_name:title,level,semester,course});
+    }
+
+    const fileInput = document.getElementById("file-input");
+    const titleInput = document.getElementById("material-name-input");
+    const chooseFile = document.getElementById("upload-btn");
+    const submitUpload = document.getElementById("submit-upload-btn");
+    const uploadStatus = document.getElementById("upload-status");
+    const selectedFile = document.getElementById("selected-file");
+    uploadStatus.setAttribute("role", "status");
+    uploadStatus.setAttribute("aria-live", "polite");
+    uploadStatus.setAttribute("aria-atomic", "true");
+    let uploading = false, noticeVersion = 0, noticeTimer;
+
+    function showUploadNotice(text, kind = "info") {
+      clearTimeout(noticeTimer);
+      const version = ++noticeVersion;
+      uploadStatus.textContent = text;
+      uploadStatus.className = "text-xs mt-2 " + ({ info: "text-gray-600", error: "text-red-600", success: "text-green-700" }[kind]);
+      if (kind === "success") {
+        // A callback from an earlier upload must never erase a new success, error or progress note.
+        noticeTimer = setTimeout(() => {
+          if (version === noticeVersion) uploadStatus.textContent = "";
+        }, 7000);
       }
     }
 
-    async function updateStatus(id, status) {
-      await supabaseClient.from("materials").update({ status }).eq("id", id);
-      loadPending();
-    }
-
-    async function deleteRejectedMaterial(id) {
-      const row = document.querySelector(`[data-admin-material="${id}"]`);
-      const { data: item, error: fetchError } = await supabaseClient
-        .from("materials").select("storage_path").eq("id", id).single();
-
-      if (fetchError || !item?.storage_path) {
-        const status = document.querySelector(`[data-admin-status="${id}"]`);
-        if (status) {
-          status.textContent = "Could not find this material's file path.";
-          status.className = "text-xs mt-1 text-red-500";
-        }
-        return;
-      }
-
-      const { error } = await supabaseClient.functions.invoke("r2-presign", {
-        body: { action: "reject", key: item.storage_path, materialId: id },
-      });
-      if (error) {
-        const status = document.querySelector(`[data-admin-status="${id}"]`);
-        status.textContent = `Could not remove material: ${errorMessage(error, "request failed")}`;
-        status.className = "text-xs mt-1 text-red-500";
-        return;
-      }
-      loadPending();
-    }
-
-    document.getElementById("upload-btn").addEventListener("click", () => {
-      document.getElementById("file-input").click();
-    });
-
-    document.getElementById("file-input").addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      const selectedFileEl = document.getElementById("selected-file");
-      const submitUploadBtn = document.getElementById("submit-upload-btn");
-      selectedFileEl.textContent = file ? `Selected: ${file.name}` : "No PDF selected";
-      submitUploadBtn.disabled = !file;
-    });
-
-    document.getElementById("submit-upload-btn").addEventListener("click", async () => {
-      const file = document.getElementById("file-input").files[0];
-      const statusEl = document.getElementById("upload-status");
-      if (!file) return;
-
-      if (file.type !== "application/pdf") {
-        statusEl.textContent = "Only PDF files allowed.";
-        statusEl.className = "text-xs mt-2 text-red-500";
-        return;
-      }
-
-      const materialName = document.getElementById("material-name-input").value.trim();
-      const level = levelInput.value;
-      const semester = level === "relevant" ? "all" : semesterInput.value;
-      const course = level === "relevant" ? "relevant materials" : courseInput.value;
-      if (!materialName || !level || !semester || !course) {
-        statusEl.textContent = "Add a material name, level, semester, and course first.";
-        statusEl.className = "text-xs mt-2 text-red-500";
-        return;
-      }
-      statusEl.textContent = "Preparing upload...";
-      statusEl.className = "text-xs mt-2 text-gray-500";
-
-      const { data: presignData, error: presignError } = await supabaseClient.functions.invoke("r2-presign", {
-        body: { action: "upload", fileName: file.name, contentType: file.type },
-      });
-
-      if (presignError || !presignData?.uploadUrl) {
-        statusEl.textContent = `Couldn't prepare upload: ${errorMessage(presignError, presignData?.error || "the presign function returned no upload URL")}`;
-        statusEl.className = "text-xs mt-2 text-red-500";
-        return;
-      }
-
-      let putResponse;
-      try {
-        putResponse = await fetch(presignData.uploadUrl, {
-          method: "PUT",
-          body: file,
-          headers: { "Content-Type": file.type },
-        });
-      } catch (error) {
-        statusEl.textContent = `Upload request failed: ${errorMessage(error, "check the R2 bucket CORS policy")}`;
-        statusEl.className = "text-xs mt-2 text-red-500";
-        return;
-      }
-
-      if (!putResponse.ok) {
-        statusEl.textContent = `Upload failed: R2 returned HTTP ${putResponse.status}. Check R2 CORS and the presigned URL.`;
-        statusEl.className = "text-xs mt-2 text-red-500";
-        return;
-      }
-
-      const { error: insertError } = await supabaseClient.from("materials").insert({
-        file_name: file.name,
-        material_name: materialName,
-        level,
-        semester,
-        course,
-        status: "pending",
-        storage_path: presignData.key,
-        uploaded_by: currentUserId,
-      });
-      if (!insertError && isAdmin) loadPending();
-      statusEl.textContent = insertError
-        ? `File uploaded, but it could not be logged: ${errorMessage(insertError, "database insert failed")}`
-        : "Uploaded! Waiting for admin approval.";
-      statusEl.className = "text-xs mt-2 " + (insertError ? "text-red-500" : "text-green-600");
-
-      document.getElementById("file-input").value = "";
-      document.getElementById("selected-file").textContent = "No PDF selected";
-      document.getElementById("submit-upload-btn").disabled = true;
-      document.getElementById("material-name-input").value = "";
+    function clearSubmittedDraft() {
+      fileInput.value = "";
+      titleInput.value = "";
+      selectedFile.textContent = "No PDF selected";
       levelInput.value = "";
       semesterInput.value = "";
       semesterInput.disabled = true;
-      courseInput.innerHTML = '<option value="">Choose level and semester first</option>';
+      courseReads.delete(courseInput);
+      courseInput.replaceChildren(new Option("Choose level and semester first", ""));
       courseInput.disabled = true;
+    }
+
+    chooseFile.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      selectedFile.textContent = file ? `Selected: ${file.name}` : "No PDF selected";
+      submitUpload.disabled = uploading || !file;
+      if (!uploading) showUploadNotice("");
+    });
+
+    submitUpload.addEventListener("click", async () => {
+      if (uploading) return;
+      const file = fileInput.files[0];
+      if (!file) return;
+      if (file.type !== "application/pdf") return showUploadNotice("Only PDF files allowed.", "error");
+      const materialName = titleInput.value.trim(), level = levelInput.value;
+      const semester = level === "relevant" ? "all" : semesterInput.value;
+      const course = level === "relevant" ? "relevant materials" : courseInput.value;
+      if (!materialName || !level || !semester || !course || (level !== "relevant" && courseInput.disabled)) {
+        return showUploadNotice("Add a material name, level, semester, and course first.", "error");
+      }
+
+      uploading = true;
+      const controls = [fileInput, chooseFile, titleInput, levelInput, semesterInput, courseInput, submitUpload];
+      const disabledBefore = controls.map(el => el.disabled);
+      controls.forEach(el => { el.disabled = true; });
+      let transferred = false, logged = false;
+      try {
+        showUploadNotice("Preparing upload…");
+        const who = await supabaseClient.auth.getUser();
+        if (!currentUserId || who.error || who.data?.user?.id !== currentUserId) {
+          return showUploadNotice("Could not verify your account. Refresh before uploading.", "error");
+        }
+        const { data: signed, error } = await supabaseClient.functions.invoke("r2-presign", {
+          body: { action: "upload", fileName: file.name, contentType: file.type },
+        });
+        if (error || !signed?.uploadUrl || !signed.key) {
+          return showUploadNotice("Could not prepare the PDF upload. No material was submitted.", "error");
+        }
+        showUploadNotice("Uploading PDF…");
+        const put = await fetch(signed.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+        if (!put.ok) return showUploadNotice(`PDF upload failed (HTTP ${put.status}). No material was submitted.`, "error");
+        transferred = true;
+        showUploadNotice("Saving the material for review…");
+        const receipt = await supabaseClient.from("materials").insert({
+          file_name: file.name, material_name: materialName, level, semester, course,
+          status: "pending", storage_path: signed.key, uploaded_by: currentUserId,
+        });
+        // The INSERT uses return=minimal: do not require SELECT access to a pending row.
+        if (!receipt || receipt.error !== null || !Number.isInteger(receipt.status) || receipt.status < 200 || receipt.status >= 300) {
+          throw Error("Logging not confirmed");
+        }
+        logged = true;
+        showUploadNotice(`${materialName} uploaded! Waiting for admin approval.`, "success");
+      } catch {
+        showUploadNotice(transferred
+          ? "The PDF was sent, but its material record was not confirmed. Check with an admin before retrying."
+          : "Could not finish the upload. Check your connection and try again.", "error");
+      } finally {
+        uploading = false;
+        controls.forEach((el, i) => { el.disabled = disabledBefore[i]; });
+        if (logged) clearSubmittedDraft();
+        submitUpload.disabled = !fileInput.files.length;
+      }
+      // A queue refresh is not a second upload and cannot change its outcome.
+      if (logged && isAdmin) void loadPending().catch(() => {
+        document.getElementById("pending-list").textContent = "Could not refresh the review queue. Reload to try again.";
+      });
     });
 
     init();

@@ -1,0 +1,130 @@
+/* A one-time, non-modal invitation. No selectors outside this card, including on the owner's Home. */
+.lh-invite[data-lh-install-invite] {
+  box-sizing: border-box;
+  color-scheme: light;
+  position: fixed;
+  bottom: max(1rem, env(safe-area-inset-bottom));
+  right: max(1rem, env(safe-area-inset-right));
+  z-index: 1000;
+  width: min(23.75rem, calc(100% - 2rem));
+  max-height: calc(100vh - 2rem);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 1.2rem 1.3rem 1.1rem;
+  background: #fcfaf4;
+  color: #192e42;
+  border: 1px solid #d4cbb9;
+  border-top: 3px solid #94713c;
+  border-radius: 0.65rem;
+  box-shadow: 0 0.6rem 2.5rem #152c4133;
+  text-align: left;
+  font:
+    400 0.94rem/1.5 system-ui,
+    -apple-system,
+    'Segoe UI',
+    sans-serif;
+}
+.lh-invite[data-lh-install-invite] * {
+  box-sizing: border-box;
+}
+.lh-invite .lh-invite__brand {
+  display: flex;
+  gap: 0.7rem;
+  align-items: center;
+  color: #1d3347;
+  font:
+    700 1rem/1.1 system-ui,
+    sans-serif;
+}
+.lh-invite .lh-invite__brand img {
+  display: block;
+  width: 2.25rem;
+  height: 2.25rem;
+  border-radius: 0.5rem;
+}
+.lh-invite .lh-invite__brand small {
+  display: block;
+  margin-top: 0.22rem;
+  color: #73552b;
+  text-transform: uppercase;
+  font:
+    600 0.65rem/1.3 ui-monospace,
+    monospace;
+  letter-spacing: 0.1em;
+}
+.lh-invite h2.lh-invite__title {
+  padding: 0;
+  margin: 0.85rem 0 0.42rem;
+  color: #192e42;
+  font:
+    500 clamp(1.4rem, 3vw, 1.7rem) / 1.13 Georgia,
+    serif;
+  letter-spacing: -0.032em;
+}
+.lh-invite p.lh-invite__copy,
+.lh-invite p.lh-invite__steps {
+  margin: 0;
+  padding: 0;
+  color: #41515d;
+  font: inherit;
+}
+.lh-invite p.lh-invite__steps {
+  margin-top: 0.75rem;
+  padding: 0.6rem 0.75rem;
+  border-left: 3px solid #96743b;
+  background: #f0eadf;
+  color: #2b4051;
+}
+.lh-invite [hidden] {
+  display: none !important;
+}
+.lh-invite .lh-invite__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem 0.65rem;
+  align-items: center;
+  margin-top: 0.95rem;
+}
+.lh-invite .lh-invite__actions button {
+  margin: 0;
+  width: auto;
+  min-height: 44px;
+  padding: 0.62rem 1rem;
+  border: 1px solid transparent;
+  border-radius: 0.4rem;
+  cursor: pointer;
+  box-shadow: none;
+  text-transform: none;
+  font:
+    650 0.9rem/1.35 system-ui,
+    sans-serif;
+  letter-spacing: normal;
+}
+.lh-invite .lh-invite__primary {
+  background: #203b50;
+  color: #fff;
+}
+.lh-invite .lh-invite__primary:hover {
+  background: #142d41;
+}
+.lh-invite .lh-invite__primary:disabled {
+  cursor: wait;
+  opacity: 0.82;
+}
+.lh-invite .lh-invite__later {
+  background: transparent;
+  color: #2b4051;
+}
+.lh-invite .lh-invite__later:hover {
+  background: #eee9df;
+}
+.lh-invite .lh-invite__actions button:focus-visible {
+  outline: 3px solid #2768a0;
+  outline-offset: 2px;
+}
+@media print {
+  .lh-invite[data-lh-install-invite] {
+    display: none !important;
+  }
+}

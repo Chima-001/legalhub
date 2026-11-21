@@ -1,0 +1,28 @@
+# Email signup and number-login compatibility
+
+**Publication:** merge and publish the entire v3 frontend in one Netlify build. The production database migration `legalhub_signup_one_publish_compatibility` is already applied. The corrected `database/migrations/005-open-email-registration.sql` is its source, replacing the earlier, unapplied 005 draft. Committing this file records the installed behavior; it is not a request to execute it again. No separate login-page deploy or Netlify settings change is required.
+
+## What a student can do
+
+| Signup or sign-in path | Result |
+| --- | --- |
+| Already has an official profile | The original UUID, official number/name, level, role and links remain unchanged. The old login can resolve the official number; v3 signs in with the same account's email and password. |
+| Signed up with the old form, including a confirmation email issued before the change | First email verification creates an ordinary profile under the original Auth UUID. A matching, unused number can provide a **private login hint** for the old number/password screen. It does not assign official roster data. A legacy link landing at the newly published Home is handed to the v3 confirmation page. |
+| Signs up on v3 with an email and password | No roster lookup or number required. Before confirmation there is no member profile. After confirmation the verified email gets one ordinary profile and one log entry; sign in with email and password. |
+| Enters the optional number on v3 | `reported_reg_number` stays self-reported. It cannot reserve an unused number, reveal a roster name, associate a different account, change the level or grant admin. |
+
+**One number is not proof of identity.** Only the older `reg_number` input can request a legacy *sign-in hint* for an eligible number. An official account always takes precedence. A hint is unique, is bound to one confirmed UUID and cannot be retargeted by editing Auth metadata. Neither contract fills a new profile's official number/name from input. The eligibility RPC treats an existing hint as unavailable without changing the roster row's `used` flag. Two confirmations racing for the same hint cannot replace each other; both can sign in by their own verified emails. On a stale login tab the user can enter their email in the text field labelled **Reg Number**, then use their password. This fallback passes the typed address to Auth; it doesn't look up whether that email exists.
+
+The old RPCs retain their signatures and browser access for old clients. The private hint table has RLS, no browser policies and no web-role privileges. It stores two UUIDs and a digest, not a directory of addresses, plaintext numbers or names. The legacy lookup still returns an email for an exact resolvable number, as required by the old page; v3 uses neither public lookup. A later decision to retire old clients is separate from this release.
+
+## Verification
+
+- **Production:** the read-only `database/checks/signup-status.sql` returned `BOTH SIGNUP CLIENTS READY`: three exact routine bodies, enabled confirmation trigger, two nullable official fields, private compatibility storage and both existing lookup permissions. Anonymous calls with `NULL` received the expected false / no-address responses. The email fallback was checked with a reserved `.invalid` address, without sending anything. The Auth config requires email confirmation and permits the production callback. No production signup, mail send, account/roster listing or test PDF operation was used.
+- **Disposable transition:** native PostgreSQL 17.5, GoTrue 2.177.0, PostgREST 12.2.12, browser SDK 2.119.0, Chromium and a loopback SMTP catcher. Captured current signup/login handlers and the v3 handlers were served against the same synthetic DB. Seven generated messages and seven real Auth confirmations covered (1) original legacy signup/login; (2) a pending legacy link across both the database change and full site switch; (3) old-form signup and return login on the changed backend; (4) competing confirmations; (5) v3 email-only signup; and (6) a v3 self-report matching a free roster number. Correct/incorrect passwords, pre-confirmation denial, the callback and own-profile RLS were checked. The seeded official admin and roster stayed unchanged. This was real local mail generation, not external inbox delivery.
+- **Regression:** `node tools/check-pr.cjs` includes 27 form, 15 confirmation and 29 isolated signup database scenarios. These cover collision and transaction rollback, grant/definition drift, unchanged existing records, private mappings, the current status query and preservation of the separate email mirror. The broader admin, academic, materials and PWA suites run independently of production services.
+
+## Operating this release
+
+On this project, **do not run 004, the former or corrected 005, or the migrations directory**. Do not call `database/dev/reset-test-signup.sql`. The signup change updates the existing function in place, uses bounded lock and statement timeouts, and contains no backfill. If the schema check stops matching, inspect the specific definition, trigger or grant. Do not reinstate `NOT NULL` after numberless accounts exist, discard the hints, change roles or reset students to make a check pass.
+
+For another environment, first verify its backup/recovery option, schema, effective grants, Auth email verification and callback allowlist. Use its own synthetic test accounts/mailbox. Rehearse the state change while a real old-form email is pending; verify both forms and both return-login paths. Do not use the production-configured browser client against a disposable database, or infer delivery to a real mailbox from a local catcher.

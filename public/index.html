@@ -5,8 +5,8 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <meta name="author" content="Chima Nnaji — Cloper Technologies and Victorious Tech Institute" />
-    <title>Legal Hub | Your law school journey</title>
-    <meta name="description" content="A shared academic home for every level of the Legal Hub community." />
+    <title>LegalHub | Your law school journey</title>
+    <meta name="description" content="A shared academic home for every level of the LegalHub community." />
     <meta property="og:type" content="website" />
     <meta property="og:site_name" content="LegalHub" />
     <meta property="og:title" content="LegalHub | Your law school journey" />
@@ -20,15 +20,41 @@
     <meta name="twitter:image" content="https://legalhub-io.netlify.app/assets/images/social-preview.png" />
     <link rel="icon" type="image/svg+xml" href="./assets/images/favicon.svg" />
     <link rel="stylesheet" href="./styles/home.css" />
+    <script>
+        // Capture only a boolean before Auth or Home consumes a callback URL. Do not save the URL.
+        if (!location.search && ['', '#levels', '#resources'].includes(location.hash))
+            document.documentElement.dataset.lhInstallHome = '1';
+    </script>
+    <script>
+        // Older signup emails defaulted to the homepage. Hand off before Auth or the guard reads the URL.
+        (() => {
+            const fragment = new URLSearchParams(window.location.hash.slice(1));
+            if (fragment.get("type") !== "signup") return;
+            const destination = new URL("pages/confirmed.html", window.location.href);
+            const query = new URLSearchParams(window.location.search);
+            if (!["error", "error_code", "error_description"].some(k => fragment.has(k) || query.has(k))) {
+                destination.hash = window.location.hash; // Same origin, fixed page, fragment only.
+            }
+            document.documentElement.dataset.signupHandoff = "1";
+            try { history.replaceState(null, "", window.location.pathname); } catch {}
+            window.location.replace(destination.href);
+        })();
+    </script>
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="./scripts/auth/supabase-client.js"></script>
     <script src="./scripts/avatar.js"></script>
     <script src="./scripts/auth/auth-guard.js"></script>
+    <script defer src="./scripts/academic/term.js"></script>
+    <script defer src="./scripts/academic/home-calendar.js"></script>
     <style>
         body {
             visibility: hidden;
         }
     </style>
+    <link rel="manifest" href="./manifest.webmanifest" />
+    <link rel="apple-touch-icon" href="./pwa/lh-192.png" />
+    <meta name="theme-color" content="#182b40" />
+    <script defer src="./pwa/register.js"></script>
 </head>
 
 <body>
@@ -41,7 +67,7 @@
             <div class="chain right"></div>
         </div>
         <div class="preloader-text">
-            <strong>Legal Hub</strong>
+            <strong>LegalHub</strong>
             <span>Opening your study space</span>
         </div>
         <div class="preloader-progress">
@@ -51,15 +77,16 @@
 
     <div class="site-shell">
         <header class="site-header">
-            <a class="brand" href="./index.html" aria-label="Legal Hub home">
+            <a class="brand" href="./index.html" aria-label="LegalHub home">
                 <span class="brand-mark">LH</span>
-                <span>Legal Hub</span>
+                <span>LegalHub</span>
             </a>
             <nav class="primary-nav" id="primary-nav" aria-label="Primary navigation">
                 <a class="active" href="./index.html">Home</a>
                 <a href="#levels">Levels</a>
                 <a href="#resources">Resources</a>
                 <a href="./pages/about.html">About</a>
+                <a id="calendar-settings-nav" href="./pages/admin-settings.html" hidden>Admin settings</a>
             </nav>
             <div class="header-actions">
                 <button class="menu-toggle" id="menu-toggle" type="button" aria-label="Open navigation menu"
@@ -91,51 +118,73 @@
             </section>
 
             <section class="countdown-strip" aria-label="Semester progress">
-                <div class="countdown-label"><span class="live-dot"></span><span>SECOND SEMESTER</span></div>
-                <p id="term-countdown">Counting down to exams...</p>
-                <div class="progress-track"><span id="term-fill"></span></div>
-                <span class="progress-value" id="term-percent">--</span>
+                <div class="countdown-label"><span class="live-dot" aria-hidden="true"></span><div>
+                    <strong id="term-label">Academic calendar</strong><small id="term-session"></small></div></div>
+                <p id="term-countdown" role="status">Loading the academic calendar…</p>
+                <div class="progress-track" id="term-meter" role="progressbar" aria-label="Semester progress"
+                    aria-valuemin="0" aria-valuemax="100" hidden><span id="term-fill"></span></div>
+                <span class="progress-value" id="term-percent"></span>
             </section>
 
-            <section class="section-block" id="levels">
+            <section class="section-block" id="levels" tabindex="-1">
                 <div class="section-heading">
                     <div>
                         <p class="eyebrow">YOUR ACADEMIC MAP</p>
                         <h2>Where are you headed?</h2>
                     </div>
-                    <p class="section-note">Five levels. One growing library.<br />Start where you are.</p>
+                    <p class="section-note" id="desk-term-hint">Choose a semester for any level.</p>
                 </div>
                 <div class="level-grid">
-                    <a class="level-card level-current" href="./pages/100l-second-semester.html">
-                        <span class="level-number">01</span><span class="level-arrow">↗</span>
-                        <span class="level-tag">CURRENTLY OPEN</span><strong>100L</strong><span
+                    <article class="level-card level-current" data-desk-level="100L">
+                        <span class="level-number">01</span><span class="level-arrow" aria-hidden="true">↗</span>
+                        <span class="level-tag">FIRST YEAR</span><strong>100L</strong><span
                             class="level-name">Foundations</span>
                         <span class="level-detail">Legal method, language &amp; first principles</span>
-                    </a>
-                    <a class="level-card" href="./pages/pdf.html?level=200L">
-                        <span class="level-number">02</span><span class="level-arrow">↗</span>
+                        <div class="desk-choices">
+                            <a class="desk-choice" data-term="first" href="./pages/semester.html?level=100L&amp;semester=first"><span class="desk-sr">100L, </span>First semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                            <a class="desk-choice" data-term="second" href="./pages/semester.html?level=100L&amp;semester=second"><span class="desk-sr">100L, </span>Second semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                        </div>
+                    </article>
+                    <article class="level-card" data-desk-level="200L">
+                        <span class="level-number">02</span><span class="level-arrow" aria-hidden="true">↗</span>
                         <span class="level-tag">SECOND YEAR</span><strong>200L</strong><span class="level-name">The
                             Framework</span>
                         <span class="level-detail">Build your core legal knowledge</span>
-                    </a>
-                    <a class="level-card" href="./pages/pdf.html?level=300L">
-                        <span class="level-number">03</span><span class="level-arrow">↗</span>
+                        <div class="desk-choices">
+                            <a class="desk-choice" data-term="first" href="./pages/semester.html?level=200L&amp;semester=first"><span class="desk-sr">200L, </span>First semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                            <a class="desk-choice" data-term="second" href="./pages/semester.html?level=200L&amp;semester=second"><span class="desk-sr">200L, </span>Second semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                        </div>
+                    </article>
+                    <article class="level-card" data-desk-level="300L">
+                        <span class="level-number">03</span><span class="level-arrow" aria-hidden="true">↗</span>
                         <span class="level-tag">THIRD YEAR</span><strong>300L</strong><span class="level-name">The
                             Practice</span>
                         <span class="level-detail">Turn doctrine into working arguments</span>
-                    </a>
-                    <a class="level-card" href="./pages/pdf.html?level=400L">
-                        <span class="level-number">04</span><span class="level-arrow">↗</span>
+                        <div class="desk-choices">
+                            <a class="desk-choice" data-term="first" href="./pages/semester.html?level=300L&amp;semester=first"><span class="desk-sr">300L, </span>First semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                            <a class="desk-choice" data-term="second" href="./pages/semester.html?level=300L&amp;semester=second"><span class="desk-sr">300L, </span>Second semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                        </div>
+                    </article>
+                    <article class="level-card" data-desk-level="400L">
+                        <span class="level-number">04</span><span class="level-arrow" aria-hidden="true">↗</span>
                         <span class="level-tag">FOURTH YEAR</span><strong>400L</strong><span class="level-name">The
                             Focus</span>
                         <span class="level-detail">Find your voice and your specialty</span>
-                    </a>
-                    <a class="level-card level-final" href="./pages/pdf.html?level=500L">
-                        <span class="level-number">05</span><span class="level-arrow">↗</span>
+                        <div class="desk-choices">
+                            <a class="desk-choice" data-term="first" href="./pages/semester.html?level=400L&amp;semester=first"><span class="desk-sr">400L, </span>First semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                            <a class="desk-choice" data-term="second" href="./pages/semester.html?level=400L&amp;semester=second"><span class="desk-sr">400L, </span>Second semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                        </div>
+                    </article>
+                    <article class="level-card level-final" data-desk-level="500L">
+                        <span class="level-number">05</span><span class="level-arrow" aria-hidden="true">↗</span>
                         <span class="level-tag">FINAL YEAR</span><strong>500L</strong><span class="level-name">The
                             Call</span>
                         <span class="level-detail">Step into the profession with purpose</span>
-                    </a>
+                        <div class="desk-choices">
+                            <a class="desk-choice" data-term="first" href="./pages/semester.html?level=500L&amp;semester=first"><span class="desk-sr">500L, </span>First semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                            <a class="desk-choice" data-term="second" href="./pages/semester.html?level=500L&amp;semester=second"><span class="desk-sr">500L, </span>Second semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                        </div>
+                    </article>
                 </div>
             </section>
 
@@ -162,6 +211,7 @@
                     <a href="https://legalhub-law.web.app" class="resource-card"
                         target="_blank" rel="noopener noreferrer"><span class="resource-icon blue">✓</span><span><strong>CBT practice</strong><small>Test your knowledge</small></span><span
                             class="resource-arrow">↗</span></a>
+                    <a href="./study/" class="resource-card" id="offline-study-link"><span class="resource-icon blue" aria-hidden="true">§</span><span><strong>Offline study guides</strong><small>Case briefs, problem questions &amp; source checks</small></span><span class="resource-arrow" aria-hidden="true">↗</span></a>
                 </div>
             </section>
 
@@ -199,8 +249,7 @@
         </main>
 
         <footer class="home-footer">
-            <a class="brand footer-brand" href="./index.html"><span class="brand-mark">LH</span><span>Legal
-                    Hub</span></a>
+            <a class="brand footer-brand" href="./index.html"><span class="brand-mark">LH</span><span>LegalHub</span></a>
             <span class="footer-motto">Learn together. Think deeply. Practice well.</span>
             <span class="footer-year">© 2026 Victorious Tech Institute</span>
             <span class="footer-credit">Powered by <a href="https://clopertechnologies.me" target="_blank"
@@ -227,9 +276,24 @@
 
         const greeting = document.getElementById('greeting-text');
         loadHeaderAvatar(document.getElementById('header-avatar'));
-        if (window.location.hash) {
+        // Keep real landing-page section links on a return from login. Still clear other fragments.
+        if (window.location.hash && !['#levels', '#resources'].includes(window.location.hash)) {
             history.replaceState(null, document.title, window.location.pathname + window.location.search);
             window.scrollTo(0, 0);
+        } else if (location.hash === '#levels' && document.getElementById('auth-page-blocker')) {
+            // A slow session check hides the body during the browser's initial fragment scroll.
+            // When the guard reveals Home, restore the requested map once; never switch the level here.
+            const revealMap = new MutationObserver(() => {
+                if (document.getElementById('auth-page-blocker')) return;
+                revealMap.disconnect();
+                requestAnimationFrame(() => {
+                    if (location.hash !== '#levels') return;
+                    const map = document.getElementById('levels');
+                    if (document.activeElement === document.body) map.focus({ preventScroll: true });
+                    map.scrollIntoView({ block: 'start', behavior: 'instant' });
+                });
+            });
+            revealMap.observe(document.head, { childList: true });
         }
         const menuToggle = document.getElementById('menu-toggle');
         const primaryNav = document.querySelector('.primary-nav');
@@ -252,17 +316,6 @@
         });
         const hour = new Date().getHours();
         greeting.firstChild.textContent = (hour < 12 ? 'Good morning' : hour < 17 ? 'Good afternoon' : 'Good evening');
-
-        const start = new Date('2026-05-01T00:00:00');
-        const exams = new Date('2026-10-15T00:00:00');
-        const now = new Date();
-        const span = exams - start;
-        const elapsed = Math.min(Math.max(now - start, 0), span);
-        const percent = span > 0 ? Math.round((elapsed / span) * 100) : 0;
-        const days = Math.max(Math.ceil((exams - now) / 86400000), 0);
-        document.getElementById('term-countdown').textContent = days ? days + ' days until exams' : 'Exam period is here';
-        document.getElementById('term-fill').style.width = percent + '%';
-        document.getElementById('term-percent').textContent = percent + '% through';
 
         const track = document.getElementById('home-carousel-track');
         const slides = track.children;
