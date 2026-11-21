@@ -2,7 +2,7 @@
 //
 // Browser JavaScript can never hold your real R2 secret key (anyone could
 // read it and access your whole bucket). Instead, the browser asks THIS
-// function for a temporary, single-use presigned URL - one for uploading,
+// function for a temporary presigned URL - one for uploading,
 // one for viewing - and only this function (running on Supabase's server,
 // never exposed to the browser) ever touches your actual R2 credentials.
 //
@@ -17,6 +17,7 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3";
+import { removeReviewed } from "./removal.mjs";
 import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3";
 
 const accountId = Deno.env.get("R2_ACCOUNT_ID")!;
@@ -40,6 +41,7 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
+  if (req.method !== "POST") return new Response(null, {status:405,headers:corsHeaders});
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     const supabaseUser = createClient(
@@ -52,48 +54,21 @@ Deno.serve(async (req) => {
       return new Response(JSON.stringify({ error: "Not authenticated" }), { status: 401, headers: corsHeaders });
     }
 
-    const { action, key, contentType, fileName, materialId } = await req.json();
-
-    if (action === "reject") {
-      const supabaseAdmin = createClient(
-        Deno.env.get("SUPABASE_URL")!,
-        Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!
-      );
-      const { data: userRow } = await supabaseAdmin
-        .from("users")
-        .select("is_admin")
-        .eq("id", user.id)
-        .single();
-
-      if (userRow?.is_admin !== true) {
-        return new Response(JSON.stringify({ error: "Not authorized" }), { status: 403, headers: corsHeaders });
-      }
-      if (!materialId || !key) {
-        return new Response(JSON.stringify({ error: "Missing material ID or storage key" }), { status: 400, headers: corsHeaders });
-      }
-
-      const { data: material } = await supabaseAdmin
-        .from("materials")
-        .select("id, storage_path")
-        .eq("id", materialId)
-        .eq("storage_path", key)
-        .single();
-      if (!material) {
-        return new Response(JSON.stringify({ error: "Material not found" }), { status: 404, headers: corsHeaders });
-      }
-
-      await s3.send(new DeleteObjectCommand({ Bucket: bucketName, Key: key }));
-      const { error: deleteError } = await supabaseAdmin.from("materials").delete().eq("id", materialId);
-      if (deleteError) throw deleteError;
-
-      return new Response(JSON.stringify({ deleted: true }), {
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
+    const body = await req.json();
+    const { action, key, contentType, fileName } = body;
+    if (action === "remove-reviewed") {
+      const service = createClient(Deno.env.get("SUPABASE_URL")!, Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!);
+      const [status, result] = await removeReviewed(body, user.id, {
+        rpc: (name: string, args: Record<string, unknown>) => service.rpc(name, args),
+        removeObject: (objectKey: string) => s3.send(new DeleteObjectCommand({Bucket: bucketName, Key: objectKey})),
       });
+      return Response.json(result, {status: Number(status), headers:corsHeaders});
     }
+    // Old unreviewed reject requests are deliberately not supported.
 
     if (action === "upload") {
       const safeName = (fileName || "file.pdf").replace(/[^a-zA-Z0-9._-]/g, "_");
-      const objectKey = `materials/${user.id}/${Date.now()}_${safeName}`;
+      const objectKey = `materials/${user.id}/${crypto.randomUUID()}_${safeName.slice(-220)}`;
 
       const command = new PutObjectCommand({
         Bucket: bucketName,
@@ -133,7 +108,7 @@ Deno.serve(async (req) => {
         .eq("id", user.id)
         .single();
 
-      const allowed = material?.status === "approved" || userRow?.is_admin === true;
+      const allowed = material && (material.status === "approved" || userRow?.is_admin === true);
       if (!allowed) {
         return new Response(JSON.stringify({ error: "Not authorized to view this file" }), { status: 403, headers: corsHeaders });
       }
@@ -147,7 +122,7 @@ Deno.serve(async (req) => {
     }
 
     return new Response(JSON.stringify({ error: "Unknown action" }), { status: 400, headers: corsHeaders });
-  } catch (err) {
-    return new Response(JSON.stringify({ error: String(err) }), { status: 500, headers: corsHeaders });
+  } catch {
+    return new Response(JSON.stringify({ error: "Storage operation was not confirmed." }), { status: 500, headers: corsHeaders });
   }
 });

@@ -275,11 +275,10 @@
               <button type="button" data-edit-id="${item.id}" aria-expanded="false" class="edit-material-btn text-xs px-3 py-1 rounded-lg bg-[#fff4d6] text-[#9a6815] font-semibold">Edit</button>
               ${item.status === "pending" ? `<button data-id="${item.id}" class="approve-btn text-xs px-3 py-1 rounded-lg bg-green-100 text-green-700 font-semibold">Approve</button>` : ""}
               ${item.status === "pending" ? `<button data-id="${item.id}" class="reject-btn text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold">Reject</button>` : ""}
-              ${item.status === "rejected" ? `<button data-id="${item.id}" class="remove-btn text-xs px-3 py-1 rounded-lg bg-red-100 text-red-700 font-semibold">Remove</button>` : ""}
             </div>
           </div>
           <div data-edit-panel="${item.id}" class="admin-material-edit hidden grid grid-cols-1 sm:grid-cols-4 gap-2">
-            <input data-field="material_name" value="${escapeHtml(item.material_name || item.file_name.replace(/\\.pdf$/i, ""))}" class="sm:col-span-2 min-w-0 text-xs rounded-lg border border-gray-200 px-3 py-1.5" aria-label="Material name" />
+            <input data-field="material_name" value="${escapeHtml(item.material_name || item.file_name.replace(/\.pdf$/i, ""))}" class="sm:col-span-2 min-w-0 text-xs rounded-lg border border-gray-200 px-3 py-1.5" aria-label="Material name" />
             <select data-field="level" class="text-xs rounded-lg border border-gray-200 px-2 py-1.5">
               ${["100L", "200L", "300L", "400L", "500L", "relevant"].map(level => `<option value="${level}" ${item.level === level ? "selected" : ""}>${level === "relevant" ? "Relevant materials" : level}</option>`).join("")}
             </select>
@@ -297,24 +296,19 @@
         </div>
       `).join("");
 
-      document.querySelectorAll(".approve-btn").forEach(btn =>
-        btn.addEventListener("click", () => {
-          if (confirm("Approve this material? It will become visible to all students.")) {
-            updateStatus(btn.dataset.id, "approved");
+      async function moderate(id,action,values=null) {
+        const item = data.find(m => m.id === id);
+        const note = document.querySelector(`[data-admin-status="${id}"]`);
+        if (!item || !note || !isAdmin) return;
+        try {
+          const {reviewMaterial} = await import('../scripts/materials/review.mjs');
+          if (await reviewMaterial(supabaseClient, {actor:currentUserId,item,action,values})) {
+            await loadPending();
           }
-        }));
-      document.querySelectorAll(".reject-btn").forEach(btn =>
-        btn.addEventListener("click", () => {
-          if (confirm("Reject and permanently delete this upload? This cannot be undone.")) {
-            deleteRejectedMaterial(btn.dataset.id);
-          }
-        }));
-      document.querySelectorAll(".remove-btn").forEach(btn =>
-        btn.addEventListener("click", () => {
-          if (confirm("Permanently delete this material? This cannot be undone.")) {
-            deleteRejectedMaterial(btn.dataset.id);
-          }
-        }));
+        } catch (error) { note.setAttribute('role','status'); note.textContent=error.message || 'Unable to review this material. Reload and try again.'; }
+      }
+      for (const action of ['approve','reject']) document.querySelectorAll(`.${action}-btn`).forEach(btn =>
+        btn.addEventListener('click', () => void moderate(btn.dataset.id,action)));
       document.querySelectorAll(".edit-material-btn").forEach(btn => btn.addEventListener("click", () => {
         const panel = document.querySelector(`[data-edit-panel="${btn.dataset.editId}"]`);
         const isOpening = panel.classList.toggle("hidden") === false;
@@ -350,7 +344,7 @@
         const row = select.closest("[data-admin-material]");
         updateAdminCourses(row, row.querySelector('[data-field="level"]').value, select.value);
       }));
-      document.querySelectorAll(".save-material-btn").forEach(btn => btn.addEventListener("click", () => saveMaterialDetails(btn.dataset.saveId)));
+      document.querySelectorAll(".save-material-btn").forEach(btn => btn.addEventListener("click", () => saveMaterialDetails(btn.dataset.saveId, moderate)));
     }
 
     function updateAdminCourses(row, level, semester, keep = '') {
@@ -358,7 +352,7 @@
       void fillCourseSelect(select,level,semester,keep);
     }
 
-    async function saveMaterialDetails(id) {
+    async function saveMaterialDetails(id, moderate) {
       const row = document.querySelector(`[data-admin-material="${id}"]`);
       const level = row.querySelector('[data-field="level"]').value;
       const semester = level === "relevant" ? "all" : row.querySelector('[data-field="semester"]').value;
@@ -367,50 +361,9 @@
         row.querySelector(`[data-admin-status="${id}"]`).textContent = 'Choose a course before saving.';
         return;
       }
-      const { error } = await supabaseClient.from("materials").update({
-        material_name: row.querySelector('[data-field="material_name"]').value.trim(), level, semester, course
-      }).eq("id", id);
-      const status = document.querySelector(`[data-admin-status="${id}"]`);
-      status.textContent = error ? "Could not save details." : "Details saved.";
-      status.className = "text-xs mt-1 " + (error ? "text-red-500" : "text-green-600");
-      if (!error) {
-        const panel = document.querySelector(`[data-edit-panel="${id}"]`);
-        const editButton = document.querySelector(`[data-edit-id="${id}"]`);
-        panel.classList.add("hidden");
-        editButton.setAttribute("aria-expanded", "false");
-        editButton.textContent = "Edit";
-      }
-    }
-
-    async function updateStatus(id, status) {
-      await supabaseClient.from("materials").update({ status }).eq("id", id);
-      loadPending();
-    }
-
-    async function deleteRejectedMaterial(id) {
-      const row = document.querySelector(`[data-admin-material="${id}"]`);
-      const { data: item, error: fetchError } = await supabaseClient
-        .from("materials").select("storage_path").eq("id", id).single();
-
-      if (fetchError || !item?.storage_path) {
-        const status = document.querySelector(`[data-admin-status="${id}"]`);
-        if (status) {
-          status.textContent = "Could not find this material's file path.";
-          status.className = "text-xs mt-1 text-red-500";
-        }
-        return;
-      }
-
-      const { error } = await supabaseClient.functions.invoke("r2-presign", {
-        body: { action: "reject", key: item.storage_path, materialId: id },
-      });
-      if (error) {
-        const status = document.querySelector(`[data-admin-status="${id}"]`);
-        status.textContent = `Could not remove material: ${errorMessage(error, "request failed")}`;
-        status.className = "text-xs mt-1 text-red-500";
-        return;
-      }
-      loadPending();
+      const title = row.querySelector('[data-field="material_name"]').value.trim();
+      if (!title || title.length>240) { row.querySelector(`[data-admin-status="${id}"]`).textContent='Use a material name of 1 to 240 characters.'; return; }
+      await moderate(id,'edit',{material_name:title,level,semester,course});
     }
 
     const fileInput = document.getElementById("file-input");

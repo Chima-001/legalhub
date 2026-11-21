@@ -97,7 +97,7 @@
       .map(w => w.charAt(0).toUpperCase() + w.slice(1).toLowerCase())
       .join(' ');
 
-    const style = COURSE_STYLES[courseName] || DEFAULT_STYLE;
+    const style = Object.hasOwn(COURSE_STYLES, courseName) ? COURSE_STYLES[courseName] : DEFAULT_STYLE;
 
     return {
       fileName,
@@ -145,10 +145,12 @@
   let selectedSemester = requestedLevel === 'Relevant' ? 'all' : requestedSemester;
   let userChangedScope = false;
   let isAdmin = false;
+  let viewerId = null;
 
   async function loadUserFilters() {
     const { data: { user } } = await supabaseClient.auth.getUser();
     if (!user) return;
+    viewerId = user.id;
 
     const [role, level] = await Promise.allSettled([
       supabaseClient.from('users').select('is_admin').eq('id', user.id).single(),
@@ -183,6 +185,7 @@
         level: m.level || 'relevant',
         semester: m.semester || 'all',
         url: signed?.downloadUrl || null,
+        reviewItem: {id:m.id, material_name:m.material_name, file_name:m.file_name, level:m.level,semester:m.semester,course:m.course,status:"approved"},
         materialId: m.id,
         storagePath: m.storage_path,
       };
@@ -215,8 +218,8 @@
     const placeholder = container.querySelector('.cover-placeholder');
     const fallback = container.querySelector('.cover-fallback');
 
-    if (coverCache.has(book.fileName)) {
-      const dataUrl = coverCache.get(book.fileName);
+    if (coverCache.has(book.materialId)) {
+      const dataUrl = coverCache.get(book.materialId);
       const ctx = canvas.getContext('2d');
       const img = new Image();
       img.onload = () => {
@@ -245,7 +248,7 @@
       const ctx = canvas.getContext('2d');
       await page.render({ canvasContext: ctx, viewport: scaled }).promise;
       const dataUrl = canvas.toDataURL('image/jpeg', 0.85);
-      coverCache.set(book.fileName, dataUrl);
+      coverCache.set(book.materialId, dataUrl);
       container.classList.add('cover-loaded');
     } catch (err) {
       console.warn('Cover render failed:', book.fileName, err);
@@ -365,15 +368,12 @@
     }
 
     let html = '';
-    filteredBooks.forEach((book) => {
-      const filePath = book.url;
-      const id = 'cover-' + book.fileName.replace(/[^a-zA-Z0-9]/g, '_');
-
+    filteredBooks.forEach((book, bookIndex) => {
       html += `
             <div class="book-card"
                  style="--spine-color: ${book.spineColor}; --cover-bg: ${book.coverBg}; position: relative;"
-                 data-filename="${book.fileName}">
-              <div class="book-cover" id="${id}">
+                 data-book-index="${bookIndex}">
+              <div class="book-cover">
                 <canvas></canvas>
                 <div class="cover-placeholder">
                   <span class="cover-icon">${book.icon}</span>
@@ -381,26 +381,25 @@
                 </div>
                 <div class="cover-fallback">
                   <span class="fallback-icon">${book.icon}</span>
-                  <div class="fallback-title">${book.displayName}</div>
+                  <div class="fallback-title">${textHTML(book.displayName)}</div>
                 </div>
               </div>
               ${isAdmin ? `
-                <button class="material-kebab" data-material-id="${book.materialId}" data-storage-path="${book.storagePath}"
-                  onclick="event.stopPropagation(); toggleKebabMenu(this);"
+                <button class="material-kebab" type="button" aria-label="Material actions"
+                  data-book-action="menu"
                   style="position:absolute; top:8px; right:8px; z-index:5; width:28px; height:28px; border-radius:50%; border:none; background:rgba(255,255,255,0.9); box-shadow:0 1px 4px rgba(0,0,0,0.2); cursor:pointer; font-weight:bold; font-size:16px; line-height:1;">⋮</button>
                 <div class="kebab-menu" style="display:none; position:absolute; top:38px; right:8px; z-index:6; background:white; border-radius:8px; box-shadow:0 4px 12px rgba(0,0,0,0.2); overflow:hidden;">
-                  <button onclick="event.stopPropagation(); deleteMaterial('${book.materialId}', '${book.storagePath}');"
+                  <button type="button" data-book-action="delete"
                     style="display:block; width:100%; padding:8px 16px; border:none; background:white; color:#dc2626; font-size:13px; cursor:pointer; text-align:left;">Delete</button>
                 </div>
               ` : ""}
               <div class="book-meta">
-                <div class="book-title">${book.materialName}</div>
+                <div class="book-title">${textHTML(book.materialName)}</div>
                 <span class="course-tag">${textHTML(courseLabel(book.courseName, catalog.filter(r => r.level === book.level && (book.semester === 'all' || r.semester === book.semester))))}</span>
                 <div class="book-actions">
-                  <button class="btn-read" onclick="event.stopPropagation(); window.open('${filePath}', '_blank');">📖 Read</button>
-                  <button class="btn-download" onclick="event.stopPropagation(); downloadPDF('${filePath}', '${book.materialName.replace(/'/g, "\\'")}');">⬇ Download</button>
-                  <button class="btn-share" aria-label="Share ${book.materialName.replace(/"/g, '&quot;')}" title="Share material"
-                    onclick="event.stopPropagation(); shareMaterial('${book.materialId}', '${book.materialName.replace(/'/g, "\\'")}');">
+                  <button class="btn-read" type="button" data-book-action="read">📖 Read</button>
+                  <button class="btn-download" type="button" data-book-action="download">⬇ Download</button>
+                  <button class="btn-share" type="button" data-book-action="share" aria-label="Share material" title="Share material">
                     <svg width="15" height="15" viewBox="0 0 24 24" fill="none" aria-hidden="true">
                       <path d="M12 16V4m0 0L7 9m5-5 5 5M5 14v4a2 2 0 0 0 2 2h10a2 2 0 0 0 2-2v-4"
                         stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" />
@@ -417,8 +416,7 @@
     const coverContainers = grid.querySelectorAll('.book-cover');
     coverContainers.forEach((container, idx) => {
       const card = container.closest('.book-card');
-      const fileName = card.dataset.filename;
-      const book = books.find(b => b.fileName === fileName);
+      const book = filteredBooks[Number(card.dataset.bookIndex)];
       if (book) {
         setTimeout(() => renderCover(book, container), 80 + idx * 60);
       }
@@ -437,6 +435,7 @@
   });
 
   document.addEventListener('keydown', (e) => {
+    if (document.querySelector?.('dialog.lh-review[open]')) return;
     if ((e.ctrlKey || e.metaKey) && e.key === 'k') {
       e.preventDefault();
       searchInput.focus();
@@ -560,20 +559,27 @@
     document.querySelectorAll('.kebab-menu').forEach(menu => menu.style.display = 'none');
   });
 
-  window.deleteMaterial = async function (materialId, storagePath) {
-    if (!confirm("Permanently delete this material for everyone? This cannot be undone.")) return;
-
-    const { error } = await supabaseClient.functions.invoke("r2-presign", {
-      body: { action: "reject", key: storagePath, materialId: materialId },
-    });
-
-    if (error) {
-      alert("Couldn't delete this material. Try again.");
-      return;
+  grid.addEventListener('click', async event => {
+    const button=event.target.closest('button[data-book-action]');
+    if(!button||!grid.contains(button))return;
+    event.stopPropagation();
+    const card=button.closest('.book-card'), book=filteredBooks[Number(card?.dataset.bookIndex)];
+    if(!book)return;
+    switch(button.dataset.bookAction){
+      case 'menu': window.toggleKebabMenu(button);break;
+      case 'read': window.open(book.url,'_blank','noopener,noreferrer');break;
+      case 'download': await window.downloadPDF(book.url,book.materialName);break;
+      case 'share': await window.shareMaterial(book.materialId,book.materialName);break;
+      case 'delete':
+        if(!isAdmin||!viewerId)return;
+        try {
+          const {reviewMaterial}=await import('./materials/review.mjs');
+          if(await reviewMaterial(supabaseClient,{actor:viewerId,item:book.reviewItem,action:'delete'})){
+            coverCache.delete(book.materialId);
+            books=books.filter(b=>b.materialId!==book.materialId);updateCourseFilters();
+          }
+        }catch(error){alert(error.message||'Could not review the material. Reload to try again.');}
+        break;
     }
-
-    books = books.filter(b => b.materialId !== materialId);
-    filteredBooks = filteredBooks.filter(b => b.materialId !== materialId);
-    render();
-  };
+  });
 })();
