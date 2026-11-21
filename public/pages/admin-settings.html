@@ -11,6 +11,7 @@
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../scripts/auth/supabase-client.js"></script>
     <script src="../scripts/auth/auth-guard.js"></script>
+    <script type="module" src="../scripts/academic/admin-return.mjs"></script>
     <script defer src="../scripts/academic/term.js"></script>
     <script defer src="../scripts/academic/admin-access.js"></script>
     <script defer src="../scripts/academic/curriculum-editor.js"></script>
@@ -20,7 +21,8 @@
     <header class="mast">
       <a class="brand" href="../index.html"
         ><span class="monogram" aria-hidden="true">LH</span>LegalHub</a
-      ><a class="back" href="../index.html">← Common room</a>
+      ><a id="admin-back" class="back" role="link" aria-disabled="true"
+        title="There is no previous LegalHub page to return to.">← Back</a>
     </header>
     <main>
       <div id="settings-gate" class="gate" role="status">Checking administrator access…</div>

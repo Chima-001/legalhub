@@ -68,7 +68,10 @@ a {
 .back {
   text-decoration: none;
 }
-.back:hover,
+.back[aria-disabled="true"] {
+  color: var(--muted);
+}
+.back[href]:hover,
 .secondary:hover {
   text-decoration: underline;
 }
