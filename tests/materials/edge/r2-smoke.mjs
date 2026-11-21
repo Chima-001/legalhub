@@ -13,6 +13,8 @@ for (const [name, value] of Object.entries({
   Deno.env.set(name, value);
 const f = (globalThis.fixture = {
   actor: '00000000-0000-4000-8000-000000000003',
+  material: '00000000-0000-4000-8000-000000000021',
+  uploader: 'fixture',
   key: 'materials/fixture/sample.pdf',
   status: 'pending',
   admin: false,
@@ -30,6 +32,7 @@ try {
     assert(cmd instanceof DeleteObjectCommand);
     assert.deepEqual(cmd.input, { Bucket: 'fixture-bucket', Key: f.key });
     f.trace.push('object');
+    if (f.storeError) throw Error('simulated storage failure');
     return {};
   };
   await import('../../../supabase/functions/r2-presign/index.ts');
@@ -43,7 +46,7 @@ try {
     );
   let r = await request('GET');
   assert.equal(r.status, 405);
-  assert.equal(r.headers.get('X-LegalHub-Storage-Contract'), 'reviewed-removal-v1');
+  assert.equal(r.headers.get('X-LegalHub-Storage-Contract'), 'material-id-key-v1');
   assert.equal((await request('OPTIONS')).status, 200);
   assert.equal((await request('POST', { action: 'upload' }, false)).status, 401);
   r = await request('POST', { action: 'upload', fileName: 'my notes.pdf', contentType: 'application/pdf' });
@@ -65,22 +68,42 @@ try {
   assert.equal((await request('POST', { action: 'download', key: f.key })).status, 200);
   assert.equal((await request('POST', { action: 'reject' })).status, 400);
   assert.deepEqual(f.trace, []);
-  const reviewed = {
-    action: 'remove-reviewed',
-    actor: f.actor,
-    materialId: f.actor,
-    operation: 'reject',
-    version: '21',
-    confirmation: 'i reject Synthetic',
-  };
-  assert.equal((await request('POST', reviewed)).status, 409);
-  assert.deepEqual(f.trace, ['review']);
+  const remove = { action: 'reject', key: f.key, materialId: f.material };
+  assert.equal((await request('POST', { ...remove, materialId: 'different' })).status, 404);
+  f.admin = false;
+  assert.equal((await request('POST', remove)).status, 403);
+  f.admin = true;
+  f.shared = true;
+  assert.equal((await request('POST', remove)).status, 409);
+  assert.deepEqual(f.trace, []);
+  f.shared = false;
+  f.uploader = 'different-uploader';
+  assert.equal((await request('POST', remove)).status, 409);
+  f.uploader = 'fixture';
+  assert.equal((await request('POST', { ...remove, key: 'not-this-pdf' })).status, 404);
+  assert.equal((await request('POST', remove, false)).status, 401);
+  assert.deepEqual(f.trace, []);
+  f.storeError = true;
+  assert.equal((await request('POST', remove)).status, 500);
+  assert.deepEqual(f.trace, ['object']);
   f.trace = [];
-  f.verified = true;
-  assert.equal((await request('POST', reviewed)).status, 200);
-  assert.deepEqual(f.trace, ['review', 'object', 'receipt']);
+  f.storeError = false;
+  f.zeroRow = true;
+  const incomplete = await request('POST', remove);
+  assert.equal(incomplete.status, 500);
+  assert.notEqual((await incomplete.json()).deleted, true);
+  assert.deepEqual(f.trace, ['object', 'row']);
+  f.zeroRow = false;
+  for (const state of ['pending', 'approved']) {
+    f.status = state;
+    f.trace = [];
+    const r = await request('POST', remove);
+    assert.equal(r.status, 200);
+    assert.equal((await r.json()).deleted, true);
+    assert.deepEqual(f.trace, ['object', 'row']);
+  }
   console.log(
-    'PASS actual R2 entry boots, preserves upload/download signing and user gating, rejects the legacy removal action and performs reviewed cleanup in order. Fake credentials, no network.',
+    'PASS actual repository R2 entry: upload/download signatures and access, valid admin ID/key removal for pending and approved items, stale/shared/unauthorized refusal. No network or real objects.',
   );
 } finally {
   Deno.serve = listen;

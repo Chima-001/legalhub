@@ -4,10 +4,9 @@ import { pgcrypto } from '../auth/node_modules/@electric-sql/pglite/dist/contrib
 import { materialFixture, sqlFile, uid } from './release-fixture.mjs';
 import { handleUploadAlert } from '../../supabase/functions/notify-admins-on-upload/handler.mjs';
 export { uid };
-export async function alertFixture(install = true, moderation = true) {
+export async function alertFixture(install = true) {
   const f = await materialFixture(new PGlite({ extensions: { pgcrypto } }));
   const { db, query, scalar, as, service } = f;
-  if (moderation) await f.install();
   await db.exec(`CREATE SCHEMA vault;CREATE SCHEMA lh_mail_transport;CREATE SCHEMA cron;CREATE SCHEMA extensions;CREATE EXTENSION pgcrypto WITH SCHEMA extensions;
  CREATE TABLE vault.decrypted_secrets(name text primary key,decrypted_secret text NOT NULL);CREATE TABLE lh_mail_transport.fake_requests(id bigint GENERATED ALWAYS AS IDENTITY,url text,body jsonb,headers jsonb);
  CREATE TABLE cron.job(jobname text unique, schedule text, command text);

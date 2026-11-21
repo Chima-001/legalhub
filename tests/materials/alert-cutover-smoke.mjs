@@ -1,7 +1,7 @@
-// Real migration before 011, synthetic Vault/transport/provider only. Never use a hosted project here.
+// Existing upload capture with ordinary Materials policies, synthetic Vault/transport/provider only. Never use a hosted project here.
 import assert from 'node:assert/strict';
 import { alertFixture, uid } from './alert-fixture.mjs';
-const f = await alertFixture(false, false);
+const f = await alertFixture(false);
 const { db, query, scalar, as, add, record, installAlert } = f;
 try {
   const [{ decrypted_secret: anon }] = await query(
@@ -30,7 +30,13 @@ try {
   );
   await query("insert into vault.decrypted_secrets values('lh_upload_anon_jwt',$1)", [anon]);
   assert.equal(await record(id), undefined);
-  await f.install(); // Later coordinated moderation rollout must still compose; never re-install 012.
+  // Both the old and updated admin controls can publish via RLS; this must not create another upload event.
+  await as(1);
+  assert.deepEqual(
+    await query("UPDATE public.materials SET status='approved' WHERE id=$1 RETURNING id", [id]),
+    [{ id }],
+  );
+  await as(0);
   assert.equal(
     await scalar(
       "select count(*)::int from pg_trigger where tgrelid='public.materials'::regclass and not tgisinternal and (tgtype::int & 4)=4 and (tgtype::int & 2)=0",
@@ -75,7 +81,7 @@ try {
     0,
   );
   console.log(
-    'PASS later gateway config and 011 drain only newly captured events, without duplicate jobs or hooks; SQL verifies signed ID and time, web roles cannot verify, absent/testing sender is never acceptance.',
+    'PASS later gateway configuration drains captured uploads; approval produces no alert, without duplicate jobs or hooks; SQL verifies signed ID and time, web roles cannot verify, absent/testing sender is never acceptance.',
   );
 } finally {
   await db.close();

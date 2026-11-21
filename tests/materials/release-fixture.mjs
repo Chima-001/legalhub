@@ -10,9 +10,13 @@ export async function materialFixture(instance) {
   await db.exec(await sqlFile('010-owner-admin-emails.sql'));
   await db.exec(`CREATE ROLE service_role;ALTER TABLE public.materials ADD COLUMN file_name text NOT NULL DEFAULT 'fixture.pdf', ADD COLUMN uploaded_by uuid REFERENCES public.users(id),ADD COLUMN storage_path text, ADD COLUMN uploaded_at timestamptz DEFAULT now();
     REVOKE ALL ON public.materials FROM PUBLIC,anon,authenticated; GRANT SELECT,INSERT,UPDATE ON public.materials TO authenticated;
-    DROP POLICY material_write ON public.materials; CREATE POLICY upload_pending ON public.materials FOR INSERT TO authenticated WITH CHECK(uploaded_by=auth.uid() AND status='pending');
-    CREATE POLICY admin_read ON public.materials FOR SELECT TO authenticated USING(EXISTS(SELECT FROM public.users u WHERE u.id=auth.uid() AND u.is_admin IS TRUE));
-    CREATE POLICY admin_update ON public.materials FOR UPDATE TO authenticated USING(EXISTS(SELECT FROM public.users u WHERE u.id=auth.uid() AND u.is_admin IS TRUE));`);
+    CREATE FUNCTION public.is_admin(check_uid uuid) RETURNS boolean LANGUAGE sql SECURITY DEFINER SET search_path=public AS $$
+  select coalesce((select is_admin from users where id = check_uid), false);
+$$;
+    DROP POLICY material_write ON public.materials; CREATE POLICY upload_pending ON public.materials FOR INSERT TO authenticated WITH CHECK(auth.uid()=uploaded_by AND status='pending');
+    CREATE POLICY admin_read ON public.materials FOR SELECT USING(is_admin(auth.uid()));
+    CREATE POLICY admin_update ON public.materials FOR UPDATE USING(is_admin(auth.uid()));
+    CREATE POLICY admin_delete ON public.materials FOR DELETE USING(is_admin(auth.uid()));`);
   const key = (n) => 'materials/' + uid(3) + '/' + n + '_scan.pdf';
   const add = (n, title = 'Notes', k = key(n), status = 'pending') =>
     query(
@@ -23,31 +27,5 @@ export async function materialFixture(instance) {
     await as(0);
     await db.exec('SET ROLE service_role');
   };
-  return {
-    ...f,
-    key,
-    add,
-    service,
-    async install() {
-      await db.exec(await sqlFile('011-material-review.sql'));
-    },
-    review: (n, a = 1) => scalar('SELECT public.lh_material_review($1,$2)', [uid(a), uid(n + 100)]),
-    change: (n, version, action, phrase, values = null, a = 1) =>
-      scalar('SELECT public.lh_material_change($1,$2,$3,$4,$5,$6)', [
-        uid(a),
-        uid(n + 100),
-        version,
-        action,
-        phrase,
-        values ? JSON.stringify(values) : null,
-      ]),
-    remove: (n, v, action, phrase, a = 1) =>
-      scalar('SELECT public.lh_material_remove($1,$2,$3,$4,$5)', [
-        uid(a),
-        uid(n + 100),
-        v,
-        action,
-        phrase,
-      ]),
-  };
+  return { ...f, key, add, service };
 }

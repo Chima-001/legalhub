@@ -20,9 +20,9 @@ try {
   await import('../../../supabase/functions/r2-presign/index.ts');
   const r = await handler(new Request('https://fixture.invalid/functions/v1/r2-presign'));
   assert.equal(r.status, 405);
-  assert.equal(r.headers.get('X-LegalHub-Storage-Contract'), 'reviewed-removal-v1');
+  assert.equal(r.headers.get('X-LegalHub-Storage-Contract'), 'material-id-key-v1');
   console.log(
-    'PASS actual R2 dependency graph boots offline and GET returns the reviewed contract; no signature, RPC, network or object operation.',
+    'PASS actual R2 dependency graph boots offline and GET returns the ID/key contract; no signature, RPC, network or object operation.',
   );
 } finally {
   Deno.serve = serve;

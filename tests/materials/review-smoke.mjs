@@ -1,98 +1,63 @@
+// Exercise the same direct writes the published site makes, under real PostgreSQL policies. No object/storage requests.
 import assert from 'node:assert/strict';
+import { readFile } from 'node:fs/promises';
 import { materialFixture, uid } from './release-fixture.mjs';
-const f = await materialFixture();
-const { db, as, query, scalar, add, key, service, review, change, remove } = f;
+const { db, as, query, scalar, add } = await materialFixture();
 const denied = (p) => assert.rejects(p, (e) => e.code === '42501');
+const status = await readFile(
+  new URL('../../database/checks/material-review-status.sql', import.meta.url),
+  'utf8',
+);
 try {
-  await add(1, 'Draft');
-  await add(2, 'Shared');
-  await add(3, 'Other', key(2));
-  await add(4, 'Legacy', 'old/unchecked.pdf');
-  const before = await query('select * from public.materials order by id');
-  await f.install();
-  assert.deepEqual(await query('select * from public.materials order by id'), before);
+  assert.equal(await scalar(status), 'MATERIALS YES/NO DATABASE READY');
+  await add(1, 'Law notes');
+  await add(2, 'Law notes');
+  const id = uid(101);
   await as(3);
-  await add(5, 'New');
-  await denied(review(5, 3));
-  await denied(change(5, '0', 'approve', 'i approve New', null, 3));
-  await denied(query("UPDATE public.materials SET status='approved'"));
-  await denied(remove(5, '0', 'reject', 'i reject New'));
-  await denied(query('select * from legalhub_console.material_removals'));
+  await add(3, 'My upload');
+  await denied(add(4, 'Cannot publish', undefined, 'approved'));
+  const approve = () =>
+    query("UPDATE public.materials SET status='approved' WHERE id=$1 AND status='pending' RETURNING id", [
+      id,
+    ]);
+  assert.deepEqual(await approve(), []);
+  await denied(query('DELETE FROM public.materials WHERE id=$1', [id]));
+  assert.deepEqual(await query('SELECT id FROM public.materials WHERE id=$1', [id]), []);
   await as(0, 'anon');
-  await denied(review(1));
+  await denied(approve());
   await as(1);
-  await denied(review(1, 2));
-  await denied(query("UPDATE public.materials SET status='approved'"));
-  await denied(remove(1, '0', 'reject', 'i reject Draft'));
-  console.log(
-    'PASS existing rows unchanged, pending upload preserved, browser cannot bypass review or access private cleanup.',
+  assert.deepEqual(
+    await query(
+      "UPDATE public.materials SET material_name='Revised law notes' WHERE id=$1 AND material_name='Law notes' AND status='pending' RETURNING id",
+      [id],
+    ),
+    [{ id }],
   );
-  let snap = await review(1);
-  assert.equal(snap.title, 'Draft');
-  const changes = {
-    material_name: 'Revised notes',
-    level: '100L',
-    semester: 'second',
-    course: 'Legal Method',
-  };
-  await assert.rejects(change(1, snap.version, 'edit', 'i edit Revised notes', changes));
-  await assert.rejects(
-    change(1, snap.version, 'edit', 'i edit Draft', { ...changes, course: 'Unknown' }),
+  assert.deepEqual(
+    await query(
+      "UPDATE public.materials SET material_name='stale' WHERE id=$1 AND material_name='Law notes' AND status='pending' RETURNING id",
+      [id],
+    ),
+    [],
   );
-  await assert.rejects(
-    change(1, snap.version, 'edit', 'i edit Draft', { ...changes, storage_path: 'different' }),
-  );
-  assert.equal(await change(1, snap.version, 'edit', 'i edit Draft', changes), true);
-  await assert.rejects(change(1, snap.version, 'approve', 'i approve Draft'), (e) => e.code === '40001');
-  snap = await review(1);
+  assert.deepEqual(await approve(), [{ id }]);
+  assert.deepEqual(await approve(), []);
+  await denied(query('DELETE FROM public.materials WHERE id=$1', [id]));
+  await as(3);
+  assert.deepEqual(await query("SELECT id FROM public.materials WHERE status='approved'"), [{ id }]);
   await as(0);
   await query('UPDATE public.users SET is_admin=false WHERE id=$1', [uid(2)]);
   await as(2);
-  await denied(change(1, snap.version, 'approve', 'i approve Revised notes', null, 2));
-  await as(1);
-  assert.equal(await change(1, snap.version, 'approve', 'i approve Revised notes'), true);
-  snap = await review(1);
-  assert.equal(snap.status, 'approved');
-  console.log(
-    'PASS current admin, exact original title, scope and fields, actor and concurrent version verified for edit/approval.',
-  );
-  const shared = await review(2),
-    legacy = await review(4),
-    pending = await review(5);
-  await service();
-  await denied(remove(1, snap.version, 'delete', 'i delete Revised notes', 2));
-  await assert.rejects(remove(1, snap.version, 'reject', 'i reject Revised notes'));
-  await assert.rejects(remove(1, '0', 'delete', 'i delete Revised notes'));
-  await assert.rejects(remove(1, snap.version, 'delete', 'yes'));
-  await assert.rejects(remove(2, shared.version, 'reject', 'i reject Shared'), (e) => e.code === '23503');
-  await assert.rejects(remove(4, legacy.version, 'reject', 'i reject Legacy'), (e) => e.code === '23503');
-  // Exercise a late FK refusal: the claim rolls back too; no storage operation is possible without a committed ticket.
-  await as(0);
-  await db.exec(
-    'CREATE TABLE keep_material(ref uuid references public.materials(id) ON DELETE RESTRICT)',
-  );
-  await query('INSERT INTO keep_material VALUES($1)', [uid(101)]);
-  await service();
-  await assert.rejects(
-    remove(1, snap.version, 'delete', 'i delete Revised notes'),
-    (e) => e.code === '23503',
+  assert.deepEqual(
+    await query("UPDATE public.materials SET status='approved' WHERE id=$1 RETURNING id", [uid(102)]),
+    [],
   );
   await as(0);
-  assert.equal(await scalar('select count(*)::int from legalhub_console.material_removals'), 0);
-  await db.exec('DROP TABLE keep_material');
-  await service();
-  const t = await remove(1, snap.version, 'delete', 'i delete Revised notes');
-  assert.deepEqual(t, { key: key(1), done: false });
-  assert.deepEqual(await remove(1, snap.version, 'delete', 'i delete Revised notes'), t);
-  await as(3);
-  await assert.rejects(add(6, 'Reuse', key(1)), (e) => e.code === '23503');
-  await service();
-  assert.equal(await scalar('SELECT public.lh_material_file_done($1,$2)', [uid(101), key(2)]), false);
-  assert.equal(await scalar('SELECT public.lh_material_file_done($1,$2)', [uid(101), key(1)]), true);
-  assert.equal((await remove(1, snap.version, 'delete', 'i delete Revised notes')).done, true);
-  assert.equal((await remove(5, pending.version, 'reject', 'i reject New')).key, key(5));
+  assert.equal(await scalar('SELECT status FROM public.materials WHERE id=$1', [uid(102)]), 'pending');
+  await db.exec('CREATE POLICY fixture_drift ON public.materials FOR UPDATE TO authenticated USING (true)');
+  assert.equal(await scalar(status), 'STOP: REVIEW MATERIAL SCHEMA');
   console.log(
-    'PASS pending rejection vs approved deletion; shared/unverified/ref-linked file refusal, atomic unlink, exact retry, retired key protection.',
+    'PASS current admin edit/approval, 0-row stale/refused writes, same-title neighbour, upload and approved reads; no browser DELETE or 011; metadata flags an additional write policy.',
   );
 } finally {
   await db.close();

@@ -185,7 +185,7 @@
         level: m.level || 'relevant',
         semester: m.semester || 'all',
         url: signed?.downloadUrl || null,
-        reviewItem: {id:m.id, material_name:m.material_name, file_name:m.file_name, level:m.level,semester:m.semester,course:m.course,status:"approved"},
+        reviewItem: {id:m.id, material_name:m.material_name, file_name:m.file_name, level:m.level,semester:m.semester,course:m.course,status:"approved",storage_path:m.storage_path},
         materialId: m.id,
         storagePath: m.storage_path,
       };

@@ -1,12 +1,11 @@
 // Fully intercepted. Auth, R2 transport, gateway, pg_net and provider are isolated doubles; SQL, page scripts,
-// the moderation dialog and the two server-side operation handlers run as shipped.
+// the actual Yes/No UI and real RLS/level SQL run; the existing signer contract is doubled.
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { alertFixture, uid } from '../alert-fixture.mjs';
-import { removeReviewed } from '../../../supabase/functions/r2-presign/removal.mjs';
 const lab = ['--practice', '--practice-smoke'].includes(process.argv[2]),
   headed = process.argv[2] === '--practice';
 const exe =
@@ -63,13 +62,7 @@ const dbCall = async (name, keys, args) => {
     return { data: null, error: { code: e.code, message: 'Fixture DB refused' } };
   }
 };
-const ops = {
-  lh_course_list: ['p_level', 'p_semester', 'p_include_archived'],
-  lh_material_review: ['p_actor', 'p_id'],
-  lh_material_change: ['p_actor', 'p_id', 'p_version', 'p_action', 'p_phrase', 'p_values'],
-  lh_material_remove: ['p_actor', 'p_id', 'p_version', 'p_action', 'p_phrase'],
-  lh_material_file_done: ['p_id', 'p_key'],
-};
+const ops = { lh_course_list: ['p_level', 'p_semester', 'p_include_archived'] };
 async function call(who, op, p) {
   await as(who);
   const actor = uid(who);
@@ -83,20 +76,62 @@ async function call(who, op, p) {
       return dbCall(p.name, keys[p.name], p.args || {});
     }
     if (p.name === 'get_effective_level') return { data: '100L' };
-    if (!['lh_course_list', 'lh_material_review', 'lh_material_change'].includes(p.name))
-      throw Error('Unknown web RPC');
+    if (p.name !== 'lh_course_list') throw Error('Unknown web RPC');
     return dbCall(p.name, ops[p.name], p.args);
   }
-  if (op === 'read') {
-    if (p.table === 'users')
+  if (op === 'read' || op === 'update') {
+    if (p.table === 'users') {
+      assert.equal(op, 'read');
       return {
-        data: (await query('SELECT id,username,is_admin FROM public.users WHERE id=$1', [actor]))[0],
+        data: (await query('SELECT id,username,is_admin FROM public.users WHERE id=$1', [actor]))[0] || null,
       };
-    if (p.table !== 'materials' || !['approved', 'pending'].includes(p.status))
-      throw Error('Unexpected read');
-    return {
-      data: await query('SELECT * FROM public.materials WHERE status=$1 ORDER BY uploaded_at,id', [p.status]),
+    }
+    assert.equal(p.table, 'materials');
+    const cols = [
+      'id',
+      'file_name',
+      'material_name',
+      'course',
+      'level',
+      'semester',
+      'status',
+      'storage_path',
+    ];
+    const args = [];
+    const param = (v) => {
+      args.push(v);
+      return '$' + args.length;
     };
+    const entries = Object.entries(p.filters || {});
+    assert(entries.length);
+    const where = entries
+      .map(([k, v]) => {
+        assert(cols.includes(k));
+        return k + ' IS NOT DISTINCT FROM ' + param(v);
+      })
+      .join(' AND ');
+    let sql = 'SELECT * FROM public.materials WHERE ' + where + ' ORDER BY uploaded_at,id';
+    if (op === 'update') {
+      assert(p.single);
+      assert('id' in p.filters && p.filters.status === 'pending');
+      const set = Object.entries(p.values)
+        .map(([k, v]) => {
+          assert(['status', 'course', 'material_name', 'level', 'semester'].includes(k));
+          return k + '=' + param(v);
+        })
+        .join(',');
+      sql = 'UPDATE public.materials SET ' + set + ' WHERE ' + where + ' RETURNING id';
+    }
+    if (p.limit) {
+      assert.equal(p.limit, 2);
+      sql += ' LIMIT 2';
+    }
+    try {
+      const rows = await query(sql, args);
+      return { data: p.single ? rows[0] || null : rows, error: null };
+    } catch (e) {
+      return { data: null, error: { code: e.code } };
+    }
   }
   if (op === 'insert') {
     assert.equal(p.uploaded_by, actor);
@@ -132,27 +167,21 @@ async function call(who, op, p) {
       ? { data: { downloadUrl: base + '/fixture-get/' + rows[0].id } }
       : { error: { message: 'No file' } };
   }
-  if (p.action !== 'remove-reviewed') throw Error('Old or unknown delete action');
-  const [status, result] = await removeReviewed(p, actor, {
-    rpc: async (name, args) => {
-      assert(['lh_material_remove', 'lh_material_file_done'].includes(name));
-      await f.service();
-      return dbCall(name, ops[name], args);
-    },
-    removeObject: async (key) => {
-      await as(0);
-      assert.equal(
-        await scalar('SELECT count(*)::int FROM public.materials WHERE storage_path=$1', [key]),
-        0,
-      );
-      if (failCleanup) {
-        failCleanup = false;
-        throw Error('Fake storage fault');
-      }
-      files.delete(key);
-    },
-  });
-  return status >= 300 ? { error: { message: 'Review not confirmed' } } : { data: result, error: null };
+  if (p.action !== 'reject') throw Error('Not the deployed removal action');
+  if (!(await scalar('SELECT is_admin FROM public.users WHERE id=$1', [actor])))
+    return { data: null, error: { message: 'Not authorized' } };
+  await as(0);
+  const pair = await query('SELECT id FROM public.materials WHERE id=$1 AND storage_path=$2', [
+    p.materialId,
+    p.key,
+  ]);
+  if (pair.length !== 1 || failCleanup) {
+    failCleanup = false;
+    return { error: { message: 'Removal not confirmed' } };
+  }
+  files.delete(p.key);
+  await query('DELETE FROM public.materials WHERE id=$1 AND storage_path=$2', [p.materialId, p.key]);
+  return { data: { deleted: true }, error: null };
 }
 async function visit(who, mount, width) {
   const ctx = await browser.newContext({ viewport: { width, height: 850 }, serviceWorkers: 'block' });
@@ -218,18 +247,30 @@ async function visit(who, mount, width) {
           },
         },
         from(table) {
-          let status;
-          const exec = () => window.localOnly('read', { table, status });
+          const filters = {};
+          let values = null;
+          const exec = (single = false, limit = null) =>
+            window.localOnly(values ? 'update' : 'read', { table, filters, values, single, limit });
           return {
             select() {
               return this;
             },
-            eq(k, v) {
-              if (k === 'status') status = v;
+            update(v) {
+              values = v;
               return this;
             },
-            order: exec,
-            single: exec,
+            eq(k, v) {
+              filters[k] = v;
+              return this;
+            },
+            is(k, v) {
+              filters[k] = v;
+              return this;
+            },
+            limit: (n) => exec(false, n),
+            order: () => exec(),
+            single: () => exec(true),
+            maybeSingle: () => exec(true),
             then(a, b) {
               return exec().then(a, b);
             },
@@ -350,9 +391,9 @@ async function practice() {
     });
     return;
   }
-  for (const [n, action, title] of [
-    [21, 'Approve', 'Practice — approve me'],
-    [22, 'Reject', 'Practice — reject me'],
+  for (const [n, action] of [
+    [21, 'Approve'],
+    [22, 'Reject'],
   ]) {
     const id = uid(100 + n);
     await a
@@ -360,9 +401,10 @@ async function practice() {
       .getByRole('button', { name: action, exact: true })
       .click();
     const d = a.getByRole('dialog');
-    await d.locator('input').fill(`i ${action.toLowerCase()} ${title}`);
-    await d.locator('button').last().click();
+    assert.equal(await d.locator('input').count(), 0);
+    await d.getByRole('button', { name: 'Yes', exact: true }).click();
     await d.waitFor({ state: 'detached' });
+    await a.locator(`[data-admin-material="${id}"]`).waitFor({ state: 'detached' });
     if (n === 21) assert.equal((await state(id)).status, 'approved');
     else {
       assert.equal(await state(id), null);
@@ -427,11 +469,10 @@ async function automatedFlow() {
   await admin.go('pages/materials.html');
   const row = (id) => a.locator(`[data-admin-material="${id}"]`),
     dlg = a.getByRole('dialog'),
-    input = dlg.locator('input'),
-    last = dlg.locator('button').last(),
-    cancel = dlg.locator('button').first();
-  const finish = async (phrase) => {
-    await input.fill(phrase);
+    last = dlg.getByRole('button', { name: 'Yes', exact: true }),
+    cancel = dlg.getByRole('button', { name: 'No', exact: true });
+  const finish = async () => {
+    assert.equal(await dlg.locator('input').count(), 0);
     await last.click();
   };
   const edit = async (name) => {
@@ -442,8 +483,7 @@ async function automatedFlow() {
     await dlg.waitFor();
   };
   await edit('Cancelled name');
-  await input.fill('yes');
-  assert(await last.isDisabled());
+  assert.equal(await dlg.locator('input').count(), 0);
   await cancel.click();
   assert.equal((await state(first)).material_name, titles[0]);
   await row(first).getByRole('button', { name: 'Save details' }).click();
@@ -452,20 +492,22 @@ async function automatedFlow() {
     await as(0);
     await query("UPDATE public.materials SET material_name='Changed elsewhere' WHERE id=$1", [first]);
   });
-  await finish('i edit ' + titles[0]);
-  await dlg.getByText(/Change not confirmed/).waitFor();
+  await finish();
+  await row(first)
+    .getByText(/item changed/i)
+    .waitFor();
   assert.equal((await state(first)).material_name, 'Changed elsewhere');
-  await cancel.click();
   await a.reload();
   const revised = 'Court Practice <Notes> & Evidence';
   await edit(revised);
   await dlg.getByText(/Save as/).waitFor();
-  await finish('i edit Changed elsewhere');
-  await dlg.waitFor({ state: 'detached' });
+  await finish();
+  await row(first).getByText(revised, { exact: true }).waitFor();
   assert.equal((await state(first)).material_name, revised);
+  assert.equal(await a.locator('#lh-moderation-result').innerText(), 'Details saved for: ' + revised + '.');
   assert.equal((await state(second)).material_name, titles[1]);
   console.log(
-    'PASS edit dialog shows old item and proposed fields; cancel/wrong phrase do nothing; stale write refused; exact current edit changes only the selected row.',
+    'PASS edit dialog shows old item and proposed fields; No does nothing; stale write refused; exact current edit changes only the selected row.',
   );
   await row(first).getByRole('button', { name: 'Approve', exact: true }).click();
   await dlg.waitFor();
@@ -473,9 +515,10 @@ async function automatedFlow() {
     await as(0);
     await query('UPDATE public.users SET is_admin=false WHERE id=$1', [uid(2)]);
   });
-  await finish('i approve ' + revised);
-  await dlg.getByText(/Change not confirmed/).waitFor();
-  await cancel.click();
+  await finish();
+  await row(first)
+    .getByText(/Current administrator access/)
+    .waitFor();
   assert.equal((await state(first)).status, 'pending');
   await isolated(async () => {
     await as(0);
@@ -483,9 +526,10 @@ async function automatedFlow() {
   });
   await a.reload();
   await row(first).getByRole('button', { name: 'Approve', exact: true }).click();
-  await finish('i approve ' + revised);
+  await finish();
   await row(first).waitFor({ state: 'detached' });
   assert.equal((await state(first)).status, 'approved');
+  assert.equal(await a.locator('#lh-moderation-result').innerText(), 'Approved: ' + revised + '.');
   assert(files.has(issued[0]));
   console.log(
     'PASS revoked admin cannot approve an open review; current admin can approve it without deleting its PDF or sending another notification.',
@@ -498,21 +542,29 @@ async function automatedFlow() {
   assert(files.has(issued[1]));
   await row(second).getByRole('button', { name: 'Reject', exact: true }).click();
   failCleanup = true;
-  await finish('i reject ' + titles[1]);
-  await dlg.getByText(/File cleanup is pending/).waitFor();
-  assert.equal(await state(second), null);
+  await finish();
+  await row(second)
+    .getByText(/Removal was not confirmed/)
+    .waitFor();
+  assert.equal((await state(second)).status, 'pending');
   assert(files.has(issued[1]));
-  await dlg.getByRole('button', { name: 'Retry file cleanup' }).click();
-  await dlg.waitFor({ state: 'detached' });
+  await a.reload();
+  await row(second).getByRole('button', { name: 'Reject', exact: true }).click();
+  await finish();
+  await row(second).waitFor({ state: 'detached' });
+  assert.equal(await state(second), null);
   assert(!files.has(issued[1]));
   console.log(
-    'PASS rejection cancel preserves both resources; storage failure leaves a private cleanup ticket and truthful UI, then exact retry removes only that object.',
+    'PASS rejected pending item via existing ID/key action; No/Escape and a refused removal are not success. No automatic retry.',
   );
   await isolated(async () => {
     await as(0);
     await f.add(8, revised, f.key(8), 'approved');
     files.set(f.key(8), Buffer.from('fixture double'));
   });
+  await student.go('pages/pdf.html?level=all&material=' + first);
+  await s.locator('.book-card').first().waitFor();
+  assert.equal(await s.locator('[data-book-action=delete]').count(), 0);
   await admin.go('pages/pdf.html?level=all&material=' + first);
   const book = a.locator('.book-card');
   await book.getByText(revised, { exact: true }).waitFor();
@@ -528,13 +580,16 @@ async function automatedFlow() {
     await dlg.waitFor();
   };
   await del();
-  await input.fill('i reject ' + revised);
-  assert(await last.isDisabled());
+  assert.equal(await dlg.locator('input').count(), 0);
   await cancel.click();
   assert.equal((await state(first)).status, 'approved');
   await del();
-  await finish('i delete ' + revised);
+  await finish();
   await book.waitFor({ state: 'detached' });
+  assert.equal(
+    await a.locator('#lh-moderation-result').innerText(),
+    'Removed from the Library: ' + revised + '.',
+  );
   assert.equal(await state(first), null);
   assert(!files.has(issued[0]));
   assert.equal((await state(uid(108))).material_name, revised);
@@ -546,7 +601,7 @@ async function automatedFlow() {
   assert.deepEqual(errors, []);
   assert.deepEqual(foreign, []);
   console.log(
-    'PASS approved Library read/share and typed deletion by id with a same-title neighbour; no extra mail, unexpected requests or page errors.',
+    'PASS approved Library read/share and Yes/No deletion by id with a same-title neighbour; no extra mail, unexpected requests or page errors.',
   );
 }
 try {

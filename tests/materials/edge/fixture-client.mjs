@@ -14,38 +14,38 @@ export function createClient(url, key, opt = {}) {
   if (key !== 'fixture-service') throw Error('Fixture key required');
   return {
     from(table) {
-      let column, value;
+      const filters = {};
+      let deleting = false;
+      const item = () =>
+        filters.storage_path === f.key && (!filters.id || filters.id === f.material)
+          ? { id: f.material, storage_path: f.key, status: f.status, uploaded_by: f.uploader }
+          : null;
       return {
         select() {
           return this;
         },
         eq(k, v) {
-          column = k;
-          value = v;
+          filters[k] = v;
           return this;
         },
-        single: async () => ({
-          data:
-            table === 'users' && column === 'id' && value === f.actor
-              ? { is_admin: f.admin }
-              : table === 'materials' && column === 'storage_path' && value === f.key
-                ? { status: f.status }
-                : null,
-        }),
+        delete() {
+          deleting = true;
+          return this;
+        },
+        async limit() {
+          return { data: f.shared ? [item(), { id: 'other' }] : [item()] };
+        },
+        async single() {
+          return {
+            data: table === 'users' ? (filters.id === f.actor ? { is_admin: f.admin } : null) : item(),
+          };
+        },
+        async maybeSingle() {
+          const data = item();
+          if (deleting && data) f.trace.push('row');
+          return { data: deleting && f.zeroRow ? null : data };
+        },
       };
-    },
-    async rpc(name, args) {
-      if (name === 'lh_material_remove') {
-        f.trace.push('review');
-        return f.verified && args.p_actor === f.actor
-          ? { data: { key: f.key, done: false } }
-          : { error: { code: '40001' } };
-      }
-      if (name === 'lh_material_file_done') {
-        f.trace.push('receipt');
-        return { data: args.p_key === f.key };
-      }
-      throw Error('Unrecognized operation');
     },
   };
 }
