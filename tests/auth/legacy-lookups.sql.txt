@@ -1,0 +1,10 @@
+CREATE FUNCTION public.check_student_eligibility(p_reg_number text) RETURNS boolean LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path=public AS $$
+  select exists (
+    select 1 from allowed_students
+    where reg_number = p_reg_number
+    and used = false
+  );
+$$;
+CREATE FUNCTION public.get_email_by_reg_number(p_reg_number text) RETURNS text LANGUAGE sql VOLATILE SECURITY DEFINER SET search_path=public AS $$
+  select email from users where reg_number = p_reg_number limit 1;
+$$;

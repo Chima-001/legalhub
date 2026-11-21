@@ -73,9 +73,25 @@ $$; CREATE TRIGGER on_auth_user_email_changed AFTER UPDATE ON auth.users FOR EAC
  await db.exec('GRANT UPDATE(is_admin) ON public.users TO authenticated');
  await assert.rejects(db.exec(sql),/Profile RLS or web-role writes/);await db.exec('ROLLBACK');
  await db.exec('REVOKE UPDATE(is_admin) ON public.users FROM authenticated');ok('Open signup refuses writable protected profile columns');
+ const statusSQL=readFileSync(new URL('../../database/checks/signup-status.sql',import.meta.url),'utf8');
+ const status=async()=> (await q(statusSQL))[0].status;
+ const originalRPCs=readFileSync(new URL('legacy-lookups.sql.txt',import.meta.url),'utf8');
+ await db.exec(originalRPCs);assert.equal(await status(),'CHECK SIGNUP CONTRACT');
+ const eligible=n=>scalar('SELECT public.check_student_eligibility($1)',[n]);
+ const lookup=n=>scalar('SELECT public.get_email_by_reg_number($1)',[n]);
+ const aliases=()=>scalar('SELECT count(*)::int FROM lh_signup_private.legacy_login');
+ assert.equal(await eligible('TEST-PENDING'),true);assert.equal(await lookup('TEST-OLD'),'existing@example.test');
+ await db.exec('ALTER FUNCTION public.get_email_by_reg_number(text) RENAME TO fixture_saved_lookup; CREATE FUNCTION public.get_email_by_reg_number(p_reg_number text) RETURNS text LANGUAGE sql AS $$ SELECT NULL::text $$');
+ await assert.rejects(db.exec(sql),/Unexpected legacy login/);await db.exec('ROLLBACK');
+ assert.equal(await scalar("SELECT to_regnamespace('lh_signup_private') IS NULL"),true);
+ await db.exec('DROP FUNCTION public.get_email_by_reg_number(text); ALTER FUNCTION public.fixture_saved_lookup(text) RENAME TO get_email_by_reg_number');
+ ok('An unrecognised return-login routine refuses the migration before any schema change');
  await db.exec(sql);
+ assert.equal(await aliases(),0);assert.equal(await status(),'BOTH SIGNUP CLIENTS READY');
  assert.deepEqual(await profile(1),oldProfile);assert.deepEqual(await roster(),oldRoster);assert.deepEqual(await q('SELECT * FROM public.signup_log ORDER BY id'),oldLog);assert.equal(await scalar('SELECT uploaded_by FROM public.fixture_materials WHERE id=1'),member(1));ok('Migration does not rewrite an existing admin, its material link, the roster or historical log');
  await confirm(2);const p2=await profile(2);assert(p2);assert.equal(p2.reg_number,null);assert.equal(p2.full_name,null);assert.deepEqual(await roster(),oldRoster);ok('Pending pre-cutover signup confirms under its original ID without consuming its roster entry');
+ assert.equal(await lookup('TEST-PENDING'),'pending@example.test');assert.equal(await eligible('TEST-PENDING'),false);assert.equal(await aliases(),1);
+ assert.equal(await lookup('TEST-OLD'),'existing@example.test');ok('A pre-cutover unconfirmed signup can return through the original number lookup or email without claiming an official identity');
  await create(3,'new@example.test');assert.equal(await profile(3),undefined);assert.equal(await logCount(),2);ok('Unconfirmed email does not create a profile or confirmation log');
  await confirm(3);const p3=await profile(3);assert.equal(p3.email,'new@example.test');assert.equal(p3.reg_number,null);assert.equal(p3.full_name,null);assert.equal(p3.username,null);assert.equal(p3.email_verified,true);assert.equal(p3.is_admin,false);assert.equal(p3.current_level,'100L');ok('Confirmed personal email with no optional fields receives an ordinary profile and original defaults');
  await create(4,'reported@example.test',{reported_reg_number:'TEST-OLD',username:'  Reader  '});await confirm(4);
@@ -98,5 +114,42 @@ $$; CREATE TRIGGER on_auth_user_email_changed AFTER UPDATE ON auth.users FOR EAC
    for(const c of ['id','is_admin','email','email_verified','reg_number','full_name'])assert.equal(await scalar("SELECT has_column_privilege(current_user,'public.users',$1::text,'UPDATE')",[c]),false);
  }finally{await db.exec('RESET ROLE');}
  assert.deepEqual(await profile(1),oldProfile);assert.equal((await profile(70)).username,'My reader name');ok('New ordinary member can read and edit their own display field under RLS; protected columns are not writable');
+ const addNumber=(n)=>q('INSERT INTO public.allowed_students(reg_number,full_name) VALUES($1,$2)',[n,'Private fixture student']);
+ for(const n of ['TEST-FRESH','TEST-REPORTED','TEST-MIXED','TEST-FAIL'])await addNumber(n);
+ await create(80,'old-form@example.test',{reg_number:'TEST-FRESH',username:' Legacy ',full_name:'Not trusted',level:'500L',is_admin:true});
+ assert.equal(await lookup('TEST-FRESH'),null);await confirm(80);
+ const late=await profile(80);assert.equal(late.username,'Legacy');assert.equal(late.is_admin,false);assert.equal(late.reg_number,null);assert.equal(late.full_name,null);assert.equal(late.current_level,'100L');
+ assert.equal(await lookup('TEST-FRESH'),'old-form@example.test');assert.equal(await aliases(),2);assert.equal(await eligible('TEST-FRESH'),false);
+ assert.equal(await scalar("SELECT used FROM public.allowed_students WHERE reg_number='TEST-FRESH'"),false);
+ ok('A still-published old signup qualifies before verification, signs in by number afterward, and receives only an ordinary account');
+ await create(81,'claimed@example.test',{reported_reg_number:'TEST-REPORTED'});await confirm(81);
+ await create(82,'mixed@example.test',{reg_number:'TEST-MIXED',reported_reg_number:'TEST-MIXED'});await confirm(82);
+ for(const n of ['TEST-REPORTED','TEST-MIXED']){assert.equal(await eligible(n),true);assert.equal(await lookup(n),null);}
+ assert.equal(await aliases(),2);ok('Neither a self-report matching a free roster number nor mixed old/new fields reserve a login or expose a roster name');
+ for(const [i,n] of [[83,'TEST-FRESH'],[84,'TEST-OLD'],[85,'MISSING']]){await create(i,`overlap${i}@example.test`,{reg_number:n});await confirm(i);assert.equal((await profile(i)).is_admin,false);assert.equal((await profile(i)).reg_number,null);}
+ assert.equal(await lookup('TEST-FRESH'),'old-form@example.test');assert.equal(await lookup('TEST-OLD'),'existing@example.test');assert.equal(await lookup('MISSING'),null);assert.equal(await aliases(),2);
+ ok('A duplicate, already official or unknown number cannot replace another login; the verified email still gets its own profile');
+ await q("UPDATE auth.users SET raw_user_meta_data=$2::jsonb,email='old-updated@example.test' WHERE id=$1",[member(80),JSON.stringify({reg_number:'TEST-MIXED'})]);
+ assert.equal(await lookup('TEST-FRESH'),'old-updated@example.test');assert.equal(await lookup('TEST-MIXED'),null);
+ await q("UPDATE auth.users SET email_confirmed_at=NULL WHERE id=$1",[member(80)]);const count=await logCount();await confirm(80);assert.equal(await aliases(),2);assert.equal(await logCount(),count);
+ ok('Login hint is bound to the UUID, follows a confirmed email change, and cannot be retargeted by metadata edits or reconfirmation');
+ await q("UPDATE public.allowed_students SET reg_number='CHANGED-NUMBER' WHERE reg_number='TEST-FRESH'");assert.equal(await lookup('CHANGED-NUMBER'),null);assert.equal(await lookup('TEST-FRESH'),null);
+ await q("UPDATE public.allowed_students SET reg_number='TEST-FRESH' WHERE reg_number='CHANGED-NUMBER'");
+ await q("UPDATE public.allowed_students SET used=true WHERE reg_number='TEST-FRESH'");assert.equal(await lookup('TEST-FRESH'),null);
+ await q("UPDATE public.allowed_students SET used=false WHERE reg_number='TEST-FRESH'");
+ await q('INSERT INTO public.users(id,email,reg_number) VALUES($1,$2,$3)',[member(100),'official@example.test','TEST-FRESH']);assert.equal(await lookup('TEST-FRESH'),'official@example.test');
+ ok('Changed or withdrawn roster entries do not redirect a hint; an official account always wins');
+ await create(86,'failed-log@example.test',{reg_number:'TEST-FAIL',username:'FixtureDenied'});await assert.rejects(confirm(86),/fixture_log_failure/);assert.equal(await eligible('TEST-FAIL'),true);assert.equal(await profile(86),undefined);assert.equal(await aliases(),2);
+ ok('A failed audit write rolls back the login hint, profile and confirmation together');
+ for(const role of ['anon','authenticated']){
+   await db.exec('SET ROLE '+role);
+   try {await assert.rejects(q('SELECT account_id FROM lh_signup_private.legacy_login'),/permission denied/);
+     assert.equal(await lookup('TEST-PENDING'),'pending@example.test');assert.equal(await eligible('TEST-PENDING'),false);
+     for(const mail of ['fresh@example.test','nobody@example.test'])assert.equal(await lookup(mail),mail);
+   } finally{await db.exec('RESET ROLE');}
+ }
+ ok('Both web roles retain only the existing lookup interface, not the private mapping; email fallback is independent of existence');
+ await assert.rejects(db.exec(sql),/differs from the reviewed baseline/);await db.exec('ROLLBACK');assert.equal(await aliases(),2);assert.deepEqual(await profile(1),oldProfile);
+ ok('Reapplying stops with confirmed accounts, grants and hints intact');
  console.log(`Database rehearsal: ${checks.length} scenarios passed.`);
 }finally{await db.close();}
