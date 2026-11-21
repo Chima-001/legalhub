@@ -60,7 +60,7 @@ const records = [
   material_name: `Volume ${i + 1}`,
   storage_path: `book-${i}.pdf`,
 }));
-function open(query, { hold = false, down = false } = {}) {
+function open(query, { hold = false, down = false, effective = '400L', profileError = false } = {}) {
   const nodes = new Map(ids.map((k) => [k, element()]));
   const get = (id) => {
     assert(nodes.has(id), 'Missing library element: ' + id);
@@ -92,10 +92,11 @@ function open(query, { hold = false, down = false } = {}) {
         return { data: { user: { id: 'reader' } } };
       },
     },
-    async rpc(name) {
+    async rpc(name, args) {
       assert.equal(name, 'get_effective_level');
+      assert.equal(args.p_uid, 'reader');
       await pause;
-      return { data: '400L' };
+      return { data: effective, error: profileError ? { message: 'Unavailable' } : null };
     },
     from(name) {
       if (name === 'users')
@@ -192,7 +193,9 @@ test('Manual reset while profile lookup is pending wins; no-semester, invalid se
   assert.equal(held.get('semesterFilter').value, 'all');
   assert.equal(held.get('visibleCount').textContent, records.length);
   for (const [q, lv, t] of [
-    ['', '400L', 'all'],
+    ['', '400L', 'first'],
+    ['?semester=all', '400L', 'all'],
+    ['?level=500L', '500L', 'all'],
     ['?semester=unknown', '400L', 'all'],
     ['?level=all', 'all', 'all'],
     ['?level=Relevant&semester=first', 'Relevant', 'all'],
@@ -224,4 +227,69 @@ test('A shared material URL stays inside a repository mount and works for a read
   await turn();
   assert.equal(recipient.get('visibleCount').textContent, 1);
   assert.match(recipient.get('bookGrid').innerHTML, /Volume 1/);
+});
+
+test('Same 300L profile: unscoped Home opens first; a 500L second-semester desk, all and shared links keep their scopes', async () => {
+  for (const [query, level, term] of [
+    ['', '300L', 'first'],
+    ['?utm_source=home', '300L', 'first'],
+    ['?level=500L&semester=second', '500L', 'second'],
+    ['?semester=second', '300L', 'second'],
+    ['?level=all', 'all', 'all'],
+    ['?course=Methods&level=100L', '100L', 'all'],
+    ['?material=2', 'all', 'all'],
+    ['?level=all&material=2', 'all', 'all'],
+    ['?level=Relevant', 'Relevant', 'all'],
+  ]) {
+    const v = open(query, { effective: '300L' });
+    await turn();
+    assert.equal(v.get('levelFilter').value, level, query);
+    assert.equal(v.get('semesterFilter').value, term, query);
+    if (query.includes('material=2')) {
+      assert.equal(v.get('visibleCount').textContent, 1);
+      assert.match(v.get('bookGrid').innerHTML, /Volume 2/);
+    }
+  }
+});
+test('Later replies do not override choosing a semester, level, a course chip or Show all on direct entry', async () => {
+  for (const [id, choice, level, term] of [
+    ['semesterFilter', 'second', 'all', 'second'],
+    ['levelFilter', '200L', '200L', 'all'],
+    ['resetFilters', null, 'all', 'all'],
+    ['filterChips', null, 'all', 'all'],
+  ]) {
+    const v = open('', { hold: true, effective: '300L' });
+    await turn();
+    const el = v.get(id);
+    if (choice) {
+      el.value = choice;
+      el.fire('change');
+    } else if (id === 'filterChips') {
+      el.children[0].fire('click');
+    } else {
+      el.fire('click');
+    }
+    v.release();
+    await turn();
+    assert.equal(v.get('levelFilter').value, level);
+    assert.equal(v.get('semesterFilter').value, term);
+  }
+});
+test('Missing, failed or invalid profile reads never invent a level; approved items and manual filters still work', async () => {
+  for (const options of [
+    { effective: null },
+    { effective: 'unrecognised' },
+    { effective: '300L', profileError: true },
+  ]) {
+    const v = open('', options);
+    await turn();
+    assert.equal(v.get('levelFilter').value, 'all');
+    assert.equal(v.get('semesterFilter').value, 'all');
+    assert.equal(v.get('visibleCount').textContent, records.length);
+    v.get('levelFilter').value = '200L';
+    v.get('levelFilter').fire('change');
+    v.get('semesterFilter').value = 'first';
+    v.get('semesterFilter').fire('change');
+    assert.match(v.get('bookGrid').innerHTML, /Volume 1/);
+  }
 });

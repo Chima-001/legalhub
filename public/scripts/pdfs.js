@@ -123,7 +123,25 @@
   const requestedSemester = ['first', 'second'].includes(termParam) ? termParam : 'all';
   const requestedMaterial = libraryParams.get('material');
   let selectedLevel = levelChoices.includes(requestedLevel) ? requestedLevel : 'all';
-  let readerChoseLevel = requestedLevel === 'all' || selectedLevel !== 'all';
+  // Both Home Library links are unscoped. Bookmarks from a desk or a shared material are instructions,
+  // not defaults: don't replace their scope with the profile, even if its response arrives later.
+  const unscopedEntry = !['level', 'semester', 'course', 'material'].some(key => libraryParams.has(key));
+  let acceptProfileLevel = selectedLevel === 'all' && requestedLevel !== 'all' && !libraryParams.has('material');
+  let profileNote = null;
+  function keepReaderFilters() {
+    acceptProfileLevel = false;
+    profileNote?.remove();
+    profileNote = null;
+  }
+  function explainMissingDefault() {
+    if (!unscopedEntry || !acceptProfileLevel || profileNote) return;
+    const host = document.querySelector?.('.library-filters');
+    if (!host) return;
+    profileNote = document.createElement('p');
+    profileNote.setAttribute('role', 'status');
+    profileNote.textContent = 'Your study level is unavailable. Showing all levels and semesters; you can choose either filter.';
+    host.after(profileNote);
+  }
   let selectedSemester = requestedLevel === 'Relevant' ? 'all' : requestedSemester;
   let userChangedScope = false;
   let isAdmin = false;
@@ -136,10 +154,13 @@
       supabaseClient.from('users').select('is_admin').eq('id', user.id).single(),
       supabaseClient.rpc('get_effective_level', { p_uid: user.id })
     ]);
-    isAdmin = role.status === 'fulfilled' && role.value.data?.is_admin === true;
-    const profileLevel = level.status === 'fulfilled' ? level.value.data : null;
-    if (['100L', '200L', '300L', '400L', '500L'].includes(profileLevel) && selectedLevel === 'all' && !readerChoseLevel) {
+    isAdmin = role.status === 'fulfilled' && !role.value.error && role.value.data?.is_admin === true;
+    const profileLevel = level.status === 'fulfilled' && !level.value.error ? level.value.data : null;
+    if (acceptProfileLevel && ['100L', '200L', '300L', '400L', '500L'].includes(profileLevel)) {
       selectedLevel = profileLevel;
+      if (unscopedEntry) selectedSemester = 'first';
+    } else if (acceptProfileLevel) {
+      explainMissingDefault();
     }
     document.getElementById('levelFilter').value = selectedLevel;
   }
@@ -281,6 +302,7 @@
   // ─── 7. FILTER LOGIC ───────────────────────────────────────────
 
   function setActiveFilter(filter) {
+    keepReaderFilters();
     activeFilter = filter;
 
     document.querySelectorAll('.filter-chip').forEach(chip => {
@@ -434,20 +456,21 @@
   sheetCloseBtn.addEventListener('click', closeBottomSheet);
 
   document.getElementById('levelFilter').addEventListener('change', function () {
-    readerChoseLevel = true;
+    keepReaderFilters();
     userChangedScope = true;
     selectedLevel = this.value;
     updateCourseFilters();
   });
 
   document.getElementById('semesterFilter').addEventListener('change', function () {
+    keepReaderFilters();
     userChangedScope = true;
     selectedSemester = this.value;
     updateCourseFilters();
   });
 
   document.getElementById('resetFilters').addEventListener('click', () => {
-    readerChoseLevel = true;
+    keepReaderFilters();
     userChangedScope = true;
     selectedLevel = 'all';
     activeFilter = 'All';
@@ -489,7 +512,7 @@
     note.textContent = 'Course list temporarily unavailable. Filters from approved materials are still available.';
     host.after(note);
   });
-  loadUserFilters().catch(() => {}).then(() => {
+  loadUserFilters().catch(explainMissingDefault).then(() => {
     updateCourseFilters();
     return loadApprovedMaterials();
   }).catch(() => {
