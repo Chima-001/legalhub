@@ -101,7 +101,7 @@ export function mountDesk(
   }
   function identify() {
     const name = route ? `${route.level} ${termTitle(route.semester)}` : 'Semester study desk';
-    document.title = `${name} · Legal Hub`;
+    document.title = `${name} · LegalHub`;
     frame.querySelector('.level-intro').dataset.level = route?.level || '';
     frame.querySelector('.level-kicker').textContent = route
       ? `${route.level} / ${termTitle(route.semester).toUpperCase()}`
@@ -184,7 +184,7 @@ export function mountDesk(
         encodeURIComponent('Course material request — ' + c.name) +
         '&body=' +
         encodeURIComponent(
-          `Hi,\n\nCould we get materials uploaded for ${c.name} (030 Legal Hub)?\n\nThanks!`,
+          `Hi,\n\nCould we get materials uploaded for ${c.name} (030 LegalHub)?\n\nThanks!`,
         );
     } else el.querySelector('.empty-state').remove();
     byId.set(c.id, { c, el });

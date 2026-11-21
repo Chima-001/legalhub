@@ -412,3 +412,43 @@ footer span {
 #roster-emails li { padding: .45rem 0; border-bottom: 1px solid #e1e4df; overflow-wrap: anywhere; }
 #roster-status:not(:empty) { margin-top: .75rem; }
 #roster-refresh { min-height: 44px; }
+
+/* Footer brand — exact match to index.html / home.css */
+footer .brand {
+  color: var(--ink);
+  font-size: 11px;
+  gap: 10px;
+  font-weight: 800;
+  letter-spacing: -.04em;
+}
+
+footer .brand-mark {
+  width: 39px;
+  height: 30px;
+  background: linear-gradient(135deg, rgb(24, 33, 43), rgb(47, 99, 190));
+  box-shadow: 0 7px 18px rgba(47, 99, 190, .2);
+  color: var(--paper);
+  font-size: 11px;
+  letter-spacing: .06em;
+  display: grid;
+  place-items: center;
+}
+
+.footer-credit {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  white-space: nowrap;
+}
+
+.footer-credit a {
+  display: inline-flex;
+  align-items: center;
+}
+
+.footer-credit img {
+  display: block;
+  width: auto;
+  max-width: 135px;
+  height: 21px;
+}
