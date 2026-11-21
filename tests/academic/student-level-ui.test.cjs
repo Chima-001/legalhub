@@ -79,7 +79,7 @@ test('Student chooses a tier for the displayed session; typed save and account r
   const { el, calls, change, out } = fixture(false);
   await turn();
   assert(!el('level-select').disabled);
-  assert.match(el('level-session-hint').textContent, /Choose your own level for 2026\/2027/);
+  assert.equal(el('level-session-hint').textContent, 'Choose your current level for the 2026/2027 session.');
   el('level-select').value = '400L';
   await el('level-select').fire('change');
   await el('save-level-btn').fire('click');
