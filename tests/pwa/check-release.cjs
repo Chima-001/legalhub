@@ -15,6 +15,7 @@ for (const args of [
   [
     '--test',
     'tests/pwa/public-worker.test.cjs',
+    'tests/pwa/install-invite.test.cjs',
     'tests/academic/student-level-ui.test.cjs',
     'tests/academic/frontend.test.cjs',
   ],

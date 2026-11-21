@@ -21,6 +21,11 @@
     <link rel="icon" type="image/svg+xml" href="./assets/images/favicon.svg" />
     <link rel="stylesheet" href="./styles/home.css" />
     <script>
+        // Capture only a boolean before Auth or Home consumes a callback URL. Do not save the URL.
+        if (!location.search && ['', '#levels', '#resources'].includes(location.hash))
+            document.documentElement.dataset.lhInstallHome = '1';
+    </script>
+    <script>
         // Older signup emails defaulted to the homepage. Hand off before Auth or the guard reads the URL.
         (() => {
             const fragment = new URLSearchParams(window.location.hash.slice(1));

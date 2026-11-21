@@ -1,6 +1,7 @@
 // One loopback-only HTTP origin and an actual service worker. Only approved static files are served;
 // private pages/API responses are synthetic, external networking is blocked and no production SDK is loaded.
 import http from 'node:http';
+import { runInviteChecks } from './install-invite.browser.mjs';
 import { readFile } from 'node:fs/promises';
 import { fileURLToPath } from 'node:url';
 import path from 'node:path';
@@ -19,6 +20,8 @@ const pub = fileURLToPath(new URL('../../public/', import.meta.url)),
     'pwa/public-pack.js',
     'pwa/study.css',
     'pwa/register.js',
+    'pwa/install-invite.mjs',
+    'pwa/install-invite.css',
     'manifest.webmanifest',
     'pwa/lh-192.png',
     'pwa/lh-512.png',
@@ -53,11 +56,8 @@ const server = http.createServer(async (req, res) => {
       return send('application/json', '{"fixture":true}');
     }
     if (rel === 'seed-fixture') return send('text/html', '<!doctype html><title>Setup</title>');
-    if ((rel === 'index.html' || rel === '') && u.search)
-      return send(
-        'text/html',
-        '<!doctype html><title>Fixture callback</title>Callback requires the network',
-      );
+    if ((rel === 'index.html' || rel === '') && u.search && u.search !== '?code=invite-fixture')
+      return send('text/html', '<!doctype html><title>Fixture callback</title>Callback requires the network');
     if ((rel === 'index.html' || rel === '') && denyHome)
       return send('text/plain', 'Fixture permission denied', 403);
     const key = rel === '' ? 'index.html' : rel === 'study/' ? 'study/index.html' : rel;
@@ -72,6 +72,7 @@ const server = http.createServer(async (req, res) => {
       return send(
         {
           '.js': 'application/javascript',
+          '.mjs': 'application/javascript',
           '.html': 'text/html; charset=utf-8',
           '.css': 'text/css',
           '.png': 'image/png',
@@ -80,12 +81,13 @@ const server = http.createServer(async (req, res) => {
         content,
       );
     }
-    if (rel === 'scripts/avatar.js')
-      return send('application/javascript', 'window.loadHeaderAvatar=()=>{};');
+    if (rel === 'scripts/avatar.js') return send('application/javascript', 'window.loadHeaderAvatar=()=>{};');
     if (rel === 'scripts/auth/auth-guard.js')
       return send(
         'application/javascript',
-        'document.addEventListener("DOMContentLoaded",()=>{document.body.style.visibility="visible";});',
+        `if(window.__holdInviteAuth){const guard=document.createElement('style');guard.id='auth-page-blocker';document.head.append(guard);}
+         window.__releaseInviteAuth=()=>{document.getElementById('auth-page-blocker')?.remove();document.body.style.visibility='visible';};
+         document.addEventListener('DOMContentLoaded',()=>{if(!window.__holdInviteAuth)window.__releaseInviteAuth();});`,
       );
     if (rel.startsWith('scripts/'))
       return send('application/javascript', '/* fixture: never load a project client */');
@@ -260,9 +262,7 @@ try {
       await next.waitForFunction(async () => {
         const reg = await navigator.serviceWorker.getRegistration();
         return (
-          reg?.active &&
-          !reg.waiting &&
-          (await caches.keys()).some((n) => n.endsWith('01122334455667788990'))
+          reg?.active && !reg.waiting && (await caches.keys()).some((n) => n.endsWith('01122334455667788990'))
         );
       });
       await next.reload();
@@ -278,6 +278,9 @@ try {
     }
     await c.close();
   }
+  upgrade = false;
+  down = false;
+  await runInviteChecks({ context, origin, offline });
   // A new browser partition cannot have an offline first visit.
   const fresh = await context(390);
   await offline(fresh, true);

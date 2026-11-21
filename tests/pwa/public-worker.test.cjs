@@ -176,6 +176,8 @@ test('Private pages, GET queries, auth headers, cross-origin, ranges, signed res
     'index.html?code=fixture',
     'study/?token=fixture',
     'pwa/study.css?v=fixture',
+    'pwa/install-invite.mjs',
+    'pwa/install-invite.css',
     'rest/v1/materials',
     'auth/v1/token',
     'functions/v1/r2-presign',

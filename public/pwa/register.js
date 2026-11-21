@@ -1,51 +1,115 @@
-// Same script on Home and the public reading page. No Auth SDK, cookies, accounts or storage keys.
+// Shared Home/Study worker and native install controls. No Auth SDK or identity lookup.
 (() => {
   'use strict';
   const src = document.currentScript?.src;
-  if (
-    !src ||
-    location.search ||
-    document.documentElement.dataset.signupHandoff === '1' ||
-    location.hash.includes('=')
-  )
-    return;
+  if (!src) return;
   const root = new URL('../', src),
     worker = new URL('sw.js', root);
-  if (root.origin !== location.origin) return;
+  const rel = location.pathname.slice(root.pathname.length),
+    home = ['', 'index', 'index.html'].includes(rel),
+    study = ['study', 'study/', 'study/index', 'study/index.html'].includes(rel);
+  const normalPage = () =>
+    root.origin === location.origin &&
+    location.pathname.startsWith(root.pathname) &&
+    location.pathname.slice(root.pathname.length) === rel &&
+    !location.search &&
+    !location.hash.includes('=') &&
+    document.documentElement.dataset.signupHandoff !== '1' &&
+    (study ||
+      (home &&
+        document.documentElement.dataset.lhInstallHome === '1' &&
+        ['', '#levels', '#resources'].includes(location.hash)));
+  if (!normalPage()) return;
   const note = document.querySelector('[data-lh-state]'),
     install = document.querySelector('[data-lh-install]'),
     help = document.querySelector('[data-lh-help]');
+  const mode = window.matchMedia(
+    '(display-mode: standalone), (display-mode: minimal-ui), (display-mode: window-controls-overlay)',
+  );
   let available = false,
-    pendingPrompt,
-    epoch = 0;
-  const installed = () => matchMedia('(display-mode: standalone)').matches || navigator.standalone === true;
+    pendingPrompt = null,
+    epoch = 0,
+    appInstalled = false,
+    prompting = false,
+    invite,
+    loading = false,
+    recording = false;
+  const installed = () => appInstalled || mode.matches || navigator.standalone === true;
+  const canPrompt = () => !!pendingPrompt && !prompting && !installed() && normalPage();
+  const invitationModule = () => import(new URL('pwa/install-invite.mjs', root).href);
   function controls() {
-    if (install) install.hidden = !pendingPrompt || installed();
+    if (install) install.hidden = !canPrompt();
     if (help) help.hidden = installed();
+    invite?.update();
   }
-  if (install) {
-    controls();
-    window.addEventListener('beforeinstallprompt', (event) => {
-      event.preventDefault();
-      pendingPrompt = event;
+  async function promptFromClick() {
+    if (!canPrompt()) return 'manual';
+    const p = pendingPrompt;
+    pendingPrompt = null;
+    prompting = true;
+    try {
+      const prompted = p.prompt(); // Consume the event in the user gesture, before any await.
       controls();
-    });
-    install.addEventListener('click', async () => {
-      const p = pendingPrompt;
-      if (!p) return;
-      pendingPrompt = null;
+      const answer = await prompted,
+        choice = answer?.outcome ? answer : await p.userChoice;
+      return ['accepted', 'dismissed'].includes(choice?.outcome) ? choice.outcome : 'manual';
+    } catch {
+      return 'manual';
+    } finally {
+      prompting = false;
       controls();
-      try {
-        await p.prompt();
-        await p.userChoice;
-      } catch {
-        /* The browser menu remains available. */
-      }
+    }
+  }
+  function startHome() {
+    if (!home || invite || loading || !normalPage() || installed() || navigator.onLine === false) return;
+    loading = true;
+    // Deliberately outside the public reading cache: no invitation on offline fallback or Study.
+    invitationModule()
+      .then(({ mountInvitation }) => {
+        if (normalPage() && !installed())
+          invite = mountInvitation({ root, normalPage, installed, canPrompt, promptFromClick });
+      })
+      .catch(() => {})
+      .finally(() => {
+        loading = false;
+      });
+  }
+  function rememberInstalled() {
+    if (recording || !normalPage() || navigator.onLine === false) return;
+    recording = true;
+    invitationModule()
+      .then(({ rememberInstallation }) => rememberInstallation())
+      .catch(() => {});
+  }
+  controls();
+  if (window.isSecureContext && window.top === window) {
+    window.addEventListener('beforeinstallprompt', (e) => {
+      if (!normalPage() || typeof e.prompt !== 'function' || installed()) return;
+      e.preventDefault();
+      pendingPrompt = e;
+      controls();
     });
     window.addEventListener('appinstalled', () => {
+      appInstalled = true;
       pendingPrompt = null;
       controls();
-      if (help) help.hidden = true;
+      rememberInstalled();
+    });
+    mode.addEventListener?.('change', () => {
+      if (installed()) {
+        pendingPrompt = null;
+        rememberInstalled();
+      } else startHome();
+      controls();
+    });
+    install?.addEventListener('click', async () => {
+      if ((await promptFromClick()) === 'manual' && help && !installed()) help.open = true;
+    });
+    if (installed()) rememberInstalled();
+    else startHome();
+    window.addEventListener('online', () => {
+      if (installed()) rememberInstalled();
+      else startHome();
     });
   }
   function display(reason) {
@@ -116,7 +180,10 @@
     }
   }
   sw.addEventListener('controllerchange', () => void prepare());
-  window.addEventListener('offline', () => display());
+  window.addEventListener('offline', () => {
+    display();
+    invite?.update();
+  });
   window.addEventListener('online', () => void prepare());
   window.addEventListener('pageshow', (e) => {
     if (e.persisted) void prepare();
