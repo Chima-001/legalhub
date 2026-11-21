@@ -1,0 +1,295 @@
+<!DOCTYPE html>
+<!-- One runtime study desk. Native HTML templates below are filled only for the selected term. -->
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Semester study desk · Legal Hub</title>
+    <link rel="stylesheet" href="../styles/main.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+        href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&family=IBM+Plex+Mono:wght@500&display=swap"
+        rel="stylesheet" />
+    <link rel="stylesheet" href="../styles/output.css">
+    <link rel="stylesheet" href="../styles/level-dashboard.css">
+
+    <link rel="icon" type="image/svg+xml" href="../assets/images/favicon.svg" />
+    <meta name="description" content="Choose a level and semester to browse its law courses and resources." />
+    <meta property="og:title" content="Semester study desk · Legal Hub" />
+    <meta property="og:description"
+        content="Choose a level and semester to browse its law courses and resources." />
+    <meta property="og:image" content="https://legalhub-io.netlify.app/assets/images/social-preview.png" />
+    <meta property="og:url" content="https://legalhub-io.netlify.app/pages/semester.html" />
+    <meta property="og:type" content="website" />
+    <style>
+        body {
+            visibility: hidden;
+        }
+    </style>
+    <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+    <script src="../scripts/auth/supabase-client.js"></script>
+    <script src="../scripts/avatar.js"></script>
+    <script src="../scripts/auth/auth-guard.js"></script>
+</head>
+
+<body>
+
+    <div class="frame" id="semester-desk" data-state="loading">
+
+        <!-- ─── STICKY HEADER (Nav + Search + Chips) ─── -->
+        <div class="sticky-header">
+            <nav class="nav desk-site-nav rise rise-1" aria-label="Main navigation">
+                <div class="nav-brand">
+                    <span class="nav-brand-mark">LH</span>
+                    <span>Legal Hub</span>
+                </div>
+                <div class="desk-nav-steps" id="desk-nav-steps" role="group" aria-label="Scroll navigation links" hidden>
+                    <button type="button" data-step="-1" aria-label="Scroll navigation left" aria-controls="desk-nav-links">
+                        <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 16 16"><path d="m10 3-5 5 5 5" /></svg>
+                    </button>
+                    <button type="button" data-step="1" aria-label="Scroll navigation right" aria-controls="desk-nav-links">
+                        <svg aria-hidden="true" focusable="false" width="16" height="16" viewBox="0 0 16 16"><path d="m6 3 5 5-5 5" /></svg>
+                    </button>
+                </div>
+                <div class="nav-links desk-nav-links" id="desk-nav-links">
+                    <a href="../index.html">Home</a>
+                    <a id="desk-self" href="./semester.html" class="active" aria-current="page">Courses</a>
+                    <a data-library href="./pdf.html">Library</a>
+                    <a href="./about.html">About</a>
+                    <a id="desk-admin-link" href="./admin-settings.html" hidden>
+                        <svg aria-hidden="true" focusable="false" width="14" height="14" viewBox="0 0 16 16">
+                            <path d="M2 5h3m4 0h5M2 11h7m4 0h1" /><circle cx="7" cy="5" r="2" /><circle cx="11" cy="11" r="2" />
+                        </svg>Admin settings
+                    </a>
+                </div>
+                <a class="profile-link" href="./profile.html" aria-label="Open your profile"><span
+                        id="header-avatar">?</span></a>
+            </nav>
+
+            <div class="search-wrap rise rise-2" data-listed hidden>
+                <svg class="icon-search" width="17" height="17" viewBox="0 0 16 16" fill="none">
+                    <circle cx="7" cy="7" r="5.5" stroke="currentColor" stroke-width="1.6" />
+                    <path d="M11.5 11.5L15 15" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" />
+                </svg>
+                <input aria-label="Search courses and resources on this desk" id="search" type="text" placeholder="Search courses, cases, textbooks…" autocomplete="off" />
+                <span class="kbd-hint">/</span>
+            </div>
+
+            <!-- Search filters apply only to listed courses. Library and upload links remain usable. -->
+            <div class="chip-row rise rise-2">
+                <a class="chip chip-link" id="library-chip" data-library href="./pdf.html">Books &amp; Materials</a>
+                <a class="chip chip-link" href="./materials.html">Upload Material</a>
+                <a class="chip chip-link" href="https://legalhub-law.web.app" target="_blank"
+                    rel="noopener noreferrer">CBT Practice</a>
+            </div>
+        </div>
+
+        <section class="level-intro rise rise-1" data-level="">
+            <div>
+                <p class="level-kicker">SEMESTER STUDY DESK</p>
+                <h1 id="greeting-text">Welcome back</h1>
+                <p class="level-description">Choose your level and semester on the home page.</p>
+            </div>
+            <div class="desk-navigation">
+                <nav class="desk-tabs" aria-label="Semesters for this level" hidden>
+                    <a data-term="first">First Semester</a>
+                    <a data-term="second">Second Semester</a>
+                </nav>
+                <a class="level-switch" href="../index.html#levels">Switch level <span aria-hidden="true">↗</span></a>
+            </div>
+        </section>
+
+        <div class="stat-row rise rise-2" aria-label="Study overview">
+            <div class="stat-card">
+                <div class="big" id="desk-count">—</div>
+                <div class="stat-label">Courses listed</div>
+            </div>
+
+            <a href="https://legalhub-law.web.app/" class="stat-card">
+                <div>
+                    <div class="big">CBT</div>
+                    <div class="stat-label">Practice tests</div>
+                </div>
+            </a>
+            <div class="stat-card">
+                <div class="big" id="desk-year">—</div>
+                <div class="stat-label">Year of study</div>
+            </div>
+        </div>
+
+        <div class="search-meta" id="search-meta" role="status"></div>
+
+        <!-- ─── STARRED PANEL ─── -->
+        <div class="panel" id="starred-panel" hidden>
+            <div class="panel-top">
+                <div class="panel-icon" style="background:rgba(255,210,92,0.15); color:#d4a020;">⭐</div>
+                <div class="panel-title-wrap">
+                    <div class="panel-title">Starred</div>
+                    <div class="panel-sub" id="starred-sub">Courses you're keeping an eye on</div>
+                </div>
+            </div>
+            <div class="thumb-row" id="starred-row"></div>
+        </div>
+
+        <section class="panel desk-empty" id="desk-message" aria-labelledby="desk-message-title">
+            <p class="desk-eyebrow">COURSE DIRECTORY</p>
+            <h2 class="panel-title" id="desk-message-title">Opening your study desk…</h2>
+            <p class="panel-sub" id="desk-message-detail">If the course list does not load, refresh the page.</p>
+            <div class="desk-actions">
+                <button class="panel-cta" type="button" id="desk-retry" hidden>Try again</button>
+                <a class="panel-cta" id="desk-message-link" data-library href="./pdf.html">Browse the library</a>
+            </div>
+        </section>
+        <p class="desk-announcement" id="desk-announcement" role="status" aria-live="polite" aria-atomic="true"></p>
+
+        <!-- ─── CAROUSEL ─── -->
+        <div class="carousel-wrap rise rise-3" role="region" aria-label="Legal inspiration carousel">
+            <div class="carousel-track" id="carouselTrack">
+                <div class="carousel-slide">
+                    <img src="../assets/images/law.png" alt="Law books and gavel" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>The Nigerian legal system is a rich fusion of English common law, customary law, and
+                            Islamic law.</blockquote>
+                        <cite>— Legal Heritage of Nigeria</cite>
+                        <span class="slide-tag">Constitutional Law</span>
+                    </div>
+                </div>
+                <div class="carousel-slide">
+                    <img src="../assets/images/Statue of lady justice holding scales and a sword on a marble table.jpg"
+                        alt="Lady Justice statue" loading="lazy" />
+                    <div class="slide-overlay">
+                        <blockquote>Nigeria's legal framework continues to evolve, meeting the challenges of a modern
+                            society.</blockquote>
+                        <cite>— Legal Evolution</cite>
+                        <span class="slide-tag">Modern Law</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- controls -->
+            <button class="carousel-ctrl prev" id="carouselPrev" aria-label="Previous slide">‹</button>
+            <button class="carousel-ctrl next" id="carouselNext" aria-label="Next slide">›</button>
+        </div>
+
+        <!-- ─── RECENT PANEL ─── -->
+        <div class="panel" id="recent-panel" hidden>
+            <div class="panel-top">
+                <div class="panel-icon" style="background:rgba(124,92,252,0.12); color:#7c5cfc;">🕓</div>
+                <div class="panel-title-wrap">
+                    <div class="panel-title">Recently opened</div>
+                    <div class="panel-sub">This session</div>
+                </div>
+            </div>
+            <div class="thumb-row" id="recent-row"></div>
+        </div>
+
+        <!-- ─── SECTION HEADER ─── -->
+        <div class="section-head rise rise-3" id="courses" data-listed hidden>
+            <h2>My Courses</h2>
+            <div class="count-badge"><span id="desk-badge-count">—</span><div class="dot"></div>
+            </div>
+        </div>
+
+        <!-- ─── STUDY ROUTES ─── -->
+        <div class="panel study-routes rise rise-5" data-listed hidden>
+            <div class="panel-top">
+                <div class="panel-icon" style="background:rgba(255,157,92,0.15); color:#e8822a;">✦</div>
+                <div class="panel-title-wrap">
+                    <div class="panel-title">Choose your next move</div>
+                    <div class="panel-sub">Small steps make strong law students</div>
+                </div>
+                <a class="panel-cta" href="#courses-head">Browse</a>
+            </div>
+            <div class="route-grid" id="desk-routes"></div>
+        </div>
+
+        <!-- ─── ALL COURSES QUICK JUMP ─── -->
+        <div class="panel rise rise-6" id="desk-course-index" data-listed hidden>
+            <div class="panel-top">
+                <div class="panel-icon" style="background:rgba(124,92,252,0.12); color:#7c5cfc;">📖</div>
+                <div class="panel-title-wrap">
+                    <div class="panel-title">All Courses</div>
+                    <div class="panel-sub">Tap a course to jump to it</div>
+                </div>
+                <a class="panel-cta" href="#courses-head">View all</a>
+            </div>
+            <div class="thumb-row" id="desk-index-row"></div>
+        </div>
+
+        <!-- ─── COURSE MATERIALS ─── -->
+        <div class="section-head" id="courses-head" data-listed hidden>
+            <h2>Course Materials</h2>
+        </div>
+
+        <div id="no-results"><strong>No matches</strong>Try a different course or resource name.</div>
+
+        <div id="course-rows"></div>
+
+        <footer id="contact">
+            <div class="footer-brand footer-brand-lockup">
+                <span class="footer-brand-mark">LH</span>
+                <span class="footer-brand-name">Legal Hub</span>
+            </div>
+            <div class="footer-links">
+                <a href="../pages/about.html">About</a>
+                <a href="#contact">Contact</a>
+                <a href="mailto:hillarymmaka@gmail.com">Help</a>
+            </div>
+            <div class="footer-institute">© 2026 Victorious Tech Institute</div>
+            <div class="footer-credit">Powered by <a href="https://clopertechnologies.me" target="_blank"
+                    rel="noopener noreferrer" aria-label="Visit Cloper Technologies"><img
+                        src="../assets/images/cloper-logo-light.svg" alt="Cloper Technologies" /></a></div>
+        </footer>
+
+    </div>
+
+    <div id="toast" role="status"></div>
+
+    <template id="tpl-route">
+        <a class="route-card"><span class="route-number"></span><strong></strong><small></small><span class="route-arrow" aria-hidden="true">↗</span></a>
+    </template>
+    <template id="tpl-tile">
+        <button type="button" class="thumb"><span class="thumb-sq"></span><span class="thumb-label"></span></button>
+    </template>
+    <template id="tpl-course">
+        <section class="course">
+            <div class="course-head">
+                <div class="course-head-left">
+                    <span class="swatch" aria-hidden="true"></span>
+                    <div><span class="course-code"></span><h2 class="course-name"><button type="button" class="course-toggle" aria-expanded="false"></button></h2></div>
+                </div>
+                <span class="pill"></span>
+                <button type="button" class="star-btn" aria-pressed="false" title="Star this course">
+                    <svg aria-hidden="true" width="17" height="17" viewBox="0 0 16 16" fill="currentColor"><path d="M8 1.5l1.85 3.9 4.3.55-3.15 3 0.85 4.3L8 11.2 4.15 13.25 5 8.95 1.85 5.95l4.3-.55L8 1.5z"/></svg>
+                </button>
+                <svg aria-hidden="true" class="chevron" viewBox="0 0 20 20" fill="none"><path d="M5 7.5L10 12.5L15 7.5" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg>
+            </div>
+            <div class="course-body">
+                <ul class="resources"></ul>
+                <p class="panel-sub" data-no-resources>No resources listed yet.</p>
+                <div class="empty-state">
+                    <div class="emoji" aria-hidden="true">🗂️</div>
+                    <p>Nothing uploaded here yet — be the first to add something.</p>
+                    <a class="request-btn">Request this material</a>
+                </div>
+            </div>
+        </section>
+    </template>
+    <template id="tpl-resource">
+        <li>
+            <span class="res-name"></span>
+            <span class="res-right"><span class="res-count"></span>
+                <button class="copy-btn" type="button" title="Copy link"><svg aria-hidden="true" width="14" height="14" viewBox="0 0 16 16" fill="none"><rect x="5" y="5" width="8" height="8" rx="1.5" stroke="currentColor" stroke-width="1.3"/><path d="M3 10V4a1 1 0 011-1h6" stroke="currentColor" stroke-width="1.3"/></svg></button>
+            </span>
+        </li>
+    </template>
+
+    <script src="../scripts/dashboard.js"></script>
+    <script src="../scripts/academic/term.js"></script>
+    <script type="module" src="../scripts/academic/semester-desk.mjs"></script>
+
+</body>
+
+</html>

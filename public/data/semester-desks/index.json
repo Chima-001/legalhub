@@ -1,0 +1,24 @@
+{
+  "100L": {
+    "intro": "Your foundation year, gathered in one focused study space.",
+    "published": [
+      "second"
+    ]
+  },
+  "200L": {
+    "intro": "A study desk for the second year of your programme.",
+    "published": []
+  },
+  "300L": {
+    "intro": "A study desk for the third year of your programme.",
+    "published": []
+  },
+  "400L": {
+    "intro": "A study desk for the fourth year of your programme.",
+    "published": []
+  },
+  "500L": {
+    "intro": "A study desk for the final year of your programme.",
+    "published": []
+  }
+}

@@ -1,0 +1,240 @@
+{
+  "level": "100L",
+  "semester": "second",
+  "courses": [
+    {
+      "id": "legal-method",
+      "name": "Legal Method",
+      "code": "PUL 102",
+      "tileCode": "102",
+      "accent": "#4a6cf7",
+      "badge": "3 of 5",
+      "badgeActive": true,
+      "resources": [
+        {
+          "label": "Course materials",
+          "library": "Legal Method",
+          "count": 0
+        },
+        {
+          "label": "Cases",
+          "href": "./method_ratio.html",
+          "count": 9,
+          "live": true,
+          "copy": true
+        },
+        {
+          "label": "Past questions",
+          "href": "./legal-method-past.html",
+          "count": 6,
+          "live": true,
+          "copy": true
+        },
+        {
+          "label": "Test",
+          "count": 6,
+          "live": true
+        }
+      ]
+    },
+    {
+      "id": "customary-law",
+      "name": "Customary Law",
+      "code": "UNN LAW",
+      "accent": "#ff9d5c",
+      "badge": "0 of 5",
+      "request": true,
+      "resources": [
+        {
+          "label": "Course materials",
+          "library": "Customary Law",
+          "count": 0
+        },
+        {
+          "label": "Cases",
+          "count": 0
+        },
+        {
+          "label": "Past questions",
+          "count": 0
+        },
+        {
+          "label": "Test",
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "philosophy",
+      "name": "Philosophy",
+      "code": "PHIL 105",
+      "tileCode": "PHL 105",
+      "accent": "#34c759",
+      "badge": "0 of 4",
+      "request": true,
+      "resources": [
+        {
+          "label": "Course materials",
+          "library": "Philosophy",
+          "count": 0
+        },
+        {
+          "label": "Past questions",
+          "count": 0
+        },
+        {
+          "label": "Test",
+          "href": "https://legalhub-law.web.app/?course=phl105&mode=course",
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "psychology",
+      "name": "Psychology",
+      "code": "PSY 102",
+      "tileCode": "PSY 101",
+      "accent": "#7c5cfc",
+      "badge": "0 of 4",
+      "request": true,
+      "resources": [
+        {
+          "label": "Course materials",
+          "library": "Psychology",
+          "count": 0
+        },
+        {
+          "label": "Past questions",
+          "count": 0
+        },
+        {
+          "label": "Test",
+          "href": "https://legalhub-law.web.app/?course=zDgx89oiU6fb1HpuuXzs&mode=course",
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "intro-to-nigerian-literature",
+      "name": "Intro to Nigerian Literature",
+      "title": "Introduction to Nigerian Literature",
+      "code": "ELS 110",
+      "accent": "#ffd25c",
+      "badge": "0 of 4",
+      "request": true,
+      "resources": [
+        {
+          "label": "Course materials",
+          "library": "Introduction to Nigerian Literature",
+          "count": 0
+        },
+        {
+          "label": "Past questions",
+          "count": 0
+        },
+        {
+          "label": "Test",
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "communication-in-english",
+      "name": "Communication in English",
+      "code": "GST 114",
+      "accent": "#5ac8fa",
+      "badge": "2 of 4",
+      "request": true,
+      "resources": [
+        {
+          "label": "Course materials",
+          "library": "Communication in English",
+          "count": 0
+        },
+        {
+          "label": "Past questions",
+          "count": 0
+        },
+        {
+          "label": "Test",
+          "href": "https://legalhub-law.web.app/?course=gst114&mode=course",
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "natural-science",
+      "name": "Natural Science",
+      "code": "GST",
+      "accent": "#5ac8fa",
+      "badge": "2 of 4",
+      "request": true,
+      "resources": [
+        {
+          "label": "Course materials",
+          "library": "Natural Science",
+          "count": 0
+        },
+        {
+          "label": "Past questions",
+          "count": 0
+        },
+        {
+          "label": "Test",
+          "href": "https://legalhub-law.web.app/?course=gsp105&mode=course",
+          "count": 0
+        }
+      ]
+    },
+    {
+      "id": "logics",
+      "name": "Logics",
+      "title": "Logics and Critical thinking",
+      "code": "Law 102",
+      "tileCode": "LAW 102",
+      "accent": "#5ac8fa",
+      "badge": "0 of 4",
+      "request": true,
+      "resources": [
+        {
+          "label": "Course materials",
+          "library": "Logics",
+          "count": 0
+        },
+        {
+          "label": "Past questions",
+          "count": 0
+        },
+        {
+          "label": "Test",
+          "href": "https://legalhub-law.web.app/?course=phl102&mode=course",
+          "count": 0
+        }
+      ]
+    }
+  ],
+  "indexOrder": [
+    "legal-method",
+    "customary-law",
+    "philosophy",
+    "psychology",
+    "intro-to-nigerian-literature",
+    "communication-in-english",
+    "logics",
+    "natural-science"
+  ],
+  "guides": [
+    {
+      "title": "Read a case",
+      "note": "See legal method in action",
+      "href": "./method_ratio.html",
+      "tone": "blue"
+    },
+    {
+      "title": "Test your memory",
+      "note": "Try a past question",
+      "href": "./legal-method-past.html",
+      "tone": "coral"
+    }
+  ]
+}

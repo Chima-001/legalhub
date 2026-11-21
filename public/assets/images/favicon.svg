@@ -1,8 +1,11 @@
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 64 64" role="img" aria-labelledby="title desc">
-  <title id="title">LegalHub</title>
-  <desc id="desc">Gold scales of justice on a warm cream background</desc>
-  <rect width="64" height="64" rx="14" fill="#faf7ee"/>
-  <circle cx="32" cy="32" r="25" fill="#c98a1f"/>
-  <path d="M32 16v31M22 47h20M17 22h30M24 22l-7 13h14l-7-13zm16 0-7 13h14l-7-13z" fill="none" stroke="#fff8e7" stroke-linecap="round" stroke-linejoin="round" stroke-width="3"/>
-  <path d="M17 35c0 4 3 7 7 7s7-3 7-7M33 35c0 4 3 7 7 7s7-3 7-7" fill="none" stroke="#fff8e7" stroke-linecap="round" stroke-width="2"/>
+<svg xmlns="http://www.w3.org/2000/svg" width="64" height="64" viewBox="0 0 64 64" role="img" aria-labelledby="title">
+  <title id="title">Legal Hub — LH</title>
+  <defs>
+    <linearGradient id="tile" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop stop-color="#18212b"/>
+      <stop offset="1" stop-color="#2f63be"/>
+    </linearGradient>
+  </defs>
+  <rect width="64" height="64" fill="url(#tile)"/>
+  <path fill="#f7f6f1" d="M8 16h8v24h12v8H8zM32 16h8v12h8V16h8v32h-8V36h-8v12h-8z"/>
 </svg>

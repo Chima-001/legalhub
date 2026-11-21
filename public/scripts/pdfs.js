@@ -12,31 +12,40 @@
 
   // ─── 1. CONFIGURATION ──────────────────────────────────────────
 
-  const COURSE_CATALOG = {
-    '100L': {
-      first: ['Legal Method', 'Customary Law', 'Philosophy', 'Psychology', 'Communication in English', 'Natural Science', 'Logics', 'Introduction to Nigerian Literature'],
-      second: ['Legal Method', 'Customary Law', 'Philosophy', 'Psychology', 'Communication in English', 'Natural Science', 'Logics', 'Introduction to Nigerian Literature']
-    },
-    '200L': { first: [], second: [] },
-    '300L': { first: [], second: [] },
-    '400L': { first: [], second: [] },
-    '500L': { first: [], second: [] },
-    'Relevant': { first: [], second: [] }
+  // Legacy suggestions for the general (all-semesters) library only. A semester
+  // view uses approved inventory; the desk curriculum lives in public/data/semester-desks/.
+  const generalSuggestions = {
+    '100L': ['Legal Method', 'Customary Law', 'Philosophy', 'Psychology', 'Communication in English', 'Natural Science', 'Logics', 'Introduction to Nigerian Literature'],
+    '200L': [], '300L': [], '400L': [], '500L': [], 'Relevant': []
   };
 
   let ALL_COURSES = ['All'];
 
+  function withinDesk(book) {
+    return (selectedLevel === 'all' || book.level === selectedLevel || book.level === 'relevant') &&
+      (selectedSemester === 'all' || book.semester === selectedSemester || book.semester === 'all');
+  }
+
   function getCourseSuggestions() {
-    const isRelevant = selectedLevel === 'Relevant';
-    const levels = selectedLevel === 'all' ? Object.keys(COURSE_CATALOG) : [selectedLevel];
-    const semesters = isRelevant ? ['all'] : selectedSemester === 'all' ? ['first', 'second'] : [selectedSemester];
-    return [...new Set(levels.flatMap(level =>
-      semesters.flatMap(semester => COURSE_CATALOG[level]?.[semester] || [])))];
+    // A semester's library is an inventory, not a second curriculum. Don't advertise
+    // copied legacy suggestions as first-semester courses when no such books exist.
+    if (selectedSemester !== 'all') {
+      return [...new Set(books.filter(withinDesk).map(b => b.courseName).filter(Boolean))];
+    }
+    const levels = selectedLevel === 'all' ? Object.keys(generalSuggestions) : [selectedLevel];
+    return [...new Set(levels.flatMap(level => generalSuggestions[level] || []))];
   }
 
   function updateCourseFilters() {
+    if (selectedLevel === 'Relevant') selectedSemester = 'all';
     ALL_COURSES = ['All', ...getCourseSuggestions()];
+    // A desk can acquire a course before the library's legacy suggestion list is updated.
+    // Keep that explicit filter in its own level/semester; it is not an upload permission.
+    if (requestedCourse && !userChangedScope && !ALL_COURSES.includes(requestedCourse)) {
+      ALL_COURSES.push(requestedCourse);
+    }
     if (!ALL_COURSES.includes(activeFilter)) activeFilter = 'All';
+    document.getElementById('levelFilter').value = selectedLevel;
     const semesterSelect = document.getElementById('semesterFilter');
     if (selectedLevel === 'Relevant') {
       semesterSelect.value = 'all';
@@ -99,15 +108,20 @@
 
   // ─── 3. STATE ──────────────────────────────────────────────────
 
+  let libraryState = 'loading';
   let books = [];
   let filteredBooks = [];
   const libraryParams = new URLSearchParams(window.location.search);
   const requestedLevel = libraryParams.get('level');
-  const requestedCourse = libraryParams.get('course');
+  const courseParam = (libraryParams.get('course') || '').trim();
+  const requestedCourse = courseParam.length <= 240 ? courseParam : '';
+  const termParam = libraryParams.get('semester');
+  const requestedSemester = ['first', 'second'].includes(termParam) ? termParam : 'all';
   const requestedMaterial = libraryParams.get('material');
-  let selectedLevel = Object.prototype.hasOwnProperty.call(COURSE_CATALOG, requestedLevel) ? requestedLevel : 'all';
+  let selectedLevel = Object.prototype.hasOwnProperty.call(generalSuggestions, requestedLevel) ? requestedLevel : 'all';
   let readerChoseLevel = requestedLevel === 'all' || selectedLevel !== 'all';
-  let selectedSemester = 'all';
+  let selectedSemester = requestedLevel === 'Relevant' ? 'all' : requestedSemester;
+  let userChangedScope = false;
   let isAdmin = false;
 
   async function loadUserFilters() {
@@ -132,7 +146,7 @@
       .select("id, file_name, material_name, course, level, semester, storage_path")
       .eq("status", "approved");
 
-    if (error || !data) return;
+    if (error || !Array.isArray(data)) throw Error('Approved materials unavailable');
 
     const withUrls = await Promise.all(data.map(async (m) => {
       const { data: signed } = await supabaseClient.functions.invoke("r2-presign", {
@@ -150,8 +164,8 @@
     }));
 
     books = withUrls.filter(b => b.url);
-    filteredBooks = [...books];
-    render();
+    libraryState = 'ready';
+    updateCourseFilters();
   }
   let activeFilter = requestedCourse || 'All';
   let searchTerm = '';
@@ -241,36 +255,24 @@
 
   // ─── 6. BUILD UI COMPONENTS ────────────────────────────────────
 
-  function buildFilterChips() {
-    let html = '';
-    ALL_COURSES.forEach(course => {
-      const activeClass = course === activeFilter ? 'active' : '';
-      html += `<button class="filter-chip ${activeClass}" data-filter="${course}">${course}</button>`;
-    });
-    filterChipsContainer.innerHTML = html;
-
-    document.querySelectorAll('.filter-chip').forEach(chip => {
-      chip.addEventListener('click', function () {
-        setActiveFilter(this.dataset.filter);
+  function buildCourseControls(parent, cssClass, mobile) {
+    const controls = ALL_COURSES.map(course => {
+      const button = document.createElement('button');
+      button.type = 'button';
+      button.className = cssClass;
+      button.classList.toggle('active', course === activeFilter);
+      button.dataset.filter = course;
+      button.textContent = course;
+      button.addEventListener('click', () => {
+        setActiveFilter(course);
+        if (mobile) closeBottomSheet();
       });
+      return button;
     });
+    parent.replaceChildren(...controls);
   }
-
-  function buildMobileList() {
-    let html = '';
-    ALL_COURSES.forEach(course => {
-      const activeClass = course === activeFilter ? 'active' : '';
-      html += `<div class="sheet-course-item ${activeClass}" data-filter="${course}">${course}</div>`;
-    });
-    mobileListContainer.innerHTML = html;
-
-    document.querySelectorAll('.sheet-course-item').forEach(item => {
-      item.addEventListener('click', function () {
-        setActiveFilter(this.dataset.filter);
-        closeBottomSheet();
-      });
-    });
-  }
+  function buildFilterChips() { buildCourseControls(filterChipsContainer, 'filter-chip', false); }
+  function buildMobileList() { buildCourseControls(mobileListContainer, 'sheet-course-item', true); }
 
   // ─── 7. FILTER LOGIC ───────────────────────────────────────────
 
@@ -303,16 +305,22 @@
   // ─── 9. RENDER GRID ────────────────────────────────────────────
 
   function render() {
+    if (libraryState !== 'ready') {
+      const message = document.createElement('p');
+      message.className = 'empty-state';
+      message.setAttribute('role', 'status');
+      message.textContent = libraryState === 'loading' ? 'Loading approved materials…' : 'Library temporarily unavailable. Please try again.';
+      grid.replaceChildren(message);
+      return;
+    }
     filteredBooks = books.filter(book => {
-      const matchesLevel = selectedLevel === 'all' || book.level === selectedLevel || book.level === 'relevant';
-      const matchesSemester = selectedSemester === 'all' || book.semester === selectedSemester || book.semester === 'all';
       const matchesMaterial = !requestedMaterial || String(book.materialId) === requestedMaterial;
       const matchFilter = activeFilter === 'All' || book.courseName.toLowerCase() === activeFilter.toLowerCase();
       const matchSearch = searchTerm === '' ||
         book.displayName.toLowerCase().includes(searchTerm) ||
         book.courseName.toLowerCase().includes(searchTerm) ||
         book.raw.includes(searchTerm);
-      return matchesMaterial && matchesLevel && matchesSemester && matchFilter && matchSearch;
+      return matchesMaterial && withinDesk(book) && matchFilter && matchSearch;
     });
 
     totalBooksEl.textContent = books.length;
@@ -422,18 +430,22 @@
 
   document.getElementById('levelFilter').addEventListener('change', function () {
     readerChoseLevel = true;
+    userChangedScope = true;
     selectedLevel = this.value;
     updateCourseFilters();
   });
 
   document.getElementById('semesterFilter').addEventListener('change', function () {
+    userChangedScope = true;
     selectedSemester = this.value;
     updateCourseFilters();
   });
 
   document.getElementById('resetFilters').addEventListener('click', () => {
     readerChoseLevel = true;
+    userChangedScope = true;
     selectedLevel = 'all';
+    activeFilter = 'All';
     selectedSemester = 'all';
     document.getElementById('levelFilter').value = 'all';
     document.getElementById('semesterFilter').value = 'all';
@@ -459,11 +471,13 @@
 
   // ─── 13. INIT ──────────────────────────────────────────────────
 
-  buildFilterChips();
-  buildMobileList();
-  loadUserFilters().then(() => {
+  updateCourseFilters();
+  loadUserFilters().catch(() => {}).then(() => {
     updateCourseFilters();
     return loadApprovedMaterials();
+  }).catch(() => {
+    libraryState = 'unavailable';
+    render();
   });
   console.log(`📚 Library ready · ${books.length} book(s) · ${ALL_COURSES.length - 1} courses`);
   console.log('💡 Click any card to open the PDF · Ctrl+K to search');
@@ -477,7 +491,9 @@
   };
 
   window.shareMaterial = async function (materialId, materialName) {
-    const shareUrl = new URL('/pages/pdf.html', window.location.origin);
+    const shareUrl = new URL('./pdf.html', window.location.href);
+    // A shared item is not restricted to the recipient's default level or the sender's desk.
+    shareUrl.searchParams.set('level', 'all');
     shareUrl.searchParams.set('material', materialId);
     const shareData = {
       title: materialName,

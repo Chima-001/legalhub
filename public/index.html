@@ -117,45 +117,65 @@
                 <span class="progress-value" id="term-percent"></span>
             </section>
 
-            <section class="section-block" id="levels">
+            <section class="section-block" id="levels" tabindex="-1">
                 <div class="section-heading">
                     <div>
                         <p class="eyebrow">YOUR ACADEMIC MAP</p>
                         <h2>Where are you headed?</h2>
                     </div>
-                    <p class="section-note">Five levels. One growing library.<br />Start where you are.</p>
+                    <p class="section-note" id="desk-term-hint">Choose a semester for any level.</p>
                 </div>
                 <div class="level-grid">
-                    <a class="level-card level-current" href="./pages/100l-second-semester.html">
-                        <span class="level-number">01</span><span class="level-arrow">↗</span>
-                        <span class="level-tag">CURRENTLY OPEN</span><strong>100L</strong><span
+                    <article class="level-card level-current" data-desk-level="100L">
+                        <span class="level-number">01</span><span class="level-arrow" aria-hidden="true">↗</span>
+                        <span class="level-tag">FIRST YEAR</span><strong>100L</strong><span
                             class="level-name">Foundations</span>
                         <span class="level-detail">Legal method, language &amp; first principles</span>
-                    </a>
-                    <a class="level-card" href="./pages/pdf.html?level=200L">
-                        <span class="level-number">02</span><span class="level-arrow">↗</span>
+                        <div class="desk-choices">
+                            <a class="desk-choice" data-term="first" href="./pages/semester.html?level=100L&amp;semester=first"><span class="desk-sr">100L, </span>First semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                            <a class="desk-choice" data-term="second" href="./pages/semester.html?level=100L&amp;semester=second"><span class="desk-sr">100L, </span>Second semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                        </div>
+                    </article>
+                    <article class="level-card" data-desk-level="200L">
+                        <span class="level-number">02</span><span class="level-arrow" aria-hidden="true">↗</span>
                         <span class="level-tag">SECOND YEAR</span><strong>200L</strong><span class="level-name">The
                             Framework</span>
                         <span class="level-detail">Build your core legal knowledge</span>
-                    </a>
-                    <a class="level-card" href="./pages/pdf.html?level=300L">
-                        <span class="level-number">03</span><span class="level-arrow">↗</span>
+                        <div class="desk-choices">
+                            <a class="desk-choice" data-term="first" href="./pages/semester.html?level=200L&amp;semester=first"><span class="desk-sr">200L, </span>First semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                            <a class="desk-choice" data-term="second" href="./pages/semester.html?level=200L&amp;semester=second"><span class="desk-sr">200L, </span>Second semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                        </div>
+                    </article>
+                    <article class="level-card" data-desk-level="300L">
+                        <span class="level-number">03</span><span class="level-arrow" aria-hidden="true">↗</span>
                         <span class="level-tag">THIRD YEAR</span><strong>300L</strong><span class="level-name">The
                             Practice</span>
                         <span class="level-detail">Turn doctrine into working arguments</span>
-                    </a>
-                    <a class="level-card" href="./pages/pdf.html?level=400L">
-                        <span class="level-number">04</span><span class="level-arrow">↗</span>
+                        <div class="desk-choices">
+                            <a class="desk-choice" data-term="first" href="./pages/semester.html?level=300L&amp;semester=first"><span class="desk-sr">300L, </span>First semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                            <a class="desk-choice" data-term="second" href="./pages/semester.html?level=300L&amp;semester=second"><span class="desk-sr">300L, </span>Second semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                        </div>
+                    </article>
+                    <article class="level-card" data-desk-level="400L">
+                        <span class="level-number">04</span><span class="level-arrow" aria-hidden="true">↗</span>
                         <span class="level-tag">FOURTH YEAR</span><strong>400L</strong><span class="level-name">The
                             Focus</span>
                         <span class="level-detail">Find your voice and your specialty</span>
-                    </a>
-                    <a class="level-card level-final" href="./pages/pdf.html?level=500L">
-                        <span class="level-number">05</span><span class="level-arrow">↗</span>
+                        <div class="desk-choices">
+                            <a class="desk-choice" data-term="first" href="./pages/semester.html?level=400L&amp;semester=first"><span class="desk-sr">400L, </span>First semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                            <a class="desk-choice" data-term="second" href="./pages/semester.html?level=400L&amp;semester=second"><span class="desk-sr">400L, </span>Second semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                        </div>
+                    </article>
+                    <article class="level-card level-final" data-desk-level="500L">
+                        <span class="level-number">05</span><span class="level-arrow" aria-hidden="true">↗</span>
                         <span class="level-tag">FINAL YEAR</span><strong>500L</strong><span class="level-name">The
                             Call</span>
                         <span class="level-detail">Step into the profession with purpose</span>
-                    </a>
+                        <div class="desk-choices">
+                            <a class="desk-choice" data-term="first" href="./pages/semester.html?level=500L&amp;semester=first"><span class="desk-sr">500L, </span>First semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                            <a class="desk-choice" data-term="second" href="./pages/semester.html?level=500L&amp;semester=second"><span class="desk-sr">500L, </span>Second semester<span class="desk-published"><span class="desk-sr"> (published semester)</span></span></a>
+                        </div>
+                    </article>
                 </div>
             </section>
 
@@ -251,6 +271,20 @@
         if (window.location.hash && !['#levels', '#resources'].includes(window.location.hash)) {
             history.replaceState(null, document.title, window.location.pathname + window.location.search);
             window.scrollTo(0, 0);
+        } else if (location.hash === '#levels' && document.getElementById('auth-page-blocker')) {
+            // A slow session check hides the body during the browser's initial fragment scroll.
+            // When the guard reveals Home, restore the requested map once; never switch the level here.
+            const revealMap = new MutationObserver(() => {
+                if (document.getElementById('auth-page-blocker')) return;
+                revealMap.disconnect();
+                requestAnimationFrame(() => {
+                    if (location.hash !== '#levels') return;
+                    const map = document.getElementById('levels');
+                    if (document.activeElement === document.body) map.focus({ preventScroll: true });
+                    map.scrollIntoView({ block: 'start', behavior: 'instant' });
+                });
+            });
+            revealMap.observe(document.head, { childList: true });
         }
         const menuToggle = document.getElementById('menu-toggle');
         const primaryNav = document.querySelector('.primary-nav');

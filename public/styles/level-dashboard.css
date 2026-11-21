@@ -212,7 +212,7 @@ body::before {
 }
 
 .level-intro::before {
-    content: '100L';
+    content: attr(data-level);
     position: absolute;
     right: 26px;
     top: -36px;
@@ -1330,4 +1330,135 @@ footer a {
         height: 26px;
         font-size: 9px;
     }
+}
+
+/* Navigation for the one runtime study desk. Links never change a profile. */
+#courses, #courses-head { scroll-margin-top: 13rem; }
+.desk-navigation { display: grid; justify-items: end; gap: 9px; }
+.desk-tabs {
+    display: inline-flex; align-items: stretch; gap: 3px; max-width: 100%; padding: 3px;
+    border: 1px solid #6d8294; border-radius: 9px; background: #10202f;
+}
+.desk-tabs a {
+    display: grid; align-items: center; min-height: 38px; padding: 6px 11px;
+    border-radius: 6px; color: #deebef; font-size: 12px; font-weight: 700; text-align: center;
+}
+.desk-tabs a[aria-current="page"] { color: #172530; background: #ebd4ab; }
+.desk-tabs a:hover { text-decoration: none; }
+.desk-navigation a:focus-visible { outline: 2px solid #ffe2a7; outline-offset: 2px; }
+.desk-empty .desk-eyebrow {
+    margin: 0 0 9px; color: var(--folio-brass); font: 500 10px/1.4 var(--folio-mono); letter-spacing: .12em;
+}
+.desk-empty .panel-sub { max-width: 60ch; margin: 9px 0 14px; }
+.frame a.panel-cta { display: inline-flex; align-items: center; }
+.course .course-toggle { color: inherit; font: inherit; text-align: start; padding: 0; }
+.course-head-left > div { overflow-wrap: anywhere; }
+@media (max-width: 699px) {
+    .desk-navigation { justify-items: start; }
+    .desk-tabs a, .desk-navigation .level-switch { min-height: 44px; display: inline-flex; align-items: center; }
+}
+@media (prefers-reduced-motion: reduce) {
+    html { scroll-behavior: auto; }
+    .desk-navigation .level-switch { transition: none; }
+    .desk-navigation .level-switch:hover { transform: none; }
+}
+@media (forced-colors: active) {
+    .desk-tabs a[aria-current="page"] { outline: 2px solid Highlight; outline-offset: -2px; }
+    .desk-navigation a:focus-visible { outline-color: Highlight; }
+}
+
+
+/* The study desk stays mounted while its selected semester loads. */
+#semester-desk [hidden] { display: none !important; }
+.desk-actions { display: flex; align-items: center; flex-wrap: wrap; gap: 9px; }
+.desk-announcement { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; }
+.frame a.request-btn { display: inline-flex; align-items: center; }
+
+/* Desk primary navigation. The rail is the only new horizontal scroll container. */
+#semester-desk .desk-site-nav {
+    display: grid;
+    grid-template-columns: max-content minmax(0, 1fr) max-content;
+    grid-template-areas: "brand links profile";
+    align-items: center;
+    column-gap: clamp(8px, 2vw, 22px);
+}
+.desk-site-nav .nav-brand { grid-area: brand; }
+.desk-site-nav .profile-link { grid-area: profile; justify-self: end; }
+#semester-desk .desk-nav-links {
+    grid-area: links;
+    justify-self: center;
+    display: flex;
+    align-items: center;
+    justify-content: flex-start;
+    flex-wrap: nowrap;
+    width: max-content;
+    min-width: 0;
+    max-width: 100%;
+    gap: clamp(4px, 1vw, 18px);
+    padding: 3px;
+    overflow-x: auto;
+    overflow-y: hidden;
+    overscroll-behavior-x: contain;
+    scroll-padding-inline: 4px;
+    scrollbar-width: thin;
+    scrollbar-color: #65758c transparent;
+}
+.desk-nav-links a {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 auto;
+    min-height: 40px;
+    padding: 6px 8px;
+    border-radius: 5px;
+    white-space: nowrap;
+}
+.desk-nav-links a.active { color: #f6e5bf; }
+.desk-nav-links a::after { left: 8px; bottom: 3px; max-width: calc(100% - 16px); }
+.desk-site-nav #desk-admin-link { gap: 6px; color: #efd4a5; }
+.desk-site-nav :is(#desk-admin-link, .desk-nav-steps) svg {
+    flex: none; fill: none; stroke: currentColor; stroke-width: 1.5; stroke-linecap: round; stroke-linejoin: round;
+}
+.desk-nav-steps { display: none; }
+#semester-desk .desk-site-nav :is(a, button):focus-visible {
+    outline: 2px solid #9fe7ef; outline-offset: -3px;
+}
+#semester-desk :is(#courses, #courses-head, #contact, #desk-message) {
+    scroll-margin-block-start: var(--desk-header-offset, 13rem);
+}
+@media (max-width: 699px) {
+    #semester-desk .desk-site-nav {
+        grid-template-columns: minmax(0, 1fr) auto auto;
+        grid-template-areas: "brand steps profile" "links links links";
+        gap: 3px 8px;
+        padding: 5px 0 8px;
+    }
+    .desk-site-nav .profile-link { width: 44px; height: 44px; }
+    #semester-desk .desk-nav-links {
+        justify-self: stretch;
+        width: 100%;
+        gap: 2px;
+        padding: 1px 3px;
+        border: 1px solid #39485f;
+        border-radius: 9px;
+        background: #101b2c;
+        font-size: .8125rem;
+    }
+    .desk-nav-links a { min-width: 44px; min-height: 44px; padding-inline: 10px; }
+    .desk-nav-links a[aria-current="page"] { background: #192a40; }
+    .desk-nav-steps:not([hidden]) { grid-area: steps; display: inline-flex; align-items: center; }
+    .desk-nav-steps button {
+        display: grid; place-items: center; width: 44px; height: 44px; padding: 0;
+        border-radius: 7px; color: #e0e8f3; background: transparent; cursor: pointer;
+    }
+    .desk-nav-steps button[aria-disabled="true"] { color: #768397; cursor: default; }
+}
+/* In short landscape windows, let the two-level header scroll away with the page. */
+@media (max-width: 900px) and (max-height: 480px) {
+    #semester-desk .sticky-header { position: static; }
+}
+@media (forced-colors: active) {
+    .desk-nav-links a[aria-current="page"] { outline: 1px solid Highlight; outline-offset: -1px; }
+    .desk-nav-steps button[aria-disabled="true"] { color: GrayText; }
+    #semester-desk .desk-site-nav :is(a, button):focus-visible { outline-color: Highlight; }
 }

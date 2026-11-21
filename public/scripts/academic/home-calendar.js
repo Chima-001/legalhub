@@ -6,7 +6,21 @@
     meter = $('term-meter');
   let epoch = 0,
     busy = false;
+  // Never change an explicit semester URL. The current published link may also fill its level card.
+  function deskTerm(term) {
+    const hint = $('desk-term-hint');
+    if (!hint) return; // A cached older homepage still gets its calendar strip.
+    if (term === 1 || term === 2) {
+      const word = term === 1 ? 'first' : 'second';
+      document.documentElement.dataset.deskSemester = word;
+      hint.textContent = `Select a level for the published ${word} semester, or choose either semester below.`;
+    } else {
+      delete document.documentElement.dataset.deskSemester;
+      hint.textContent = 'Choose a semester for any level.';
+    }
+  }
   function empty(message) {
+    deskTerm(null);
     $('term-label').textContent = 'Academic calendar';
     $('term-session').textContent = '';
     $('term-countdown').textContent = message;
@@ -30,6 +44,7 @@
       }
       const v = window.LegalHubTerm.view(data.term, data.today);
       if (!v) throw Error('unavailable');
+      deskTerm(data.term.semester);
       $('term-label').textContent = v.semester;
       $('term-session').textContent = v.session;
       $('term-countdown').textContent = v.message;
@@ -66,6 +81,7 @@
       ++epoch;
       busy = false;
       link.hidden = true;
+      empty('Loading the academic calendar…');
       void refresh();
     }
   });
