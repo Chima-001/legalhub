@@ -3,8 +3,7 @@ import { PGlite } from '../auth/node_modules/@electric-sql/pglite/dist/index.js'
 import { readFile } from 'node:fs/promises';
 const file = (name) => readFile(new URL('../../database/migrations/' + name, import.meta.url), 'utf8');
 export const uid = (n) => 'a0000000-0000-4000-8000-' + String(n).padStart(12, '0');
-export async function fixture() {
-  const db = new PGlite();
+export async function fixture(db = new PGlite()) {
   const sql = await file('008-admin-authority.sql');
   const query = async (text, args = []) => (await db.query(text, args)).rows;
   const scalar = async (text, args = []) => Object.values((await query(text, args))[0])[0];

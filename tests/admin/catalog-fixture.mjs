@@ -1,8 +1,8 @@
 import { fixture } from './fixture.mjs';
 import { readFile } from 'node:fs/promises';
 export { uid } from './fixture.mjs';
-export async function catalogFixture(install = true) {
-  const fx = await fixture();
+export async function catalogFixture(install = true, db) {
+  const fx = await fixture(db);
   await fx.bind();
   await fx.db.exec(fx.sql);
   await fx.db

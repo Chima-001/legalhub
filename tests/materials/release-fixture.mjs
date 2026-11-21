@@ -4,8 +4,8 @@ import { catalogFixture, uid } from '../admin/catalog-fixture.mjs';
 export { uid };
 export const sqlFile = (name) =>
   readFile(new URL('../../database/migrations/' + name, import.meta.url), 'utf8');
-export async function materialFixture() {
-  const f = await catalogFixture();
+export async function materialFixture(instance) {
+  const f = await catalogFixture(true, instance);
   const { db, as, query, scalar } = f;
   await db.exec(await sqlFile('010-owner-admin-emails.sql'));
   await db.exec(`CREATE ROLE service_role;ALTER TABLE public.materials ADD COLUMN file_name text NOT NULL DEFAULT 'fixture.pdf', ADD COLUMN uploaded_by uuid REFERENCES public.users(id),ADD COLUMN storage_path text, ADD COLUMN uploaded_at timestamptz DEFAULT now();
