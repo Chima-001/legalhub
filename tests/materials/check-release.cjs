@@ -16,10 +16,13 @@ for (const args of [
     'tests/materials/upload-feedback.test.cjs',
     'tests/semester/library-filters.test.cjs',
     'tests/materials/removal.test.mjs',
+    'tests/materials/notification-entry.test.mjs',
+    'tests/materials/review-read.test.mjs',
   ],
   ['tests/materials/review-smoke.mjs'],
   ['tests/materials/alert-smoke.mjs'],
   ['tests/materials/alert-cutover-smoke.mjs'],
+  ['tests/materials/paired-release-smoke.mjs'],
 ]) {
   const r = spawnSync(process.execPath, args, { cwd: root, stdio: 'inherit' });
   if (r.error) {

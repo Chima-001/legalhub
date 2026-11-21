@@ -14,11 +14,11 @@
 //   supabase secrets set R2_BUCKET_NAME=legalhub-storage
 // (SUPABASE_URL and SUPABASE_SERVICE_ROLE_KEY are auto-provided)
 
-import "jsr:@supabase/functions-js/edge-runtime.d.ts";
-import { createClient } from "jsr:@supabase/supabase-js@2";
-import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3";
+// No runtime import of a type-declaration package. Deno supplies serve/env.
+import { createClient } from "jsr:@supabase/supabase-js@2.119.2";
+import { S3Client, PutObjectCommand, GetObjectCommand, DeleteObjectCommand } from "npm:@aws-sdk/client-s3@3.1175.0";
 import { removeReviewed } from "./removal.mjs";
-import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3";
+import { getSignedUrl } from "npm:@aws-sdk/s3-request-presigner@3.1175.0";
 
 const accountId = Deno.env.get("R2_ACCOUNT_ID")!;
 const bucketName = Deno.env.get("R2_BUCKET_NAME")!;
@@ -41,7 +41,11 @@ const corsHeaders = {
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") return new Response(null, { headers: corsHeaders });
 
-  if (req.method !== "POST") return new Response(null, {status:405,headers:corsHeaders});
+  // Operator non-mutating boot/contract check. A GET cannot authorize a presign, removal, or RPC.
+  if (req.method !== "POST") return new Response(null, {
+    status: 405,
+    headers: { ...corsHeaders, Allow: "POST, OPTIONS", "Cache-Control": "no-store", "X-LegalHub-Storage-Contract": "reviewed-removal-v1" },
+  });
   try {
     const authHeader = req.headers.get("Authorization") ?? "";
     const supabaseUser = createClient(

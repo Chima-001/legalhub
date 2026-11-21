@@ -35,8 +35,13 @@ export async function reviewMaterial(client, { actor, item, action, values = nul
     if (!(await accountsMatch(client, actor)))
       throw Error('Your account changed. Refresh before reviewing.');
     const { data: r, error } = await client.rpc('lh_material_review', { p_actor: actor, p_id: item.id });
+    if (['PGRST202', '42883'].includes(error?.code))
+      throw Error('Material review is not available on this server yet. Ask the site operator to finish activating the review service. Nothing was changed.');
+    if (error?.code === '42501')
+      throw Error('The server did not authorize this signed-in account to review the item. Nothing was changed.');
+    if (error?.code === '40001') throw Error('This item changed or is no longer available. Reload the queue.');
     if (error || !r || r.id !== item.id || typeof r.title !== 'string' || !/^\d+$/.test(r.version))
-      throw Error('Could not verify this material and your access. Reload before reviewing.');
+      throw Error('The server could not confirm the current material. Check the connection and reload. Nothing was changed.');
     if (
       r.status !== (action === 'delete' ? 'approved' : 'pending') ||
       ['material_name', 'file_name', 'level', 'semester', 'course', 'status'].some(

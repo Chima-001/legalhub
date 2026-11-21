@@ -7,17 +7,36 @@ import { fileURLToPath } from 'node:url';
 import { chromium } from 'playwright-core';
 import { alertFixture, uid } from '../alert-fixture.mjs';
 import { removeReviewed } from '../../../supabase/functions/r2-presign/removal.mjs';
-if (!process.env.LEGALHUB_TEST_CHROME)
-  throw Error(
-    'Set LEGALHUB_TEST_CHROME to a local Chromium/Chrome executable. Do not point this test at a site.',
-  );
+const lab = ['--practice', '--practice-smoke'].includes(process.argv[2]),
+  headed = process.argv[2] === '--practice';
+const exe =
+  process.env.LEGALHUB_TEST_CHROME ||
+  (process.platform === 'win32' &&
+    [process.env.ProgramFiles, process.env['ProgramFiles(x86)'], process.env.LOCALAPPDATA]
+      .filter(Boolean)
+      .flatMap((dir) =>
+        ['Microsoft/Edge/Application/msedge.exe', 'Google/Chrome/Application/chrome.exe'].map((f) =>
+          path.join(dir, f),
+        ),
+      )
+      .find((f) => fs.existsSync(f)));
+if (!exe)
+  throw Error('Set LEGALHUB_TEST_CHROME to a local Chrome/Edge/Chromium executable. Do not use a website.');
 const P = fileURLToPath(new URL('../../../public/', import.meta.url)),
   base = 'https://fixture.invalid',
   f = await alertFixture(),
   { db, as, query, scalar } = f;
 const browser = await chromium.launch({
-  executablePath: process.env.LEGALHUB_TEST_CHROME,
-  args: ['--disable-dev-shm-usage', '--disable-gpu', '--no-sandbox'],
+  executablePath: exe,
+  headless: !headed,
+  args: [
+    '--disable-dev-shm-usage',
+    '--disable-gpu',
+    '--disable-background-networking',
+    '--no-proxy-server',
+    '--host-resolver-rules=MAP * ~NOTFOUND',
+    ...(process.platform === 'linux' ? ['--no-sandbox'] : []),
+  ],
 });
 const files = new Map(),
   issued = [],
@@ -55,6 +74,14 @@ async function call(who, op, p) {
   await as(who);
   const actor = uid(who);
   if (op === 'rpc') {
+    if (lab && ['get_effective_level', 'get_my_level_context', 'set_my_academic_level'].includes(p.name)) {
+      const keys = {
+        get_effective_level: ['p_uid'],
+        get_my_level_context: [],
+        set_my_academic_level: ['p_level', 'p_session_year', 'p_confirmation', 'p_expected_uid'],
+      };
+      return dbCall(p.name, keys[p.name], p.args || {});
+    }
     if (p.name === 'get_effective_level') return { data: '100L' };
     if (!['lh_course_list', 'lh_material_review', 'lh_material_change'].includes(p.name))
       throw Error('Unknown web RPC');
@@ -68,9 +95,7 @@ async function call(who, op, p) {
     if (p.table !== 'materials' || !['approved', 'pending'].includes(p.status))
       throw Error('Unexpected read');
     return {
-      data: await query('SELECT * FROM public.materials WHERE status=$1 ORDER BY uploaded_at,id', [
-        p.status,
-      ]),
+      data: await query('SELECT * FROM public.materials WHERE status=$1 ORDER BY uploaded_at,id', [p.status]),
     };
   }
   if (op === 'insert') {
@@ -132,59 +157,89 @@ async function call(who, op, p) {
 async function visit(who, mount, width) {
   const ctx = await browser.newContext({ viewport: { width, height: 850 }, serviceWorkers: 'block' });
   await ctx.exposeBinding('localOnly', (_, op, p) => isolated(() => call(who, op, p)));
-  await ctx.addInitScript((id) => {
-    const user = { id },
-      session = { user };
-    window.localUI = {};
-    Object.defineProperty(navigator, 'share', {
-      value: (x) => {
-        localUI.shared = x;
-        return Promise.resolve();
-      },
-    });
-    window.open = (url) => {
-      localUI.opened = url;
-      return null;
-    };
-    window.alert = (x) => {
-      localUI.alert = x;
-    };
-    window.supabaseClient = {
-      auth: {
-        getUser: async () => ({ data: { user } }),
-        getSession: async () => ({ data: { session } }),
-        onAuthStateChange() {
-          return { data: { subscription: { unsubscribe() {} } } };
+  await ctx.addInitScript(
+    ({ id, lab, role }) => {
+      const user = { id },
+        session = { user };
+      window.localUI = {};
+      if (lab)
+        document.addEventListener('DOMContentLoaded', () => {
+          const bar = document.createElement('aside');
+          bar.id = 'fixture-notice';
+          bar.setAttribute('role', 'status');
+          Object.assign(bar.style, {
+            background: '#142e43',
+            color: 'white',
+            padding: '12px 16px',
+            font: 'bold 14px system-ui',
+          });
+          bar.textContent =
+            'LOCAL PRACTICE — ' +
+            role +
+            '. Fictional records only. Changes disappear when you close this browser.';
+          document.body.prepend(bar);
+          if (location.pathname.endsWith('/profile.html'))
+            for (const el of document.querySelectorAll('button,input,select'))
+              if (
+                !['level-select', 'save-level-btn', 'level-confirm', 'level-apply', 'level-cancel'].includes(
+                  el.id,
+                )
+              )
+                el.disabled = true;
+        });
+      Object.defineProperty(navigator, 'share', {
+        value: (x) => {
+          localUI.shared = x;
+          return Promise.resolve();
         },
-      },
-      rpc: (name, args) => window.localOnly('rpc', { name, args }),
-      functions: {
-        invoke: (n, { body }) => {
-          if (n !== 'r2-presign') throw Error('Unknown function');
-          return window.localOnly('r2', body);
+      });
+      window.open = (url) => {
+        localUI.opened = url;
+        return null;
+      };
+      window.alert = (x) => {
+        localUI.alert = x;
+        if (lab && document.getElementById('fixture-notice'))
+          document.getElementById('fixture-notice').textContent = 'LOCAL PRACTICE · ' + x;
+      };
+      window.supabaseClient = {
+        auth: {
+          getUser: async () => ({ data: { user } }),
+          getSession: async () => ({ data: { session } }),
+          onAuthStateChange() {
+            return { data: { subscription: { unsubscribe() {} } } };
+          },
         },
-      },
-      from(table) {
-        let status;
-        const exec = () => window.localOnly('read', { table, status });
-        return {
-          select() {
-            return this;
+        rpc: (name, args) => window.localOnly('rpc', { name, args }),
+        functions: {
+          invoke: (n, { body }) => {
+            if (n !== 'r2-presign') throw Error('Unknown function');
+            return window.localOnly('r2', body);
           },
-          eq(k, v) {
-            if (k === 'status') status = v;
-            return this;
-          },
-          order: exec,
-          single: exec,
-          then(a, b) {
-            return exec().then(a, b);
-          },
-          insert: (v) => window.localOnly('insert', v),
-        };
-      },
-    };
-  }, uid(who));
+        },
+        from(table) {
+          let status;
+          const exec = () => window.localOnly('read', { table, status });
+          return {
+            select() {
+              return this;
+            },
+            eq(k, v) {
+              if (k === 'status') status = v;
+              return this;
+            },
+            order: exec,
+            single: exec,
+            then(a, b) {
+              return exec().then(a, b);
+            },
+            insert: (v) => window.localOnly('insert', v),
+          };
+        },
+      };
+    },
+    { id: uid(who), lab, role: who === 2 ? 'admin' : 'student' },
+  );
   await ctx.route('**/*', async (route) => {
     const req = route.request(),
       u = new URL(req.url());
@@ -227,7 +282,7 @@ async function visit(who, mount, width) {
       return js(
         'document.addEventListener("DOMContentLoaded",()=>document.body.style.visibility="visible");',
       );
-    if (rel === 'scripts/auth/supabase-client.js') return js('');
+    if (rel === 'scripts/auth/supabase-client.js' || rel === 'scripts/password-visibility.js') return js('');
     if (rel === 'scripts/avatar.js') return js('window.renderAvatar=window.loadHeaderAvatar=()=>{};');
     const file = path.join(P, rel);
     if (!file.startsWith(P) || !fs.existsSync(file)) {
@@ -247,11 +302,91 @@ async function visit(who, mount, width) {
 const state = (id) =>
   isolated(async () => {
     await as(0);
-    return (
-      (await query('SELECT status,material_name FROM public.materials WHERE id=$1', [id]))[0] ?? null
-    );
+    return (await query('SELECT status,material_name FROM public.materials WHERE id=$1', [id]))[0] ?? null;
   });
-try {
+async function practice() {
+  // Real reviewed SQL on isolated, throwaway data; no production client, service credential, storage, or mail.
+  const legacy = fs
+    .readFileSync(new URL('../../academic/legacy-level-body.sql.txt', import.meta.url), 'utf8')
+    .replace(/\r\n/g, '\n');
+  await as(0);
+  await db.exec(`ALTER TABLE public.users ADD COLUMN current_level text DEFAULT '200L', ADD COLUMN level_updated_at timestamptz DEFAULT now(), ADD COLUMN level text;
+    GRANT UPDATE(current_level,level_updated_at) ON public.users TO authenticated;
+    CREATE FUNCTION public.get_effective_level(p_uid uuid) RETURNS text LANGUAGE plpgsql SECURITY DEFINER SET search_path=public AS $old$${legacy}$old$;`);
+  await db.exec(
+    fs.readFileSync(new URL('../../../database/migrations/007-november-levels.sql', import.meta.url), 'utf8'),
+  );
+  // Compute the expected tier independently, from the fixture DB's Lagos date, not from the level RPC.
+  const date = await scalar("SELECT to_char(now() AT TIME ZONE 'Africa/Lagos','YYYY-MM-DD')");
+  const cycle = Number(date.slice(0, 4)) - (date.slice(5) < '11-07' ? 1 : 0);
+  const effective = `${Math.min(5, 2 + Math.max(0, cycle - 2025))}00L`;
+  const correction = effective === '400L' ? '300L' : '400L';
+  assert.equal(await scalar('SELECT current_level FROM public.users WHERE id=$1', [uid(3)]), '200L');
+  assert.equal(await scalar('SELECT level_base_year FROM public.users WHERE id=$1', [uid(3)]), null);
+  await f.add(21, 'Practice — approve me');
+  await f.add(22, 'Practice — reject me');
+  files.set(f.key(21), Buffer.from('fixture'));
+  files.set(f.key(22), Buffer.from('fixture'));
+  const admin = await visit(2, '/', 1150),
+    student = await visit(3, '/public/', 900),
+    upload = await visit(3, '/', 900);
+  await admin.go('pages/materials.html');
+  await student.go('pages/profile.html');
+  await upload.go('pages/materials.html');
+  const a = admin.p,
+    s = student.p;
+  await a.locator('[data-admin-material]').first().waitFor();
+  await s.waitForFunction(() => !document.getElementById('level-select').disabled);
+  assert.equal(await s.locator('#display-level').innerText(), effective);
+  assert.equal(await s.locator('#level-select').inputValue(), effective);
+  await a.bringToFront();
+  console.log(
+    'LOCAL PRACTICE READY. Three tabs: admin moderation, student Profile levels and student upload. Only use sample files. Reload the admin tab after a student upload. Auth, R2 and email are simulated; page logic and database checks are real. Nothing touches LegalHub production.',
+  );
+  if (headed) {
+    await new Promise((resolve) => {
+      browser.once('disconnected', resolve);
+      process.once('SIGINT', resolve);
+    });
+    return;
+  }
+  for (const [n, action, title] of [
+    [21, 'Approve', 'Practice — approve me'],
+    [22, 'Reject', 'Practice — reject me'],
+  ]) {
+    const id = uid(100 + n);
+    await a
+      .locator(`[data-admin-material="${id}"]`)
+      .getByRole('button', { name: action, exact: true })
+      .click();
+    const d = a.getByRole('dialog');
+    await d.locator('input').fill(`i ${action.toLowerCase()} ${title}`);
+    await d.locator('button').last().click();
+    await d.waitFor({ state: 'detached' });
+    if (n === 21) assert.equal((await state(id)).status, 'approved');
+    else {
+      assert.equal(await state(id), null);
+      assert(!files.has(f.key(n)));
+    }
+  }
+  await s.selectOption('#level-select', correction);
+  await s.click('#save-level-btn');
+  const phrase = await s.locator('#level-phrase').innerText();
+  await s.fill('#level-confirm', phrase);
+  await s.click('#level-apply');
+  await s.getByText(new RegExp('Saved ' + correction + ' for')).waitFor();
+  await s.reload();
+  await s.waitForFunction(
+    (tier) => document.getElementById('display-level').textContent === tier,
+    correction,
+  );
+  assert.deepEqual(errors, []);
+  assert.deepEqual(foreign, []);
+  console.log(
+    `PASS local practice: both real review dialogs commit only the selected fictional action. Existing 200L opens Profile at ${effective} without any save; own manual ${correction} persists after reload.`,
+  );
+}
+async function automatedFlow() {
   const student = await visit(3, '/public/', 390),
     admin = await visit(2, '/', 1100),
     s = student.p,
@@ -413,6 +548,10 @@ try {
   console.log(
     'PASS approved Library read/share and typed deletion by id with a same-title neighbour; no extra mail, unexpected requests or page errors.',
   );
+}
+try {
+  if (lab) await practice();
+  else await automatedFlow();
 } finally {
   await browser.close();
   await db.close();

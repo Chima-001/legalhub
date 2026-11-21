@@ -2,6 +2,8 @@
 
 **Scope:** protect the actual moderation mutations and reconnect the existing `materials INSERT → notify-admins-on-upload → Resend` path. Do not test by uploading to the live project, deleting a real PDF, changing a real role or mailing real admins. A PR is reviewable before a production rollout.
 
+**For the current mixed hosted/local release:** [paired release and local practice](paired-release.md). The old public admin and Profile pages still use direct writes. Do not turn off those writes under active old clients, and never add a fallback around review.
+
 ## 1. Before a production change
 
 Confirm the project, current versions, intended private bucket, restorable database backup and separate R2 recovery plan. Preserve the current function and frontend artifacts for incident response. Coordinate a short maintenance window for uploads and moderation, including old tabs/integrations. PostgreSQL and R2 cannot be restored atomically. Stop on an unexpected grant, schema, Git or bucket difference; do not use a reset, a cascade or a broad grant to make checks pass.
@@ -24,10 +26,9 @@ WHERE t.tgrelid='public.materials'::regclass AND NOT t.tgisinternal ORDER BY t.t
 
 ## 2. Coordinate the cutover (operator only)
 
-1. **Notifications have their own cutover.** Use [Upload notifications](upload-notifications.md) for the existing trigger/function, the three owner-supplied settings, privacy checks and receipt monitoring. The private signer, HTTP transport and one cron outbox replace the former pg_net prerequisites. Do not recreate any of them on LegalHub. No part of the Git installer sends email.
-2. **Moderation is separate:** check the existing `R2_ACCOUNT_ID`, `R2_ACCESS_KEY_ID`, `R2_SECRET_ACCESS_KEY` and `R2_BUCKET_NAME` privately. Confirm bucket recovery and least-permission R2/CORS for the intended client and operations. Deploy the reviewed `r2-presign` with its sibling `removal.mjs`, JWT verification on, **before** enabling 011. Stop if old unreviewed removal clients are still operating. Do not disturb this function just to repair email.
-3. Only in an approved, coordinated window install `database/migrations/011-material-review.sql` once (`MATERIAL REVIEW READY`); publish the matching frontend and retire old direct edit/approve clients. It does not backfill materials or alter roles or the calendar. Installing 011 later does not require reinstalling 012. Alerts can be captured from old and new upload clients alike.
-4. Publish the complete `public/` directory, not a partial collection of changed pages. For manual self-service levels and the November progression use the existing 007 and separate [level rollout](profile-level-rollout.md); Git, R2 and the notification setup do not enable it.
+1. **Upload alerts are already working on this project.** [Upload notifications](upload-notifications.md) records the two provider acceptances and explains the counts-only health query. Do not reinstall 012, create another hook, reset the ledger or redeploy the repaired mail worker to enable moderation.
+2. **The new reviewer needs both a database transaction and the matching storage function.** Confirm R2 configuration, bucket recovery and allowed origins privately. The new `r2-presign` must be bundled with `removal.mjs` and retain JWT verification. Old removal clients and open tabs must stop before the coordinated switch.
+3. **For LegalHub, use the [paired release guide](paired-release.md)**: verify recovery and the preview, stage the reviewed signer, publish the complete matching `public/`, then prepare and run the guarded 007 + 011 transaction. Do not paste 011 or 007 separately under the observed public frontend. This is a short window for the real app, not a prerequisite for the isolated practice desk. [Level behavior](profile-level-rollout.md).
 
 ## 3. What each confirmation authorizes
 
