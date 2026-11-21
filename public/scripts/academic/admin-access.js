@@ -12,6 +12,8 @@
     roleSeq = 0,
     target = null,
     manageRoles = false,
+    isOwner = false,
+    rosterSeq = 0,
     writingRole = false;
   const message = (id, text) => {
     $(id).textContent = text;
@@ -31,7 +33,60 @@
     message('role-status', '');
     if (erase) $('role-email').value = '';
   }
+  // Never cache emails. Clear the DOM as well as hiding it; late responses must not repopulate it.
+  function clearRoster(hide = true) {
+    ++rosterSeq;
+    $('owner-roster').hidden = hide;
+    $('roster-emails').replaceChildren();
+    $('roster-emails').hidden = true;
+    $('roster-refresh').removeAttribute('aria-disabled');
+    message('roster-status', '');
+  }
+  const rosterAllowed = (e) =>
+    current(e) && isOwner && manageRoles && roles.open && !roles.hidden && !document.hidden;
+  async function readRoster() {
+    const e = epoch,
+      allowed = rosterAllowed(e);
+    clearRoster(!allowed);
+    if (!allowed) return;
+    const t = rosterSeq,
+      valid = () => t === rosterSeq && rosterAllowed(e);
+    // Keep the focused Refresh button in the tab order during a successful reload.
+    $('roster-refresh').setAttribute('aria-disabled', 'true');
+    message('roster-status', 'Loading emails…');
+    try {
+      await identity(e);
+      if (!valid()) return;
+      const { data, error } = await supabaseClient.rpc('lh_owner_admin_emails', { p_actor: actor });
+      if (!valid()) return;
+      if (error) throw error;
+      if (!Array.isArray(data) || data.some((email) => typeof email !== 'string' || !email))
+        throw Error();
+      const list = $('roster-emails'),
+        items = document.createDocumentFragment();
+      for (const email of data) {
+        const item = document.createElement('li');
+        item.textContent = email;
+        items.append(item);
+      }
+      list.replaceChildren(items);
+      list.hidden = !data.length;
+      message('roster-status', data.length ? '' : 'No current admins were added by you.');
+    } catch (err) {
+      if (!valid()) return;
+      if (err?.code === '42501') {
+        isOwner = false;
+        clearRoster();
+      } else {
+        message('roster-status', 'Could not load the list. Refresh to try again.');
+      }
+    } finally {
+      if (valid()) $('roster-refresh').removeAttribute('aria-disabled');
+    }
+  }
   function hideTools() {
+    isOwner = false;
+    clearRoster();
     manageRoles = false;
     clearTarget(true);
     roles.open = false;
@@ -47,6 +102,9 @@
       if (error || data?.admin !== true || typeof data.roles !== 'boolean') throw Error();
       manageRoles = data.roles;
       roles.hidden = !manageRoles;
+      isOwner = manageRoles && data.owner === true; // Older servers can still manage access without the list.
+      if (isOwner && roles.open) void readRoster();
+      else clearRoster();
       if (!manageRoles) {
         roles.open = false;
         clearTarget(true);
@@ -73,9 +131,15 @@
   }
   window.LHWorkspace = Object.freeze({ session });
   $('tools-retry').addEventListener('click', capabilities);
+  $('roster-refresh').addEventListener('click', () => {
+    if (!$('roster-refresh').hasAttribute('aria-disabled')) void readRoster();
+  });
   window.addEventListener('pagehide', () => session(null));
   document.addEventListener('visibilitychange', () => {
-    if (!document.hidden) void capabilities();
+    if (document.hidden) {
+      ++capSeq;
+      clearRoster();
+    } else void capabilities();
   });
   window.addEventListener('focus', capabilities);
   setInterval(capabilities, 60000);
@@ -83,7 +147,10 @@
   for (const card of cards)
     card.addEventListener('toggle', () => {
       if (!card.open) {
-        if (card === roles) clearTarget(true);
+        if (card === roles) {
+          clearTarget(true);
+          clearRoster();
+        }
         return;
       }
       if (card.hidden) {
@@ -196,6 +263,7 @@
         'role-status',
         `Admin access ${grant ? 'granted to' : 'revoked for'} ${r.email}. The member account is unchanged.`,
       );
+      if (isOwner) void readRoster();
       $('role-email').focus();
     } catch (err) {
       if (current(e) && t === roleSeq) {
