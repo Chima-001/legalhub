@@ -39,12 +39,9 @@ try {
   await db.exec('ROLLBACK;DROP TRIGGER fixture_existing ON public.materials');
   await f.installAlert();
   assert.equal(await count('legalhub_console.upload_alerts'), 0);
-  assert.equal(await count('net.fake_requests'), 0);
+  assert.equal(await count('lh_mail_transport.fake_requests'), 0);
   await as(3);
-  await assert.rejects(
-    scalar('select public.lh_upload_alert_plan($1)', [id(1)]),
-    (e) => e.code === '42501',
-  );
+  await assert.rejects(scalar('select public.lh_upload_alert_plan($1)', [id(1)]), (e) => e.code === '42501');
   await assert.rejects(
     query('select * from legalhub_console.upload_alert_targets'),
     (e) => e.code === '42501',
@@ -57,17 +54,19 @@ try {
   await db.exec('BEGIN');
   await add(2);
   await db.exec('ROLLBACK');
-  assert.equal(await count('net.fake_requests'), 0);
+  assert.equal(await count('lh_mail_transport.fake_requests'), 0);
   await as(3);
   await add(3, title);
+  assert.equal(await f.record(id(3)), undefined);
+  assert.equal(await f.tick(), 1);
   const event = await f.record(id(3));
   assert.equal(event.body.record.id, id(3));
   assert.deepEqual(Object.keys(event.body.record), ['id']);
-  assert(!JSON.stringify(event.headers).includes(f.env.UPLOAD_WEBHOOK_SECRET));
+  assert(!JSON.stringify(event.headers).includes('c'.repeat(64)));
   assert.equal(await count('legalhub_console.upload_alert_targets'), 2);
   await as(0);
   await query("update public.materials set status='approved' where id=$1", [id(3)]);
-  assert.equal(await count('net.fake_requests'), 1);
+  assert.equal(await count('lh_mail_transport.fake_requests'), 1);
   console.log(
     'PASS single INSERT hook, no replay/backfill at install, rollback cancels request, no extra approval event, server-only recipients and signer.',
   );
@@ -76,6 +75,7 @@ try {
     touched++;
     throw Error('must not access privileged operation');
   };
+  const verifyOnly = (name, args) => (name === 'lh_upload_alert_verify' ? f.rpc(name, args) : nope());
   for (const [change, code] of [
     [{ headers: { ...event.headers, 'X-LH-Signature': '0'.repeat(64) } }, 403],
     [{ body: { ...event.body, type: 'UPDATE' } }, 400],
@@ -83,13 +83,13 @@ try {
     [{ body: { ...event.body, record: { id: id(1) } } }, 403],
     [{ headers: { ...event.headers, 'X-LH-Time': '1000000000' } }, 403],
   ]) {
-    assert.equal((await f.sendEvent({ ...event, ...change }, nope, { rpc: nope })).status, code);
+    assert.equal((await f.sendEvent({ ...event, ...change }, nope, { rpc: verifyOnly })).status, code);
   }
   assert.equal(
     (
       await f.sendEvent(event, nope, {
         env: (n) => (n === 'RESEND_FROM' ? undefined : f.env[n]),
-        rpc: nope,
+        rpc: verifyOnly,
       })
     ).status,
     503,
@@ -100,9 +100,7 @@ try {
     503,
   );
   assert.equal(touched, 0);
-  console.log(
-    'PASS wrong origin/event/id/time, missing sender and database failure are not mail success.',
-  );
+  console.log('PASS wrong origin/event/id/time, missing sender and database failure are not mail success.');
   rejectTo = 'reader2@example.test';
   let resp = await f.sendEvent(event, fake);
   assert.equal(resp.status, 502);
@@ -132,11 +130,10 @@ try {
   await db.exec("SELECT set_config('test.net_error','yes',false)");
   await as(3);
   await add(4, 'Dispatch failure');
+  await f.tick();
   await as(0);
   assert.equal(
-    await scalar('select dispatch_failed from legalhub_console.upload_alerts where material_id=$1', [
-      id(4),
-    ]),
+    await scalar('select dispatch_failed from legalhub_console.upload_alerts where material_id=$1', [id(4)]),
     true,
   );
   assert.equal(await f.record(id(4)), undefined);
@@ -162,6 +159,7 @@ try {
   assert.equal(provider.at(-1).key, provider.at(-2).key);
   await as(3);
   await add(5, 'Ambiguous receipt');
+  await f.tick();
   resp = await f.sendEvent(await f.record(id(5)), async () => Response.json({}));
   assert.equal(resp.status, 502);
   await as(0);
@@ -176,11 +174,13 @@ try {
   await query('update auth.users set email_confirmed_at=null where id=$1', [uid(1)]);
   await as(3);
   await add(6, 'No verified address');
+  await f.tick();
   assert.equal((await f.sendEvent(await f.record(id(6)), nope)).status, 409);
   assert.equal(touched, 0);
   // No-admin condition without changing the fixture owner's protected role.
   await as(3);
   await add(7);
+  await f.tick();
   await as(0);
   await query('DELETE FROM legalhub_console.upload_alert_targets WHERE material_id=$1', [id(7)]);
   assert.equal((await f.sendEvent(await f.record(id(7)), nope)).status, 503);

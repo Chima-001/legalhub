@@ -1,34 +1,17 @@
 // One origin, one INSERT event, one provider request per intended admin. Never trust recipients from the body.
 const uuid = /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/;
-const enc = new TextEncoder();
 const reply = (status, body) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
-async function trusted(id, stamp, sig, secret, now) {
-  if (!/^\d{10,11}$/.test(stamp || '') || !/^[a-f0-9]{64}$/.test(sig || '')) return false;
-  const age = now / 1000 - Number(stamp);
-  if (age < -60 || age > 600) return false;
-  const key = await crypto.subtle.importKey(
-    'raw',
-    enc.encode(secret),
-    { name: 'HMAC', hash: 'SHA-256' },
-    false,
-    ['verify'],
-  );
-  return crypto.subtle.verify(
-    'HMAC',
-    key,
-    Uint8Array.from(sig.match(/../g), (b) => parseInt(b, 16)),
-    enc.encode(`lh-upload/1\n${id}\n${stamp}`),
-  );
-}
 export async function handleUploadAlert(request, { env, rpc, send = fetch, now = Date.now }) {
   if (request.method !== 'POST') return reply(405, { error: 'POST required' });
   if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('Content-Type') || ''))
     return reply(415, { error: 'JSON required' });
   try {
-    const secret = env('UPLOAD_WEBHOOK_SECRET');
-    if (!/^[a-f0-9]{64}$/.test(secret || ''))
-      return reply(503, { error: 'Webhook configuration incomplete' });
-    if (!request.headers.has('X-LH-Signature')) return reply(403, { error: 'Unverified event' });
+    const stamp = request.headers.get('X-LH-Time'),
+      sig = request.headers.get('X-LH-Signature');
+    if (!/^\d{10,11}$/.test(stamp || '') || !/^[a-f0-9]{64}$/.test(sig || ''))
+      return reply(403, { error: 'Unverified event' });
+    const age = now() / 1000 - Number(stamp);
+    if (age < -60 || age > 600) return reply(403, { error: 'Unverified event' });
     if (Number(request.headers.get('Content-Length')) > 2048)
       return reply(413, { error: 'Invalid event size' });
     let payload;
@@ -60,25 +43,17 @@ export async function handleUploadAlert(request, { env, rpc, send = fetch, now =
       !uuid.test(id)
     )
       return reply(400, { error: 'Expected a materials INSERT' });
-    if (
-      !(await trusted(
-        id,
-        request.headers.get('X-LH-Time'),
-        request.headers.get('X-LH-Signature'),
-        secret,
-        now(),
-      ))
-    )
-      return reply(403, { error: 'Unverified event' });
-    const token = env('RESEND_API_KEY'),
-      from = env('RESEND_FROM');
-    if (!token || !from || /[\r\n]/.test(from))
-      return reply(503, { error: 'Mail sender not configured' });
     const read = async (name, args) => {
       const { data, error } = await rpc(name, args);
       if (error) throw Error('Unconfirmed database operation');
       return data;
     };
+    if ((await read('lh_upload_alert_verify', { p_id: id, p_stamp: stamp, p_sig: sig })) !== true)
+      return reply(403, { error: 'Unverified event' });
+    const token = env('RESEND_API_KEY'),
+      from = env('RESEND_FROM');
+    if (!token || !from || /[\r\n]/.test(from) || /@resend\.dev(?:>|\s|$)/i.test(from))
+      return reply(503, { error: 'Verified mail sender not configured' });
     const plan = () => read('lh_upload_alert_plan', { p_id: id });
     const initial = await plan();
     if (initial === null) return reply(404, { error: 'No captured upload' });
@@ -88,8 +63,7 @@ export async function handleUploadAlert(request, { env, rpc, send = fetch, now =
       needsOperator = false;
     for (const admin of initial.waiting) {
       const target = await read('lh_upload_alert_claim', { p_id: id, p_admin: admin });
-      if (target?.state === 'accepted' || target?.state === 'revoked' || target?.state === 'busy')
-        continue;
+      if (target?.state === 'accepted' || target?.state === 'revoked' || target?.state === 'busy') continue;
       if (target?.state === 'reconcile' || target?.state === 'recipient_unavailable') {
         needsOperator = true;
         continue;

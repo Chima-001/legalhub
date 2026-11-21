@@ -278,6 +278,7 @@ try {
   let sent = 0;
   for (const id of inserted) {
     await isolated(async () => {
+      await f.tick(); // a separate committed-outbox worker pass
       const e = await f.record(id);
       const res = await f.sendEvent(e, async () => Response.json({ id: 'fake-' + ++sent }));
       assert.equal(res.status, 200);
@@ -405,7 +406,7 @@ try {
   assert(files.has(f.key(8)));
   await isolated(async () => {
     await as(0);
-    assert.equal(await scalar('select count(*)::int from net.fake_requests'), 2);
+    assert.equal(await scalar('select count(*)::int from lh_mail_transport.fake_requests'), 2);
   });
   assert.deepEqual(errors, []);
   assert.deepEqual(foreign, []);

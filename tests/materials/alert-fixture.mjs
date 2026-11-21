@@ -4,14 +4,20 @@ import { pgcrypto } from '../auth/node_modules/@electric-sql/pglite/dist/contrib
 import { materialFixture, sqlFile, uid } from './release-fixture.mjs';
 import { handleUploadAlert } from '../../supabase/functions/notify-admins-on-upload/handler.mjs';
 export { uid };
-export async function alertFixture(install = true) {
+export async function alertFixture(install = true, moderation = true) {
   const f = await materialFixture(new PGlite({ extensions: { pgcrypto } }));
   const { db, query, scalar, as, service } = f;
-  await f.install();
-  await db.exec(`CREATE SCHEMA vault;CREATE SCHEMA net;CREATE SCHEMA extensions;CREATE EXTENSION pgcrypto WITH SCHEMA extensions;
- CREATE TABLE vault.decrypted_secrets(name text primary key,decrypted_secret text NOT NULL);CREATE TABLE net.fake_requests(id bigint GENERATED ALWAYS AS IDENTITY,url text,body jsonb,headers jsonb);
- CREATE FUNCTION net.http_post(url text,body jsonb DEFAULT '{}'::jsonb,params jsonb DEFAULT '{}'::jsonb,headers jsonb DEFAULT '{}'::jsonb,timeout_milliseconds integer DEFAULT 2000) RETURNS bigint LANGUAGE plpgsql AS $$ DECLARE n bigint; BEGIN IF current_setting('test.net_error',true)='yes' THEN RAISE EXCEPTION 'Fake queue unavailable'; END IF;
- INSERT INTO net.fake_requests(url,body,headers) VALUES($1,$2,$4) RETURNING id INTO n; RETURN n;END $$;`);
+  if (moderation) await f.install();
+  await db.exec(`CREATE SCHEMA vault;CREATE SCHEMA lh_mail_transport;CREATE SCHEMA cron;CREATE SCHEMA extensions;CREATE EXTENSION pgcrypto WITH SCHEMA extensions;
+ CREATE TABLE vault.decrypted_secrets(name text primary key,decrypted_secret text NOT NULL);CREATE TABLE lh_mail_transport.fake_requests(id bigint GENERATED ALWAYS AS IDENTITY,url text,body jsonb,headers jsonb);
+ CREATE TABLE cron.job(jobname text unique, schedule text, command text);
+ CREATE FUNCTION cron.schedule(text,text,text) RETURNS bigint LANGUAGE plpgsql AS $$ BEGIN INSERT INTO cron.job VALUES($1,$2,$3);RETURN 1;END$$;
+ CREATE TYPE lh_mail_transport.http_header AS (field text,value text);
+ CREATE TYPE lh_mail_transport.http_request AS (method text,uri text,headers lh_mail_transport.http_header[],content_type text,content text);
+ CREATE TYPE lh_mail_transport.http_response AS (status integer,content_type text,headers lh_mail_transport.http_header[],content text);
+ CREATE FUNCTION lh_mail_transport.http(req lh_mail_transport.http_request) RETURNS lh_mail_transport.http_response LANGUAGE plpgsql AS $$ BEGIN
+ IF current_setting('test.net_error',true)='yes' THEN RAISE EXCEPTION 'Fake private transport unavailable'; END IF;
+ INSERT INTO lh_mail_transport.fake_requests(url,body,headers) VALUES(req.uri,req.content::jsonb,(SELECT jsonb_object_agg(h.field,h.value) FROM unnest(req.headers) h)||jsonb_build_object('Content-Type',req.content_type)); RETURN ROW(coalesce(nullif(current_setting('test.http_status',true),''),'200')::int,'application/json',NULL,'{}')::lh_mail_transport.http_response; END $$;`);
   const ref = 'a'.repeat(20),
     hook = 'c'.repeat(64),
     jwt = [
@@ -31,12 +37,12 @@ export async function alertFixture(install = true) {
   };
   if (install) await installAlert();
   const env = {
-    UPLOAD_WEBHOOK_SECRET: hook,
     RESEND_API_KEY: 'local-only',
     RESEND_FROM: 'Fixture <sender@example.test>',
   };
   const calls = new Map(
     Object.entries({
+      lh_upload_alert_verify: ['p_id', 'p_stamp', 'p_sig'],
       lh_upload_alert_plan: ['p_id'],
       lh_upload_alert_claim: ['p_id', 'p_admin'],
       lh_upload_alert_ack: ['p_id', 'p_admin', 'p_lease', 'p_provider_id'],
@@ -66,7 +72,7 @@ export async function alertFixture(install = true) {
     await as(0);
     return (
       await query(
-        "SELECT url,body,headers FROM net.fake_requests WHERE body->'record'->>'id'=$1 ORDER BY id DESC LIMIT 1",
+        "SELECT url,body,headers FROM lh_mail_transport.fake_requests WHERE body->'record'->>'id'=$1 ORDER BY id DESC LIMIT 1",
         [id],
       )
     )[0];
@@ -80,5 +86,9 @@ export async function alertFixture(install = true) {
     });
     return handleUploadAlert(req, { env: (n) => env[n], rpc, send, ...overrides });
   };
-  return { ...f, installAlert, env, rpc, retry, record, sendEvent };
+  const tick = async () => {
+    await as(0);
+    return scalar('SELECT legalhub_console.dispatch_upload_alerts_due()');
+  };
+  return { ...f, tick, installAlert, env, rpc, retry, record, sendEvent };
 }

@@ -4,7 +4,7 @@ import { createClient } from 'jsr:@supabase/supabase-js@2';
 import { handleUploadAlert } from './handler.mjs';
 
 Deno.serve((request: Request) => {
-  // Do not create a privileged client or read admin contacts for an unverified event.
+  // The only RPC allowed before signature verification is a boolean check; it never returns contacts.
   const connect = () =>
     createClient(Deno.env.get('SUPABASE_URL')!, Deno.env.get('SUPABASE_SERVICE_ROLE_KEY')!, {
       auth: { persistSession: false, autoRefreshToken: false },
