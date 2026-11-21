@@ -23,6 +23,7 @@
     $('cal-confirm').value = '';
     $('cal-status').textContent = '';
     workspace.hidden = true;
+    window.LHWorkspace?.session(null);
     gate.hidden = false;
     gate.textContent = message;
     $('gate-retry').hidden = !retry;
@@ -80,6 +81,7 @@
     gate.hidden = true;
     $('gate-retry').hidden = true;
     workspace.hidden = false;
+    window.LHWorkspace?.session(owner);
   }
   async function load(message = '') {
     close('Checking administrator access…');
@@ -103,6 +105,7 @@
       today = data.today;
       render(data.term || null);
       $('cal-status').textContent = message;
+      if (message) $('panel-term').open = true;
     } catch {
       if (epoch === ticket) close('Could not verify settings access or load the calendar.', true);
     }

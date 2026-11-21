@@ -5,13 +5,14 @@
     <meta name="viewport" content="width=device-width,initial-scale=1" />
     <meta name="robots" content="noindex,nofollow" />
     <meta name="referrer" content="same-origin" />
-    <title>Academic calendar · LegalHub admin settings</title>
+    <title>Admin workspace · LegalHub</title>
     <link rel="icon" href="../assets/images/favicon.svg" type="image/svg+xml" />
     <link rel="stylesheet" href="../styles/admin-settings.css" />
     <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
     <script src="../scripts/auth/supabase-client.js"></script>
     <script src="../scripts/auth/auth-guard.js"></script>
     <script defer src="../scripts/academic/term.js"></script>
+    <script defer src="../scripts/academic/admin-access.js"></script>
     <script defer src="../scripts/academic/admin-calendar.js"></script>
   </head>
   <body style="visibility: hidden">
@@ -24,86 +25,154 @@
       <button id="gate-retry" class="secondary" type="button" hidden>Try again</button>
       <div id="settings-workspace" hidden>
         <p class="eyebrow">Administration <span>/</span> Settings</p>
-        <h1>Academic calendar</h1>
-        <p class="intro">
-          Set the dates students see in the common room. The final exam date is the last day of the semester.
-        </p>
-        <div class="workspace-grid">
-          <aside class="published" aria-labelledby="published-title">
-            <div class="card-index">REGISTRAR’S DESK <span>01 / 01</span></div>
-            <p class="overline" id="published-title">Published calendar</p>
-            <h2 id="published-session">No active term</h2>
-            <p id="published-semester" class="subheading"></p>
-            <dl class="timeline">
-              <div>
-                <dt>Semester starts</dt>
-                <dd id="published-start">—</dd>
-              </div>
-              <div>
-                <dt>Exams begin</dt>
-                <dd id="published-exams">—</dd>
-              </div>
-              <div>
-                <dt>Semester ends</dt>
-                <dd id="published-end">—</dd>
-              </div>
-            </dl>
-            <p class="timezone">School dates · Africa/Lagos</p>
-          </aside>
-          <form id="calendar-form" aria-labelledby="edit-title">
-            <fieldset id="calendar-fields" disabled>
-              <legend id="edit-title">Term details</legend>
-              <p class="form-note">
-                Publishing replaces the active schedule. Editing a term never promotes students.
-              </p>
-              <div class="fields">
-                <label
-                  >Academic session<input
-                    id="cal-session"
+        <h1>Admin workspace</h1>
+        <p class="intro">Manage the academic calendar and administrator access for Legal Hub.</p>
+        <div class="console-tools">
+          <details id="panel-term" class="tool-card" name="console-tool">
+            <summary>
+              <span class="tool-no" aria-hidden="true">01</span
+              ><span class="tool-copy"
+                ><strong>Term details</strong
+                ><span
+                  >Publishing replaces the active schedule. Editing a term never promotes students.</span
+                ></span
+              ><span class="tool-chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="workspace-grid">
+              <aside class="published" aria-labelledby="published-title">
+                <div class="card-index">REGISTRAR’S DESK <span>01 / 01</span></div>
+                <p class="overline" id="published-title">Published calendar</p>
+                <h2 id="published-session">No active term</h2>
+                <p id="published-semester" class="subheading"></p>
+                <dl class="timeline">
+                  <div>
+                    <dt>Semester starts</dt>
+                    <dd id="published-start">—</dd>
+                  </div>
+                  <div>
+                    <dt>Exams begin</dt>
+                    <dd id="published-exams">—</dd>
+                  </div>
+                  <div>
+                    <dt>Semester ends</dt>
+                    <dd id="published-end">—</dd>
+                  </div>
+                </dl>
+                <p class="timezone">School dates · Africa/Lagos</p>
+              </aside>
+              <form id="calendar-form" aria-labelledby="edit-title">
+                <fieldset id="calendar-fields" disabled>
+                  <legend id="edit-title">Edit schedule</legend>
+                  <p class="form-note">Use the academic session and dates approved for publication.</p>
+                  <div class="fields">
+                    <label
+                      >Academic session<input
+                        id="cal-session"
+                        required
+                        maxlength="9"
+                        pattern="[0-9]{4}/[0-9]{4}"
+                        placeholder="2026/2027"
+                        autocomplete="off"
+                    /></label>
+                    <label
+                      >Semester<select id="cal-semester" required>
+                        <option value="">Choose semester</option>
+                        <option value="1">First semester</option>
+                        <option value="2">Second semester</option>
+                      </select></label
+                    >
+                    <label
+                      >Semester start<input
+                        id="cal-start"
+                        type="date"
+                        min="1900-01-01"
+                        max="9999-12-31"
+                        required
+                    /></label>
+                    <label
+                      >Exam start<input
+                        id="cal-exams"
+                        type="date"
+                        min="1900-01-01"
+                        max="9999-12-31"
+                        required
+                    /></label>
+                    <label
+                      >Exam end <small>· semester end</small
+                      ><input id="cal-end" type="date" min="1900-01-01" max="9999-12-31" required
+                    /></label>
+                  </div>
+                  <section class="review" aria-label="Review changes">
+                    <p class="overline">Confirm the schedule</p>
+                    <p id="cal-preview">Complete the term details to review the countdown.</p>
+                    <label for="cal-confirm">Type the phrase below to save.</label
+                    ><code id="cal-phrase">Complete the term details first.</code>
+                    <input
+                      id="cal-confirm"
+                      autocomplete="off"
+                      autocapitalize="none"
+                      spellcheck="false"
+                      aria-describedby="cal-phrase"
+                      disabled
+                    />
+                  </section>
+                  <button type="submit" id="cal-save" disabled>Publish calendar</button>
+                </fieldset>
+                <p id="cal-status" role="status"></p>
+                <button type="button" id="cal-reload" class="secondary" hidden>
+                  Reload published calendar
+                </button>
+              </form>
+            </div>
+          </details>
+          <details id="panel-roles" class="tool-card" name="console-tool" hidden>
+            <summary>
+              <span class="tool-no" aria-hidden="true">02</span
+              ><span class="tool-copy"
+                ><strong>Admin access</strong
+                ><span
+                  >Grant or revoke administrator access by confirmed email. Removing access does not delete
+                  the account.</span
+                ></span
+              ><span class="tool-chevron" aria-hidden="true"></span>
+            </summary>
+            <div class="tool-body">
+              <p class="scope-badge">Owner and designated role managers</p>
+              <form id="role-lookup">
+                <label class="wide-label"
+                  >Member’s verified email<input
+                    id="role-email"
+                    type="email"
+                    maxlength="254"
                     required
-                    maxlength="9"
-                    pattern="[0-9]{4}/[0-9]{4}"
-                    placeholder="2026/2027"
                     autocomplete="off"
+                    autocapitalize="none"
+                    spellcheck="false"
                 /></label>
-                <label
-                  >Semester<select id="cal-semester" required>
-                    <option value="">Choose semester</option>
-                    <option value="1">First semester</option>
-                    <option value="2">Second semester</option>
-                  </select></label
-                >
-                <label
-                  >Semester start<input id="cal-start" type="date" min="1900-01-01" max="9999-12-31" required
-                /></label>
-                <label
-                  >Exam start<input id="cal-exams" type="date" min="1900-01-01" max="9999-12-31" required
-                /></label>
-                <label
-                  >Exam end <small>· semester end</small
-                  ><input id="cal-end" type="date" min="1900-01-01" max="9999-12-31" required
-                /></label>
-              </div>
-              <section class="review" aria-label="Review changes">
-                <p class="overline">Confirm the schedule</p>
-                <p id="cal-preview">Complete the term details to review the countdown.</p>
-                <label for="cal-confirm">Type the phrase below to save.</label
-                ><code id="cal-phrase">Complete the term details first.</code>
+                <button type="submit" id="role-review" class="primary-action">Review account</button>
+              </form>
+              <div id="role-result" class="review" hidden>
+                <p class="overline">Reviewed account</p>
+                <p id="role-preview"></p>
+                <label for="role-confirm">Type this exact phrase to confirm:</label
+                ><code id="role-phrase"></code>
                 <input
-                  id="cal-confirm"
+                  id="role-confirm"
+                  aria-describedby="role-phrase"
                   autocomplete="off"
                   autocapitalize="none"
                   spellcheck="false"
-                  aria-describedby="cal-phrase"
-                  disabled
                 />
-              </section>
-              <button type="submit" id="cal-save" disabled>Publish calendar</button>
-            </fieldset>
-            <p id="cal-status" role="status"></p>
-            <button type="button" id="cal-reload" class="secondary" hidden>Reload published calendar</button>
-          </form>
+                <button id="role-apply" type="button" class="primary-action" disabled>
+                  Confirm change
+                </button>
+              </div>
+              <p id="role-status" class="tool-status" role="status"></p>
+            </div>
+          </details>
         </div>
+        <p id="tools-status" class="tool-status" role="status"></p>
+        <button id="tools-retry" class="secondary" type="button" hidden>Recheck admin tools</button>
       </div>
     </main>
     <footer><span>LegalHub</span> Academic services</footer>

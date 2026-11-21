@@ -362,3 +362,36 @@ footer span {
     border: 1px solid CanvasText;
   }
 }
+
+/* A single disclosure group. Native summaries work with touch, a pointer, Space and Enter. */
+.console-tools { display:grid; gap:.8rem; margin-top:clamp(1.5rem,4vw,2.8rem) }
+.tool-card { min-width:0; border:1px solid #c5cbc8; border-radius:.85rem; background:#fffefb }
+.tool-card[open] { border-color:#8d9e9b }
+.tool-card summary { display:flex; align-items:center; gap:clamp(.65rem,2.6vw,1.8rem); padding:clamp(.95rem,2.5vw,1.65rem); min-height:4rem; cursor:pointer; list-style:none; border-radius:inherit }
+.tool-card summary::-webkit-details-marker { display:none }
+.tool-card summary:focus-visible { outline-offset:-4px }
+.tool-card summary:hover { background:#f4f3ec }
+.tool-no,.scope-badge { font:650 .7rem/1.5 ui-monospace,monospace; color:#795520; letter-spacing:.08em }
+.tool-no { align-self:flex-start; border:1px solid #d6c9ad; border-radius:50%; display:grid; place-items:center; min-width:2rem; height:2rem; background:#faf6ea }
+.tool-copy { min-width:0; flex:1; display:grid; gap:.25rem }
+.tool-copy strong { font:500 clamp(1.3rem,3vw,1.8rem)/1.15 var(--serif); color:#1b303a }
+.tool-copy span,.tool-hint,.tool-status { color:#50606c; font-size:.88rem }
+.tool-chevron { width:.65rem;height:.65rem; flex:none; margin:0 .35rem .35rem 0; border:solid #425c65; border-width:0 2px 2px 0; transform:rotate(45deg); transition:transform .18s ease }
+.tool-card[open] .tool-chevron { transform:rotate(225deg); margin-bottom:0 }
+.tool-card .workspace-grid,.tool-body { padding:clamp(.95rem,2.7vw,1.8rem); border-top:1px solid var(--line); margin:0 }
+.tool-card .workspace-grid { gap:clamp(1rem,2.5vw,2rem) }
+.tool-body { display:grid; gap:1rem; max-width:none }
+.tool-body fieldset,#role-lookup { min-width:0; display:grid; gap:.9rem }
+.tool-body label { font-weight:650; font-size:.88rem }
+.tool-body #course-fields { border-top:1px solid #d9ddda; padding-top:.8rem }
+.small-legend { font:550 1.32rem/1.3 var(--serif); margin-bottom:.8rem }
+.pick-row { display:flex; align-items:end; gap:1rem; flex-wrap:wrap }.pick-row label { min-width:0; flex:1 1 16rem }
+.tool-hint { max-width:58ch }.tool-status:empty {display:none}.tool-status {overflow-wrap:anywhere}
+.scope-badge { text-transform:uppercase }.tool-body .review { margin:0 }.tool-body .review code { user-select:all }
+.review-check {display:flex;align-items:center;gap:.65rem;min-height:44px}.review-check input {width:1.1rem;height:1.1rem;min-height:0;margin:0;flex:none}
+.primary-action { justify-self:start; min-height:44px; padding:.55rem 1.1rem; color:#fff; background:#1f3944; border:1px solid #1f3944; border-radius:.45rem }
+#role-result .primary-action {margin-top:.8rem}#role-apply[data-action="revoke"] {background:#773737}
+#tools-status:not(:empty) { margin-top:1rem }
+@media (max-width:30rem) {.tool-card summary{align-items:flex-start}.tool-chevron{margin-top:.5rem}.tool-no{min-width:1.65rem;height:1.65rem}.tool-body .primary-action{width:100%}}
+@media (prefers-reduced-motion:reduce) {.tool-chevron{transition:none}}
+@media (forced-colors:active) {.tool-chevron{border-color:ButtonText}.tool-card,.tool-no,.primary-action{border-color:ButtonText}}
