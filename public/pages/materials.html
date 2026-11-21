@@ -232,10 +232,8 @@
         isAdmin = !!userRow.is_admin;
       }
 
-      if (userError) {
-        const status = document.getElementById("upload-status");
-        status.textContent = `Could not load your profile: ${errorMessage(userError, "check the users table and RLS policies")}`;
-        status.className = "text-xs mt-2 text-red-500";
+      if (userError && noticeVersion === 0) {
+        showUploadNotice(`Could not load your profile: ${errorMessage(userError, "profile unavailable")}`, "error");
       }
 
       if (isAdmin) {
@@ -415,96 +413,108 @@
       loadPending();
     }
 
-    document.getElementById("upload-btn").addEventListener("click", () => {
-      document.getElementById("file-input").click();
-    });
+    const fileInput = document.getElementById("file-input");
+    const titleInput = document.getElementById("material-name-input");
+    const chooseFile = document.getElementById("upload-btn");
+    const submitUpload = document.getElementById("submit-upload-btn");
+    const uploadStatus = document.getElementById("upload-status");
+    const selectedFile = document.getElementById("selected-file");
+    uploadStatus.setAttribute("role", "status");
+    uploadStatus.setAttribute("aria-live", "polite");
+    uploadStatus.setAttribute("aria-atomic", "true");
+    let uploading = false, noticeVersion = 0, noticeTimer;
 
-    document.getElementById("file-input").addEventListener("change", (e) => {
-      const file = e.target.files[0];
-      const selectedFileEl = document.getElementById("selected-file");
-      const submitUploadBtn = document.getElementById("submit-upload-btn");
-      selectedFileEl.textContent = file ? `Selected: ${file.name}` : "No PDF selected";
-      submitUploadBtn.disabled = !file;
-    });
-
-    document.getElementById("submit-upload-btn").addEventListener("click", async () => {
-      const file = document.getElementById("file-input").files[0];
-      const statusEl = document.getElementById("upload-status");
-      if (!file) return;
-
-      if (file.type !== "application/pdf") {
-        statusEl.textContent = "Only PDF files allowed.";
-        statusEl.className = "text-xs mt-2 text-red-500";
-        return;
+    function showUploadNotice(text, kind = "info") {
+      clearTimeout(noticeTimer);
+      const version = ++noticeVersion;
+      uploadStatus.textContent = text;
+      uploadStatus.className = "text-xs mt-2 " + ({ info: "text-gray-600", error: "text-red-600", success: "text-green-700" }[kind]);
+      if (kind === "success") {
+        // A callback from an earlier upload must never erase a new success, error or progress note.
+        noticeTimer = setTimeout(() => {
+          if (version === noticeVersion) uploadStatus.textContent = "";
+        }, 7000);
       }
+    }
 
-      const materialName = document.getElementById("material-name-input").value.trim();
-      const level = levelInput.value;
-      const semester = level === "relevant" ? "all" : semesterInput.value;
-      const course = level === "relevant" ? "relevant materials" : courseInput.value;
-      if (!materialName || !level || !semester || !course) {
-        statusEl.textContent = "Add a material name, level, semester, and course first.";
-        statusEl.className = "text-xs mt-2 text-red-500";
-        return;
-      }
-      statusEl.textContent = "Preparing upload...";
-      statusEl.className = "text-xs mt-2 text-gray-500";
-
-      const { data: presignData, error: presignError } = await supabaseClient.functions.invoke("r2-presign", {
-        body: { action: "upload", fileName: file.name, contentType: file.type },
-      });
-
-      if (presignError || !presignData?.uploadUrl) {
-        statusEl.textContent = `Couldn't prepare upload: ${errorMessage(presignError, presignData?.error || "the presign function returned no upload URL")}`;
-        statusEl.className = "text-xs mt-2 text-red-500";
-        return;
-      }
-
-      let putResponse;
-      try {
-        putResponse = await fetch(presignData.uploadUrl, {
-          method: "PUT",
-          body: file,
-          headers: { "Content-Type": file.type },
-        });
-      } catch (error) {
-        statusEl.textContent = `Upload request failed: ${errorMessage(error, "check the R2 bucket CORS policy")}`;
-        statusEl.className = "text-xs mt-2 text-red-500";
-        return;
-      }
-
-      if (!putResponse.ok) {
-        statusEl.textContent = `Upload failed: R2 returned HTTP ${putResponse.status}. Check R2 CORS and the presigned URL.`;
-        statusEl.className = "text-xs mt-2 text-red-500";
-        return;
-      }
-
-      const { error: insertError } = await supabaseClient.from("materials").insert({
-        file_name: file.name,
-        material_name: materialName,
-        level,
-        semester,
-        course,
-        status: "pending",
-        storage_path: presignData.key,
-        uploaded_by: currentUserId,
-      });
-      if (!insertError && isAdmin) loadPending();
-      statusEl.textContent = insertError
-        ? `File uploaded, but it could not be logged: ${errorMessage(insertError, "database insert failed")}`
-        : "Uploaded! Waiting for admin approval.";
-      statusEl.className = "text-xs mt-2 " + (insertError ? "text-red-500" : "text-green-600");
-
-      document.getElementById("file-input").value = "";
-      document.getElementById("selected-file").textContent = "No PDF selected";
-      document.getElementById("submit-upload-btn").disabled = true;
-      document.getElementById("material-name-input").value = "";
-      courseReads.delete(courseInput);
+    function clearSubmittedDraft() {
+      fileInput.value = "";
+      titleInput.value = "";
+      selectedFile.textContent = "No PDF selected";
       levelInput.value = "";
       semesterInput.value = "";
       semesterInput.disabled = true;
-      courseInput.innerHTML = '<option value="">Choose level and semester first</option>';
+      courseReads.delete(courseInput);
+      courseInput.replaceChildren(new Option("Choose level and semester first", ""));
       courseInput.disabled = true;
+    }
+
+    chooseFile.addEventListener("click", () => fileInput.click());
+    fileInput.addEventListener("change", () => {
+      const file = fileInput.files[0];
+      selectedFile.textContent = file ? `Selected: ${file.name}` : "No PDF selected";
+      submitUpload.disabled = uploading || !file;
+      if (!uploading) showUploadNotice("");
+    });
+
+    submitUpload.addEventListener("click", async () => {
+      if (uploading) return;
+      const file = fileInput.files[0];
+      if (!file) return;
+      if (file.type !== "application/pdf") return showUploadNotice("Only PDF files allowed.", "error");
+      const materialName = titleInput.value.trim(), level = levelInput.value;
+      const semester = level === "relevant" ? "all" : semesterInput.value;
+      const course = level === "relevant" ? "relevant materials" : courseInput.value;
+      if (!materialName || !level || !semester || !course || (level !== "relevant" && courseInput.disabled)) {
+        return showUploadNotice("Add a material name, level, semester, and course first.", "error");
+      }
+
+      uploading = true;
+      const controls = [fileInput, chooseFile, titleInput, levelInput, semesterInput, courseInput, submitUpload];
+      const disabledBefore = controls.map(el => el.disabled);
+      controls.forEach(el => { el.disabled = true; });
+      let transferred = false, logged = false;
+      try {
+        showUploadNotice("Preparing upload…");
+        const who = await supabaseClient.auth.getUser();
+        if (!currentUserId || who.error || who.data?.user?.id !== currentUserId) {
+          return showUploadNotice("Could not verify your account. Refresh before uploading.", "error");
+        }
+        const { data: signed, error } = await supabaseClient.functions.invoke("r2-presign", {
+          body: { action: "upload", fileName: file.name, contentType: file.type },
+        });
+        if (error || !signed?.uploadUrl || !signed.key) {
+          return showUploadNotice("Could not prepare the PDF upload. No material was submitted.", "error");
+        }
+        showUploadNotice("Uploading PDF…");
+        const put = await fetch(signed.uploadUrl, { method: "PUT", body: file, headers: { "Content-Type": file.type } });
+        if (!put.ok) return showUploadNotice(`PDF upload failed (HTTP ${put.status}). No material was submitted.`, "error");
+        transferred = true;
+        showUploadNotice("Saving the material for review…");
+        const receipt = await supabaseClient.from("materials").insert({
+          file_name: file.name, material_name: materialName, level, semester, course,
+          status: "pending", storage_path: signed.key, uploaded_by: currentUserId,
+        });
+        // The INSERT uses return=minimal: do not require SELECT access to a pending row.
+        if (!receipt || receipt.error !== null || !Number.isInteger(receipt.status) || receipt.status < 200 || receipt.status >= 300) {
+          throw Error("Logging not confirmed");
+        }
+        logged = true;
+        showUploadNotice(`${materialName} uploaded! Waiting for admin approval.`, "success");
+      } catch {
+        showUploadNotice(transferred
+          ? "The PDF was sent, but its material record was not confirmed. Check with an admin before retrying."
+          : "Could not finish the upload. Check your connection and try again.", "error");
+      } finally {
+        uploading = false;
+        controls.forEach((el, i) => { el.disabled = disabledBefore[i]; });
+        if (logged) clearSubmittedDraft();
+        submitUpload.disabled = !fileInput.files.length;
+      }
+      // A queue refresh is not a second upload and cannot change its outcome.
+      if (logged && isAdmin) void loadPending().catch(() => {
+        document.getElementById("pending-list").textContent = "Could not refresh the review queue. Reload to try again.";
+      });
     });
 
     init();
