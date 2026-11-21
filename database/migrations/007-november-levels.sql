@@ -1,8 +1,11 @@
--- Candidate only. Academic-calendar migration 006 first. No bulk UPDATE/backfill.
+-- Compatible 7 November level service. Calendar 006 first. No bulk UPDATE/backfill.
 -- Owner decision: every existing saved level is a 2025/2026 baseline, regardless of account age.
 BEGIN;
 SET LOCAL lock_timeout = '3s';
 SET LOCAL statement_timeout = '20s';
+LOCK TABLE public.users IN SHARE ROW EXCLUSIVE MODE;
+CREATE TEMP TABLE lh_level_before ON COMMIT DROP AS SELECT count(*) AS total,
+  md5(coalesce(string_agg(id::text||':'||xmin::text,',' ORDER BY id),'')) AS versions FROM public.users;
 DO $preflight$
 BEGIN
   IF to_regclass('public.academic_term') IS NULL OR NOT EXISTS (
@@ -10,6 +13,13 @@ BEGIN
     AND p.prorettype='text'::regtype AND p.proargnames=ARRAY['p_uid']::text[]
     AND md5(replace(p.prosrc,chr(13),''))='2639e14bfd9df4cb66ddc38e9e41410a') THEN
     RAISE EXCEPTION 'Calendar or December level function differs from reviewed baseline. Stop and inspect.';
+  END IF;
+  IF NOT has_column_privilege('authenticated','public.users','current_level','UPDATE')
+     OR NOT has_column_privilege('authenticated','public.users','level_updated_at','UPDATE')
+     OR has_any_column_privilege('anon','public.users','UPDATE')
+     OR EXISTS (SELECT FROM pg_proc WHERE pronamespace='public'::regnamespace AND proname IN ('academic_cycle_year','academic_assignment_year','academic_level_on','get_my_level_context','set_my_academic_level','lh_anchor_own_profile_level'))
+     OR EXISTS (SELECT FROM pg_attribute WHERE attrelid='public.users'::regclass AND attname='level_base_year' AND NOT attisdropped) THEN
+    RAISE EXCEPTION 'Unexpected level writers or service already installed. Stop; do not replay.';
   END IF;
   IF NOT (SELECT relrowsecurity FROM pg_class WHERE oid='public.users'::regclass)
      OR EXISTS (SELECT 1 FROM (VALUES ('anon'::name),('authenticated'::name)) r(role_name)
@@ -85,20 +95,42 @@ BEGIN
   RETURN saved;
 END;
 $$;
--- Self-service still works via the single-purpose RPC. Do not revoke username/avatar editing.
-REVOKE UPDATE(current_level,level_updated_at,level_base_year) ON public.users FROM PUBLIC, anon, authenticated;
+-- Preserve the *existing* RLS-protected own-profile writers; no table/column GRANT is added.
+-- Even an old page saving the same stored tier is a fresh assignment for this session.
+CREATE FUNCTION public.lh_anchor_own_profile_level() RETURNS trigger
+LANGUAGE plpgsql SECURITY INVOKER SET search_path=pg_catalog,pg_temp AS $$
+BEGIN
+  IF current_user IN ('authenticated','anon') THEN
+    IF current_user <> 'authenticated' OR auth.uid() IS NULL OR OLD.id IS DISTINCT FROM auth.uid() OR NEW.id IS DISTINCT FROM OLD.id THEN
+      RAISE EXCEPTION 'Only your own level can be corrected.' USING ERRCODE='42501';
+    END IF;
+    IF NEW.current_level IS NULL OR NEW.current_level NOT IN ('100L','200L','300L','400L','500L') THEN
+      RAISE EXCEPTION 'Choose a valid level.' USING ERRCODE='22023';
+    END IF;
+    NEW.level_base_year := public.academic_assignment_year();
+    NEW.level_updated_at := statement_timestamp();
+  END IF;
+  RETURN NEW;
+END;
+$$;
+CREATE TRIGGER lh_anchor_own_profile_level BEFORE UPDATE OF current_level,level_updated_at ON public.users
+FOR EACH ROW EXECUTE FUNCTION public.lh_anchor_own_profile_level();
+REVOKE ALL ON FUNCTION public.lh_anchor_own_profile_level() FROM PUBLIC, anon, authenticated;
 REVOKE ALL ON FUNCTION public.academic_cycle_year(date),public.academic_assignment_year(),public.academic_level_on(text,integer,date),
   public.get_effective_level(uuid),public.get_my_level_context(),public.set_my_academic_level(text,integer,text,uuid) FROM PUBLIC, anon, authenticated;
 GRANT EXECUTE ON FUNCTION public.academic_cycle_year(date),public.academic_assignment_year(),public.academic_level_on(text,integer,date),
   public.get_effective_level(uuid),public.get_my_level_context(),public.set_my_academic_level(text,integer,text,uuid) TO authenticated;
 DO $acl$
 BEGIN
-  IF EXISTS (SELECT 1 FROM (VALUES ('anon'::name),('authenticated'::name)) r(role_name)
-    CROSS JOIN (VALUES ('current_level'::text),('level_updated_at'),('level_base_year'),('is_admin')) c(col)
-    WHERE has_column_privilege(r.role_name,'public.users',c.col,'UPDATE'))
-    OR has_function_privilege('anon','public.set_my_academic_level(text,integer,text,uuid)','EXECUTE') THEN
-    RAISE EXCEPTION 'Unexpected inherited level grants. Stop and review.';
+  IF NOT has_column_privilege('authenticated','public.users','current_level','UPDATE') OR NOT has_column_privilege('authenticated','public.users','level_updated_at','UPDATE')
+    OR has_any_column_privilege('anon','public.users','UPDATE') OR has_column_privilege('authenticated','public.users','level_base_year','UPDATE') OR has_column_privilege('authenticated','public.users','is_admin','UPDATE')
+    OR has_function_privilege('anon','public.set_my_academic_level(text,integer,text,uuid)','EXECUTE') OR has_function_privilege('authenticated','public.lh_anchor_own_profile_level()','EXECUTE') THEN
+    RAISE EXCEPTION 'Unexpected level grants. Roll back.';
+  END IF;
+  IF EXISTS (SELECT count(*),md5(coalesce(string_agg(id::text||':'||xmin::text,',' ORDER BY id),'')) FROM public.users EXCEPT SELECT * FROM pg_temp.lh_level_before) THEN
+    RAISE EXCEPTION 'Existing profile rows were changed. Roll back.';
   END IF;
 END;
 $acl$;
+NOTIFY pgrst,'reload schema';
 COMMIT;

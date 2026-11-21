@@ -100,7 +100,7 @@ try {
     for (const col of ['current_level', 'level_base_year', 'level_updated_at', 'is_admin'])
       assert.equal(
         await val("SELECT has_column_privilege($1::name,'public.users',$2,'UPDATE')", [role, col]),
-        false
+        role === 'authenticated' && ['current_level','level_updated_at'].includes(col)
       );
   }
   await as('anon');
@@ -109,7 +109,7 @@ try {
     save(2026, 1, '2026-11-02', '2027-02-01', '2027-02-12', 0, 'i publish 2026/2027 first semester'),
     /permission denied/
   );
-  ok('Anonymous access is denied and neither web role has direct calendar or level writes');
+  ok('Anonymous writes denied; own legacy level columns preserved, server anchor and calendar protected');
   await as('authenticated', 2);
   assert.equal((await term()).can_manage, false);
   assert.equal((await term()).term, null);
