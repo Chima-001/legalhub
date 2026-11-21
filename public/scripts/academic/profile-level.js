@@ -52,7 +52,7 @@
       $('display-level').textContent = data.level || 'Not set';
       select.value = levels.includes(data.level) ? data.level : '';
       $('level-session-hint').textContent =
-        `Choose your own level for ${session()}. Change it if it is wrong; you do not need to set it on each visit. Annual advancement is on 7 November, up to 500L.`;
+        `Choose your current level for the ${session()} session.`;
       select.disabled = false;
       begin.disabled = !levels.includes(select.value);
     } catch {
