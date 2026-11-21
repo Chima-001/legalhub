@@ -351,13 +351,19 @@ test('Library reads the effective profile level without replacing an explicitly 
     };
     const ctx = vm.createContext({
       selectedLevel: starting,
-      readerChoseLevel: chosen,
+      // The isolated reader now keeps a consent flag for defaults and the signed-in viewer.
+      viewerId: null,
+      selectedSemester: 'all',
+      unscopedEntry: starting === 'all' && !chosen,
+      acceptProfileLevel: starting === 'all' && !chosen,
       isAdmin: false,
       document: { getElementById: () => select },
       supabaseClient: api,
     });
     await vm.runInContext(code + ';loadUserFilters()', ctx);
     assert.deepEqual(calls, ['get_effective_level']);
+    assert.equal(ctx.viewerId, 'fixture');
+    assert.equal(ctx.selectedSemester, starting === 'all' && !chosen ? 'first' : 'all');
     assert.equal(ctx.selectedLevel, want);
     assert.equal(select.value, want);
   }

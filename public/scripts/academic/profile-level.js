@@ -36,12 +36,14 @@
       if (!id || identity.error) throw Error('unavailable');
       const { data, error } = await supabaseClient.rpc('get_my_level_context');
       if (current !== epoch) return;
-      if (error || !data || !Number.isInteger(data.assignment_year)) {
+      if (error || !data || !Number.isInteger(data.assignment_year) || data.assignment_year < 2000 || data.assignment_year > 9998) {
         // Staged rollout: use the old read RPC if needed, never fall back to an unchecked write.
         const legacy = await supabaseClient.rpc('get_effective_level', { p_uid: id });
         if (current !== epoch) return;
-        $('display-level').textContent = legacy.data || 'Unavailable';
-        $('level-session-hint').textContent = 'Level editing is currently unavailable.';
+        $('display-level').textContent = !legacy.error && levels.includes(legacy.data) ? legacy.data : 'Unavailable';
+        $('level-session-hint').textContent = ['PGRST202', '42883'].includes(error?.code)
+          ? 'Level editing is unavailable until the site enables or refreshes the level service. Your level has not been changed.'
+          : 'Level editing is unavailable because your session could not be verified. Reconnect and reload Profile to retry.';
         return;
       }
       if (data.account_id !== id) throw Error('changed');
@@ -50,7 +52,7 @@
       $('display-level').textContent = data.level || 'Not set';
       select.value = levels.includes(data.level) ? data.level : '';
       $('level-session-hint').textContent =
-        `A correction applies to ${session()}. Annual advancement is on 7 November.`;
+        `Choose your own level for ${session()}. Change it if it is wrong; you do not need to set it on each visit. Annual advancement is on 7 November, up to 500L.`;
       select.disabled = false;
       begin.disabled = !levels.includes(select.value);
     } catch {
