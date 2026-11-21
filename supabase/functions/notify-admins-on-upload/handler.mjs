@@ -137,3 +137,25 @@ export async function handleUploadAlert(request, { env, rpc, send = fetch, now =
     return reply(503, { error: 'Notification state could not be confirmed' });
   }
 }
+
+// Edge entry adapter: platform APIs only. The caller cannot supply a destination, a REST path or credentials.
+const methods = new Set(['lh_upload_alert_verify', 'lh_upload_alert_plan', 'lh_upload_alert_claim', 'lh_upload_alert_ack']);
+export function uploadEndpoint(env, transport = fetch) {
+  const rpc = async (name, args) => {
+    if (!methods.has(name)) throw Error('Unknown notification operation');
+    const base = new URL(env('SUPABASE_URL'));
+    const key = env('SUPABASE_SERVICE_ROLE_KEY');
+    if (!key || base.protocol !== 'https:' || base.username || base.password || base.search || base.hash || base.pathname !== '/') throw Error('Invalid server configuration');
+    const res = await transport(new URL('/rest/v1/rpc/' + name, base).href, {
+      method: 'POST', redirect: 'error', signal: AbortSignal.timeout(4500),
+      headers: { apikey: key, Authorization: 'Bearer ' + key, 'Content-Type': 'application/json', Accept: 'application/json' },
+      body: JSON.stringify(args),
+    });
+    if (!res.ok) {
+      console.warn('LegalHub notification RPC', name, res.status); // no body, credentials or identities
+      throw Error('Notification operation unavailable');
+    }
+    return { data: await res.json(), error: null };
+  };
+  return request => handleUploadAlert(request, { env, rpc, send: transport });
+}
