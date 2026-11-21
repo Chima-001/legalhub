@@ -16,7 +16,7 @@ function boot() {
     SUPABASE_URL: endpoint,
     SUPABASE_SERVICE_ROLE_KEY: serviceKey,
     RESEND_API_KEY: token,
-    RESEND_FROM: 'Fixture <alerts@example.test>',
+    RESEND_FROM: 'noreply@example.test',
   };
   const id = '00000000-0000-4000-8000-000000000001',
     admin = '00000000-0000-4000-8000-000000000002';
@@ -28,6 +28,11 @@ function boot() {
     if (url === 'https://api.resend.com/emails') {
       assert.equal(opt.headers.Authorization, 'Bearer ' + token);
       assert.equal(opt.headers.apikey, undefined);
+      const body = JSON.parse(opt.body);
+      assert.equal(body.from, 'LegalHub <noreply@example.test>');
+      assert(body.html.includes('href="https://legalhub-io.netlify.app/pages/materials.html"'));
+      assert(body.text.includes('https://legalhub-io.netlify.app/pages/materials.html'));
+      assert(!body.html.includes('Bearer'));
       assert.equal(opt.headers['Idempotency-Key'], 'lh-upload/' + id + '/' + admin);
       return Response.json({ id: 'fixture-receipt' });
     }
@@ -109,4 +114,13 @@ test('one-file entry uses the existing verified RPC flow; provider key and servi
   assert.equal(r.status, 403);
   assert.equal(blocked.traffic.length, 1);
   assert.deepEqual(blocked.warnings, []);
+});
+
+test('bare domains and header injection are refused before claiming a recipient', async () => {
+  for (const address of ['example.test', 'a@example.test\r\nBcc: x@example.test', 'onboarding@resend.dev']) {
+    const f = boot();
+    f.env.RESEND_FROM = address;
+    assert.equal((await f.submit()).status, 503);
+    assert.equal(f.traffic.length, 1);
+  }
 });

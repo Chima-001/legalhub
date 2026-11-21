@@ -1,6 +1,15 @@
 // One origin, one INSERT event, one provider request per intended admin. Never trust recipients from the body.
 const uuid = /^[a-f0-9]{8}-(?:[a-f0-9]{4}-){3}[a-f0-9]{12}$/;
 const reply = (status, body) => Response.json(body, { status, headers: { 'Cache-Control': 'no-store' } });
+const materialsPage = 'https://legalhub-io.netlify.app/pages/materials.html';
+function brandedSender(raw) {
+  if (typeof raw !== 'string' || /[\r\n]/.test(raw)) return null;
+  const value = raw.trim();
+  const address = (value.match(/^[^<>]*<([^<>]+)>$/)?.[1] || value).trim();
+  if (!/^[A-Z0-9.!#$%&'*+\/=^_`{|}~-]+@[A-Z0-9-]+(?:\.[A-Z0-9-]+)+$/i.test(address) || /@resend\.dev$/i.test(address)) return null;
+  return `LegalHub <${address}>`;
+}
+const escapeHtml = s => s.replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 export async function handleUploadAlert(request, { env, rpc, send = fetch, now = Date.now }) {
   if (request.method !== 'POST') return reply(405, { error: 'POST required' });
   if (!/^application\/json(?:\s*;|$)/i.test(request.headers.get('Content-Type') || ''))
@@ -51,8 +60,8 @@ export async function handleUploadAlert(request, { env, rpc, send = fetch, now =
     if ((await read('lh_upload_alert_verify', { p_id: id, p_stamp: stamp, p_sig: sig })) !== true)
       return reply(403, { error: 'Unverified event' });
     const token = env('RESEND_API_KEY'),
-      from = env('RESEND_FROM');
-    if (!token || !from || /[\r\n]/.test(from) || /@resend\.dev(?:>|\s|$)/i.test(from))
+      from = brandedSender(env('RESEND_FROM'));
+    if (!token || !from)
       return reply(503, { error: 'Verified mail sender not configured' });
     const plan = () => read('lh_upload_alert_plan', { p_id: id });
     const initial = await plan();
@@ -76,6 +85,8 @@ export async function handleUploadAlert(request, { env, rpc, send = fetch, now =
       )
         throw Error();
       const title = target.title.replace(/[\r\n\t]/g, ' ').trim() || 'Material';
+      const course = typeof target.course === 'string' ? target.course.replace(/[\r\n\t]/g,' ').trim() : '';
+      const message = `${title}${course ? ' (' + course + ')' : ''} was uploaded to LegalHub.`;
       try {
         const result = await send('https://api.resend.com/emails', {
           method: 'POST',
@@ -90,7 +101,8 @@ export async function handleUploadAlert(request, { env, rpc, send = fetch, now =
             from,
             to: [target.address],
             subject: `New LegalHub upload: ${title}`,
-            text: `${title}${target.course ? ' (' + target.course + ')' : ''} was uploaded to LegalHub. Sign in and open Upload Material to check its review status.`,
+            text: `${message}\n\nOpen Materials to review it: ${materialsPage}\nSign in with your LegalHub admin account.`,
+            html: `<p>${escapeHtml(message)}</p><p><a href="${materialsPage}">Open Materials to review the upload</a></p><p>Sign in with your LegalHub admin account.</p>`,
           }),
         });
         if (!result.ok) {

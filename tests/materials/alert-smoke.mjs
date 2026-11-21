@@ -10,7 +10,11 @@ let rejectTo = null;
 const fake = async (url, opt) => {
   assert.equal(url, 'https://api.resend.com/emails');
   const b = JSON.parse(opt.body);
-  assert.deepEqual(Object.keys(b).sort(), ['from', 'subject', 'text', 'to']);
+  assert.deepEqual(Object.keys(b).sort(), ['from', 'html', 'subject', 'text', 'to']);
+  assert.equal(b.from, 'LegalHub <sender@example.test>');
+  assert(b.text.includes('https://legalhub-io.netlify.app/pages/materials.html'));
+  assert(b.html.includes('href="https://legalhub-io.netlify.app/pages/materials.html"'));
+  assert(!b.html.includes('<Notes>'));
   assert.equal(b.to.length, 1);
   assert.match(b.to[0], /^reader\d+@example\.test$/);
   const key = opt.headers['Idempotency-Key'];
