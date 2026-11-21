@@ -1,4 +1,5 @@
-import { LEVELS, TERMS, selection, termTitle, deskHref, libraryHref, createSource } from './desk-data.mjs';
+import { LEVELS, TERMS, selection, termTitle, deskHref, libraryHref } from './desk-data.mjs';
+import { managedDesk, readCatalog } from './catalog.mjs';
 
 async function readJSON(name) {
   const url = new URL('../../data/semester-desks/' + name, import.meta.url);
@@ -19,7 +20,9 @@ async function readJSON(name) {
 }
 
 // Bind once to the enduring shell. Course/term data is never parsed as HTML.
-export function mountDesk(loadDesk = createSource(readJSON)) {
+export function mountDesk(
+  loadDesk = managedDesk(readJSON, (level, semester) => readCatalog(supabaseClient, level, semester)),
+) {
   const $ = (id) => document.getElementById(id),
     frame = $('semester-desk'),
     rows = $('course-rows'),
@@ -40,7 +43,8 @@ export function mountDesk(loadDesk = createSource(readJSON)) {
   const put = (o, sel, value) => {
     o.querySelector(sel).textContent = value;
   };
-  const scrollMode = () => (matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth');
+  const scrollMode = () =>
+    matchMedia('(prefers-reduced-motion: reduce)').matches ? 'instant' : 'smooth';
   function destination(a, href) {
     a.setAttribute('href', href);
     if (href.startsWith('https://')) {
@@ -153,13 +157,19 @@ export function mountDesk(loadDesk = createSource(readJSON)) {
     el.querySelector('.swatch').style.backgroundColor = c.accent;
     if (c.code) put(el, '.course-code', c.code);
     else el.querySelector('.course-code').remove();
+    if (c.curriculumName && !c.listLabel) {
+      const tag = document.createElement('small');
+      tag.className = 'course-code';
+      tag.textContent = c.curriculumName;
+      el.querySelector('.course-name').after(tag);
+    }
     const badge = el.querySelector('.pill');
     if (c.badge) {
       badge.textContent = c.badge;
       badge.classList.toggle('has-content', c.badgeActive === true);
     } else badge.remove();
     const star = el.querySelector('.star-btn');
-    star.setAttribute('aria-label', 'Star ' + c.name);
+    star.setAttribute('aria-label', 'Star ' + (c.listLabel || c.name));
     star.setAttribute('aria-pressed', String(shelf.starred.has(c.id)));
     star.classList.toggle('starred', shelf.starred.has(c.id));
     if (c.resources.length) {
@@ -186,7 +196,7 @@ export function mountDesk(loadDesk = createSource(readJSON)) {
     el.dataset.jump = c.name;
     el.dataset.jumpId = c.id;
     put(el, '.thumb-sq', c.tileCode);
-    put(el, '.thumb-label', c.name);
+    put(el, '.thumb-label', c.listLabel || c.name);
     el.querySelector('.thumb-sq').style.backgroundColor = c.accent;
     if (star) {
       const badge = document.createElement('span');
@@ -219,7 +229,8 @@ export function mountDesk(loadDesk = createSource(readJSON)) {
     el.type = 'button';
     el.className = 'chip';
     el.dataset.filter = value;
-    el.textContent = value === 'Past questions' ? 'Past Qs' : value === 'Test' ? 'Tests' : value || 'All';
+    el.textContent =
+      value === 'Past questions' ? 'Past Qs' : value === 'Test' ? 'Tests' : value || 'All';
     el.classList.toggle('active', !value);
     el.setAttribute('aria-pressed', String(!value));
     return el;
@@ -285,7 +296,11 @@ export function mountDesk(loadDesk = createSource(readJSON)) {
       );
       return;
     }
-    message('loading', 'Loading this semester’s courses…', `${route.level} · ${termTitle(route.semester)}`);
+    message(
+      'loading',
+      'Loading this semester’s courses…',
+      `${route.level} · ${termTitle(route.semester)}`,
+    );
     try {
       const result = await loadDesk(route);
       if (ticket !== epoch) return;
@@ -480,11 +495,15 @@ export function mountDesk(loadDesk = createSource(readJSON)) {
   // Navigation is an enhancement: a cached old shell or a missing nav asset must
   // never block the course directory. Native links and overflow work without it.
   if ($('desk-admin-link')) {
-    import('./desk-nav.mjs').then(({ mountDeskNavigation }) => {
-      if (leaving) return;
-      nav = mountDeskNavigation(frame, client);
-      nav.session(navReader);
-    }).catch(() => { /* The optional admin entry stays hidden. */ });
+    import('./desk-nav.mjs')
+      .then(({ mountDeskNavigation }) => {
+        if (leaving) return;
+        nav = mountDeskNavigation(frame, client);
+        nav.session(navReader);
+      })
+      .catch(() => {
+        /* The optional admin entry stays hidden. */
+      });
   }
   function recheckAccount() {
     if (leaving) return;
@@ -500,7 +519,11 @@ export function mountDesk(loadDesk = createSource(readJSON)) {
   auth?.onAuthStateChange?.((event, session) => {
     if (leaving) return;
     const id = session?.user?.id;
-    if (event === 'SIGNED_OUT' || (event === 'INITIAL_SESSION' && !id) || (id && account && id !== account)) {
+    if (
+      event === 'SIGNED_OUT' ||
+      (event === 'INITIAL_SESSION' && !id) ||
+      (id && account && id !== account)
+    ) {
       recheckAccount();
       return;
     }

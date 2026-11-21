@@ -12,12 +12,21 @@
 
   // ─── 1. CONFIGURATION ──────────────────────────────────────────
 
-  // Legacy suggestions for the general (all-semesters) library only. A semester
-  // view uses approved inventory; the desk curriculum lives in public/data/semester-desks/.
-  const generalSuggestions = {
-    '100L': ['Legal Method', 'Customary Law', 'Philosophy', 'Psychology', 'Communication in English', 'Natural Science', 'Logics', 'Introduction to Nigerian Literature'],
-    '200L': [], '300L': [], '400L': [], '500L': [], 'Relevant': []
-  };
+  const levelChoices = ['100L','200L','300L','400L','500L','Relevant'];
+  let catalog = []; // Only current, published courses. Approved inventory remains available independently.
+  function catalogScope() {
+    return catalog.filter(r => (selectedLevel === 'all' || selectedLevel === r.level) &&
+      (selectedSemester === 'all' || selectedSemester === r.semester));
+  }
+  function courseLabel(key, rows = catalogScope()) {
+    const names = new Set(rows.filter(r => r.key.toLowerCase() === key.toLowerCase()).map(r=>r.name));
+    if(names.size !== 1) return key;
+    const label=[...names][0], matched=rows.filter(r=>r.key.toLowerCase()===key.toLowerCase());
+    const namesakes=rows.some(r=>r.name.toLowerCase()===label.toLowerCase() && r.key.toLowerCase()!==key.toLowerCase());
+    if (namesakes && matched.length) return label+' · '+[...new Set(matched.map(r=>r.curriculum_name||'Existing desk'))].join(' / ');
+    return label;
+  }
+  const textHTML = value => String(value).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'})[c]);
 
   let ALL_COURSES = ['All'];
 
@@ -27,13 +36,8 @@
   }
 
   function getCourseSuggestions() {
-    // A semester's library is an inventory, not a second curriculum. Don't advertise
-    // copied legacy suggestions as first-semester courses when no such books exist.
-    if (selectedSemester !== 'all') {
-      return [...new Set(books.filter(withinDesk).map(b => b.courseName).filter(Boolean))];
-    }
-    const levels = selectedLevel === 'all' ? Object.keys(generalSuggestions) : [selectedLevel];
-    return [...new Set(levels.flatMap(level => generalSuggestions[level] || []))];
+    const values = [...catalogScope().map(r => r.key), ...books.filter(withinDesk).map(b => b.courseName)];
+    return [...new Set(values.filter(Boolean))];
   }
 
   function updateCourseFilters() {
@@ -118,7 +122,7 @@
   const termParam = libraryParams.get('semester');
   const requestedSemester = ['first', 'second'].includes(termParam) ? termParam : 'all';
   const requestedMaterial = libraryParams.get('material');
-  let selectedLevel = Object.prototype.hasOwnProperty.call(generalSuggestions, requestedLevel) ? requestedLevel : 'all';
+  let selectedLevel = levelChoices.includes(requestedLevel) ? requestedLevel : 'all';
   let readerChoseLevel = requestedLevel === 'all' || selectedLevel !== 'all';
   let selectedSemester = requestedLevel === 'Relevant' ? 'all' : requestedSemester;
   let userChangedScope = false;
@@ -262,7 +266,7 @@
       button.className = cssClass;
       button.classList.toggle('active', course === activeFilter);
       button.dataset.filter = course;
-      button.textContent = course;
+      button.textContent = courseLabel(course);
       button.addEventListener('click', () => {
         setActiveFilter(course);
         if (mobile) closeBottomSheet();
@@ -319,6 +323,7 @@
       const matchSearch = searchTerm === '' ||
         book.displayName.toLowerCase().includes(searchTerm) ||
         book.courseName.toLowerCase().includes(searchTerm) ||
+        courseLabel(book.courseName).toLowerCase().includes(searchTerm) ||
         book.raw.includes(searchTerm);
       return matchesMaterial && withinDesk(book) && matchFilter && matchSearch;
     });
@@ -368,7 +373,7 @@
               ` : ""}
               <div class="book-meta">
                 <div class="book-title">${book.materialName}</div>
-                <span class="course-tag">${book.courseName}</span>
+                <span class="course-tag">${textHTML(courseLabel(book.courseName, catalog.filter(r => r.level === book.level && (book.semester === 'all' || r.semester === book.semester))))}</span>
                 <div class="book-actions">
                   <button class="btn-read" onclick="event.stopPropagation(); window.open('${filePath}', '_blank');">📖 Read</button>
                   <button class="btn-download" onclick="event.stopPropagation(); downloadPDF('${filePath}', '${book.materialName.replace(/'/g, "\\'")}');">⬇ Download</button>
@@ -472,6 +477,18 @@
   // ─── 13. INIT ──────────────────────────────────────────────────
 
   updateCourseFilters();
+  // Keep explicit URL filters and approved old/archived materials, even if the optional list read fails.
+  import('./academic/catalog.mjs').then(m => m.readCatalog(supabaseClient)).then(rows => {
+    catalog = rows;
+    updateCourseFilters();
+  }).catch(() => {
+    const host = document.querySelector?.('.library-filters');
+    if (!host) return;
+    const note = document.createElement('p');
+    note.setAttribute('role', 'status');
+    note.textContent = 'Course list temporarily unavailable. Filters from approved materials are still available.';
+    host.after(note);
+  });
   loadUserFilters().catch(() => {}).then(() => {
     updateCourseFilters();
     return loadApprovedMaterials();

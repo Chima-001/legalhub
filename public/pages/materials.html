@@ -150,31 +150,48 @@
         window.location.href = "../index.html";
       }
     });
-    // Replace these lists with the official course offering when it is ready.
-    const COURSE_CATALOG = {
-      "100L": {
-        first: ["Legal Method", "Customary Law", "Philosophy", "Psychology", "Communication in English", "Natural Science", "Logics", "Introduction to Nigerian Literature"],
-        second: ["Legal Method", "Customary Law", "Philosophy", "Psychology", "Communication in English", "Natural Science", "Logics", "Introduction to Nigerian Literature"]
-      },
-      "200L": { first: [], second: [] },
-      "300L": { first: [], second: [] },
-      "400L": { first: [], second: [] },
-      "500L": { first: [], second: [] }
-    };
+    // Use the shared catalogue. Keys saved on materials stay stable when a course is renamed.
+    const courseReads = new WeakMap();
+    async function fillCourseSelect(select, level, semester, keep = '') {
+      const ticket = {};
+      courseReads.set(select, ticket);
+      select.disabled = true;
+      select.replaceChildren(new Option('Loading courses…', ''));
+      try {
+        const {readCatalog} = await import('../scripts/academic/catalog.mjs');
+        const rows = await readCatalog(supabaseClient, level, semester === 'all' ? null : semester);
+        if (courseReads.get(select) !== ticket) return;
+        const groups = new Map(), seen = new Set();
+        for (const r of rows) {
+          const group = r.curriculum_name || 'Existing desk courses';
+          if (!groups.has(group)) { const g = document.createElement('optgroup'); g.label=group; groups.set(group,g); }
+          if (!seen.has(r.key)) { groups.get(group).append(new Option(r.name,r.key)); seen.add(r.key); }
+        }
+        const retained = keep && !seen.has(keep) ? [new Option(keep+' (existing material)',keep)] : [];
+        select.replaceChildren(new Option(seen.size || retained.length ? 'Choose course' : 'No published courses yet', ''), ...groups.values(), ...retained);
+        select.value = keep;
+        select.disabled = !(seen.size || retained.length);
+      } catch {
+        if (courseReads.get(select) === ticket) select.replaceChildren(new Option('Courses unavailable — reselect semester to retry', ''));
+      }
+    }
 
     const levelInput = document.getElementById("level-input");
     const semesterInput = document.getElementById("semester-input");
     const courseInput = document.getElementById("course-input");
 
     function populateCourses() {
-      const courses = COURSE_CATALOG[levelInput.value]?.[semesterInput.value] || [];
-      courseInput.innerHTML = courses.length
-        ? '<option value="">Choose course</option>' + courses.map(course => `<option value="${escapeHtml(course)}">${escapeHtml(course)}</option>`).join("")
-        : '<option value="">Courses will be added soon</option>';
-      courseInput.disabled = !courses.length;
+      if (!levelInput.value || !semesterInput.value) {
+        courseReads.delete(courseInput);
+        courseInput.replaceChildren(new Option('Choose level and semester first',''));
+        courseInput.disabled = true;
+        return;
+      }
+      void fillCourseSelect(courseInput, levelInput.value, semesterInput.value);
     }
 
     levelInput.addEventListener("change", () => {
+      courseReads.delete(courseInput);
       const isRelevant = levelInput.value === "relevant";
       semesterInput.disabled = isRelevant || !levelInput.value;
       semesterInput.value = isRelevant ? "all" : "";
@@ -186,9 +203,7 @@
     semesterInput.addEventListener("change", populateCourses);
 
     function escapeHtml(str) {
-      const div = document.createElement("div");
-      div.textContent = str;
-      return div.innerHTML;
+      return String(str ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'})[c]);
     }
 
     function errorMessage(error, fallback) {
@@ -305,6 +320,11 @@
       document.querySelectorAll(".edit-material-btn").forEach(btn => btn.addEventListener("click", () => {
         const panel = document.querySelector(`[data-edit-panel="${btn.dataset.editId}"]`);
         const isOpening = panel.classList.toggle("hidden") === false;
+        if (isOpening) {
+          const row = btn.closest('[data-admin-material]');
+          const level = row.querySelector('[data-field="level"]').value;
+          if (level !== 'relevant') updateAdminCourses(row, level, row.querySelector('[data-field="semester"]').value, row.querySelector('[data-field="course"]').value);
+        }
         btn.setAttribute("aria-expanded", String(isOpening));
         btn.textContent = isOpening ? "Close" : "Edit";
       }));
@@ -320,6 +340,7 @@
         const row = select.closest("[data-admin-material]");
         const semester = row.querySelector('[data-field="semester"]');
         const course = row.querySelector('[data-field="course"]');
+        courseReads.delete(course);
         semester.disabled = select.value === "relevant";
         if (select.value === "relevant") {
           semester.value = "all";
@@ -334,10 +355,9 @@
       document.querySelectorAll(".save-material-btn").forEach(btn => btn.addEventListener("click", () => saveMaterialDetails(btn.dataset.saveId)));
     }
 
-    function updateAdminCourses(row, level, semester) {
+    function updateAdminCourses(row, level, semester, keep = '') {
       const select = row.querySelector('[data-field="course"]');
-      const courses = COURSE_CATALOG[level]?.[semester] || [];
-      select.innerHTML = courses.length ? courses.map(course => `<option value="${escapeHtml(course)}">${escapeHtml(course)}</option>`).join("") : '<option value="">Course not in catalog</option>';
+      void fillCourseSelect(select,level,semester,keep);
     }
 
     async function saveMaterialDetails(id) {
@@ -345,6 +365,10 @@
       const level = row.querySelector('[data-field="level"]').value;
       const semester = level === "relevant" ? "all" : row.querySelector('[data-field="semester"]').value;
       const course = level === "relevant" ? "relevant materials" : row.querySelector('[data-field="course"]').value;
+      if (!course) {
+        row.querySelector(`[data-admin-status="${id}"]`).textContent = 'Choose a course before saving.';
+        return;
+      }
       const { error } = await supabaseClient.from("materials").update({
         material_name: row.querySelector('[data-field="material_name"]').value.trim(), level, semester, course
       }).eq("id", id);
@@ -475,6 +499,7 @@
       document.getElementById("selected-file").textContent = "No PDF selected";
       document.getElementById("submit-upload-btn").disabled = true;
       document.getElementById("material-name-input").value = "";
+      courseReads.delete(courseInput);
       levelInput.value = "";
       semesterInput.value = "";
       semesterInput.disabled = true;

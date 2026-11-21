@@ -7,7 +7,11 @@ const check = (ok, message) => {
 };
 const object = (v) => v !== null && typeof v === 'object' && !Array.isArray(v);
 const text = (v) =>
-  typeof v === 'string' && v.length > 0 && v.length <= 240 && v.trim() === v && !/[\u0000-\u001f]/u.test(v);
+  typeof v === 'string' &&
+  v.length > 0 &&
+  v.length <= 240 &&
+  v.trim() === v &&
+  !/[\u0000-\u001f]/u.test(v);
 const valid = (level, semester) => LEVELS.includes(level) && TERMS.includes(semester);
 export const termTitle = (t) => (t === 'first' ? 'First Semester' : 'Second Semester');
 export function selection(search) {
@@ -34,7 +38,10 @@ export function readIndex(value) {
   check(object(value) && Object.keys(value).length === LEVELS.length, 'Incomplete desk index');
   for (const level of LEVELS) {
     const entry = value[level];
-    check(object(entry) && text(entry.intro) && Array.isArray(entry.published), `Invalid index: ${level}`);
+    check(
+      object(entry) && text(entry.intro) && Array.isArray(entry.published),
+      `Invalid index: ${level}`,
+    );
     check(
       entry.published.every((t) => TERMS.includes(t)) &&
         new Set(entry.published).size === entry.published.length,
@@ -49,7 +56,10 @@ function reviewedHref(s) {
   try {
     const u = new URL(s);
     return (
-      s.startsWith('https://') && u.origin === 'https://legalhub-law.web.app' && !u.username && !u.password
+      s.startsWith('https://') &&
+      u.origin === 'https://legalhub-law.web.app' &&
+      !u.username &&
+      !u.password
     );
   } catch {
     return false;
@@ -58,7 +68,7 @@ function reviewedHref(s) {
 function flag(o, k) {
   check(o[k] === undefined || typeof o[k] === 'boolean', `Invalid ${k}`);
 }
-export function readTerm(value, route) {
+export function readTerm(value, route, grouped = false) {
   check(
     object(value) &&
       valid(route.level, route.semester) &&
@@ -77,9 +87,11 @@ export function readTerm(value, route) {
       object(c) && text(c.id) && /^[a-z][a-z0-9]*(?:-[a-z0-9]+)*$/.test(c.id) && !ids.has(c.id),
       'Invalid or repeated course ID',
     );
-    check(text(c.name) && !names.has(c.name.toLowerCase()), 'Invalid or repeated course name');
+    check(text(c.name), 'Invalid course name');
+    const identity = JSON.stringify([grouped ? c.curriculumId || null : null, c.name.toLowerCase()]);
+    check(!names.has(identity), 'Invalid or repeated course name');
     ids.add(c.id);
-    names.add(c.name.toLowerCase());
+    names.add(identity);
     for (const k of ['code', 'tileCode', 'title', 'badge'])
       check(c[k] === undefined || text(c[k]), `Invalid course ${k}`);
     check(
@@ -90,11 +102,16 @@ export function readTerm(value, route) {
     flag(c, 'badgeActive');
     check(!c.badgeActive || c.badge, 'Missing badge');
     const rows =
-      c.resources === undefined ? [{ label: 'Course materials', library: c.title || c.name }] : c.resources;
+      c.resources === undefined
+        ? [{ label: 'Course materials', library: c.title || c.name }]
+        : c.resources;
     check(Array.isArray(rows), 'Invalid resource list');
     const resources = rows.map((r) => {
       check(object(r) && text(r.label), 'Resource label required');
-      check(r.library === undefined || (text(r.library) && r.href === undefined), 'Invalid course filter');
+      check(
+        r.library === undefined || (text(r.library) && r.href === undefined),
+        'Invalid course filter',
+      );
       check(r.href === undefined || reviewedHref(r.href), 'Unreviewed resource destination');
       check(
         r.count === undefined || (Number.isSafeInteger(r.count) && r.count >= 0),
@@ -128,13 +145,19 @@ export function readTerm(value, route) {
     Array.isArray(guides) &&
       guides.length <= 2 &&
       guides.every(
-        (g) => object(g) && text(g.title) && text(g.note) && reviewedHref(g.href) && tones.includes(g.tone),
+        (g) =>
+          object(g) && text(g.title) && text(g.note) && reviewedHref(g.href) && tones.includes(g.tone),
       ),
     'Invalid study guides',
   );
   const routes = [
     ...guides,
-    { title: 'Open the library', note: 'Find notes and books', tone: 'yellow', href: libraryHref(route) },
+    {
+      title: 'Open the library',
+      note: 'Find notes and books',
+      tone: 'yellow',
+      href: libraryHref(route),
+    },
     {
       title: 'Take a CBT Practice',
       note: 'Compete to beat your record',
@@ -142,7 +165,9 @@ export function readTerm(value, route) {
       href: 'https://legalhub-law.web.app',
     },
   ];
-  const labels = new Set(courses.flatMap((c) => c.resources.filter((r) => !r.library).map((r) => r.label)));
+  const labels = new Set(
+    courses.flatMap((c) => c.resources.filter((r) => !r.library).map((r) => r.label)),
+  );
   return { courses, order, routes, filters: [...labels] };
 }
 

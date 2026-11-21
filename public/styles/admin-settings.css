@@ -395,3 +395,8 @@ footer span {
 @media (max-width:30rem) {.tool-card summary{align-items:flex-start}.tool-chevron{margin-top:.5rem}.tool-no{min-width:1.65rem;height:1.65rem}.tool-body .primary-action{width:100%}}
 @media (prefers-reduced-motion:reduce) {.tool-chevron{transition:none}}
 @media (forced-colors:active) {.tool-chevron{border-color:ButtonText}.tool-card,.tool-no,.primary-action{border-color:ButtonText}}
+
+/* Native form fields; no UI libraries or overlays needed. */
+.tool-body textarea{display:block;width:100%;min-height:4rem;margin-top:.35rem;padding:.65rem .75rem;resize:vertical;border:1px solid #97a39e;border-radius:.5rem;color:var(--ink);background:white;font:400 1rem/1.45 var(--sans)}
+.tool-body fieldset .secondary,.tool-body>.secondary{justify-self:start;text-align:start;min-height:44px}
+.tool-body fieldset .review{margin:.35rem 0}.tool-body .primary-action[data-danger="true"]{background:#783733;border-color:#783733}.tool-body .review code{min-height:1.2em}.tool-body legend+label{margin-top:.35rem}
